@@ -2,29 +2,43 @@ export interface AgendaItem {
   id: string;
   title: string;
   plannedDuration: number; // 予定時間（秒）
+  memo?: string; // メモ
   actualDuration: number;  // 実際の時間（秒）
-  status: 'pending' | 'running' | 'paused' | 'completed';
+  status: 'pending' | 'running' | 'paused' | 'completed' | 'overtime';
   startTime?: Date;
   endTime?: Date;
   order: number;
+  remainingTime: number; // 残り時間（秒、負の値は超過を表す）
 }
 
-export interface AgendaSession {
+export interface Meeting {
   id: string;
   title: string;
-  items: AgendaItem[];
+  agenda: AgendaItem[];
   totalPlannedDuration: number;
   totalActualDuration: number;
   status: 'not-started' | 'in-progress' | 'paused' | 'completed';
   startTime?: Date;
   endTime?: Date;
-  currentItemId?: string;
+  currentAgendaId?: string;
+  settings: {
+    autoTransition: boolean; // 自動遷移
+    silentMode: boolean; // サイレントモード（バイブのみ）
+    bellSettings: {
+      start: boolean; // 開始時ベル
+      fiveMinWarning: boolean; // 残り5分警告
+      end: boolean; // 終了時ベル
+      overtime: boolean; // 超過時ベル
+      soundType: 'single' | 'double' | 'loop'; // ベル音の種類
+    };
+  };
 }
 
 export interface AgendaTimerState {
-  currentSession: AgendaSession | null;
-  sessions: AgendaSession[];
+  currentMeeting: Meeting | null;
+  meetings: Meeting[];
   isRunning: boolean;
   currentTime: number;
-  sessionStartTime?: Date;
+  meetingStartTime?: Date;
+  lastTickTime?: number; // バックグラウンド対応用
 }
