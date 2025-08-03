@@ -1,0 +1,49 @@
+name: Documentation Link Check
+
+on:
+  push:
+    paths: 
+      - 'docs/**'
+      - 'README.md'
+  pull_request:
+    paths: 
+      - 'docs/**'
+      - 'README.md'
+  schedule:
+    - cron: '0 9 * * 1'  # 毎週月曜日9時
+  workflow_dispatch:
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install markdown-link-check
+      run: npm install -g markdown-link-check
+      
+    - name: Check links in README
+      run: markdown-link-check README.md --config .github/markdown-link-check-config.json
+      
+    - name: Check links in docs
+      run: |
+        find docs -name "*.md" -exec markdown-link-check {} --config .github/markdown-link-check-config.json \;
+        
+    - name: Check for broken internal links
+      run: |
+        echo "Checking internal link consistency..."
+        # スクリプトで内部リンクの存在確認
+        node .github/scripts/check-internal-links.cjs
+        
+    - name: Check image references
+      run: |
+        echo "Checking image file references..."
+        # 画像ファイルの存在確認
+        node .github/scripts/check-images.cjs

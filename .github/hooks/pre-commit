@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Pre-commit hook for documentation quality checks
+# This script runs documentation quality checks before commits
+
+echo "🔍 Running documentation quality checks..."
+
+# Check if there are any markdown files being committed
+MARKDOWN_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$')
+
+if [ -z "$MARKDOWN_FILES" ]; then
+    echo "✅ No markdown files to check"
+    exit 0
+fi
+
+echo "📋 Found markdown files to check:"
+echo "$MARKDOWN_FILES"
+
+# Run markdownlint on staged files
+echo "🔧 Running markdownlint..."
+if ! npm run docs:lint -- $MARKDOWN_FILES; then
+    echo "❌ Markdownlint failed. Please fix the issues before committing."
+    exit 1
+fi
+
+# Check internal links for staged files
+echo "🔗 Checking internal links..."
+for file in $MARKDOWN_FILES; do
+    if ! node .github/scripts/check-internal-links.cjs "$file"; then
+        echo "❌ Internal link check failed for $file"
+        exit 1
+    fi
+done
+
+# Check image references for staged files
+echo "🖼️  Checking image references..."
+for file in $MARKDOWN_FILES; do
+    if ! node .github/scripts/check-images.cjs "$file"; then
+        echo "❌ Image reference check failed for $file"
+        exit 1
+    fi
+done
+
+echo "✅ All documentation quality checks passed!"
+exit 0
