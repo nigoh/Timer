@@ -1,0 +1,28 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="256" height="256" fill="#2563eb" rx="32"/>
+  
+  <!-- 時計の外枠 -->
+  <circle cx="128" cy="128" r="80" fill="none" stroke="#ffffff" stroke-width="8"/>
+  
+  <!-- 時計の中心点 -->
+  <circle cx="128" cy="128" r="6" fill="#ffffff"/>
+  
+  <!-- 短針（時針） -->
+  <line x1="128" y1="128" x2="128" y2="88" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- 長針（分針） -->
+  <line x1="128" y1="128" x2="168" y2="128" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- 12時の位置 -->
+  <circle cx="128" cy="58" r="4" fill="#ffffff"/>
+  <!-- 3時の位置 -->
+  <circle cx="198" cy="128" r="4" fill="#ffffff"/>
+  <!-- 6時の位置 -->
+  <circle cx="128" cy="198" r="4" fill="#ffffff"/>
+  <!-- 9時の位置 -->
+  <circle cx="58" cy="128" r="4" fill="#ffffff"/>
+  
+  <!-- タイマー表示 -->
+  <text x="128" y="220" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="18" font-weight="bold">TIMER</text>
+</svg>
