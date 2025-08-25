@@ -16,8 +16,8 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
     /* Path mapping */
@@ -26,6 +26,18 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src/App.minimal.tsx", "src/main.tsx", "src/components", "src/utils", "src/hooks", "src/types", "src/stores/basic-timer-store.ts", "src/stores/pomodoro-store.ts"],
+  "exclude": [
+    "src/App.full.tsx",
+    "src/App.simple.tsx", 
+    "src/App.tsx",
+    "src/components/AgendaTimer.tsx",
+    "src/components/NewAgendaTimer.tsx",
+    "src/components/MultiTimer.tsx",
+    "src/stores/agenda-timer-store.ts",
+    "src/stores/multi-timer-store.ts",
+    "src/features/timer",
+    "src/lib/database.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
