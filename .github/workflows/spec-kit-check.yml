@@ -1,0 +1,32 @@
+name: Spec Kit Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  spec-kit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv (Python package manager)
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+
+      - name: Install specify-cli
+        run: |
+          uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+          specify check
+
+      - name: Show Spec Kit version and tools
+        run: |
+          specify --version || true
+          specify check || true

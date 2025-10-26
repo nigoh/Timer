@@ -1,48 +1,48 @@
 import { create } from 'zustand';
 import { Timer, TimerSession, NotificationSettings, PomodoroSettings, PomodoroTimer } from '../../../types/timer';
-import { timerDB } from '../../../lib/database';
+import { timerPersistence } from '../services/persistence';
 
 interface TimerState {
-  // データ
+  // チE�Eタ
   timers: Timer[];
   activeTimer: Timer | null;
   sessions: TimerSession[];
   
-  // UI状態
+  // UI状慁E
   loading: boolean;
   error: string | null;
   
-  // 設定
+  // 設宁E
   notificationSettings: NotificationSettings;
   pomodoroSettings: PomodoroSettings;
 }
 
 interface TimerActions {
-  // タイマー管理
+  // タイマ�E管琁E
   createTimer: (timer: Omit<Timer, 'id' | 'createdAt'>) => Promise<void>;
   updateTimer: (id: string, updates: Partial<Timer>) => Promise<void>;
   deleteTimer: (id: string) => Promise<void>;
   setActiveTimer: (timer: Timer | null) => void;
   
-  // ポモドーロタイマー専用
+  // ポモド�Eロタイマ�E専用
   createPomodoroTimer: (name: string, category?: string) => Promise<void>;
   updatePomodoroPhase: (id: string, phase: 'work' | 'short-break' | 'long-break', cycle: number) => void;
   
-  // セッション管理
+  // セチE��ョン管琁E
   startSession: (timerId: string) => Promise<void>;
   endSession: (sessionId: string, data: Partial<TimerSession>) => Promise<void>;
   
-  // 設定管理
+  // 設定管琁E
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
   updatePomodoroSettings: (settings: Partial<PomodoroSettings>) => Promise<void>;
   
-  // データ管理
+  // チE�Eタ管琁E
   loadAllData: () => Promise<void>;
   saveTimer: (timer: Timer) => Promise<void>;
   exportData: () => Promise<string>;
   importData: (data: string) => Promise<void>;
   
-  // エラー管理
+  // エラー管琁E
   setError: (error: string | null) => void;
   setLoading: (loading: boolean) => void;
 }
@@ -50,7 +50,7 @@ interface TimerActions {
 type TimerStore = TimerState & TimerActions;
 
 export const useTimerStore = create<TimerStore>((set, get) => ({
-  // 初期状態
+  // 初期状慁E
   timers: [],
   activeTimer: null,
   sessions: [],
@@ -91,7 +91,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         status: 'idle',
       };
       
-      await timerDB.saveTimer(newTimer);
+      await timerPersistence.saveTimer(newTimer);
       
       set((state) => ({
         timers: [...state.timers, newTimer],
@@ -100,7 +100,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     } catch (error) {
       set({ 
         loading: false, 
-        error: error instanceof Error ? error.message : 'タイマーの作成に失敗しました' 
+        error: error instanceof Error ? error.message : 'タイマ�Eの作�Eに失敗しました' 
       });
     }
   },
@@ -136,7 +136,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         },
       };
       
-      await timerDB.saveTimer(newPomodoroTimer);
+      await timerPersistence.saveTimer(newPomodoroTimer);
       
       set((state) => ({
         timers: [...state.timers, newPomodoroTimer],
@@ -145,7 +145,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     } catch (error) {
       set({ 
         loading: false, 
-        error: error instanceof Error ? error.message : 'ポモドーロタイマーの作成に失敗しました' 
+        error: error instanceof Error ? error.message : 'ポモド�Eロタイマ�Eの作�Eに失敗しました' 
       });
     }
   },
@@ -156,10 +156,10 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
       
       const state = get();
       const timer = state.timers.find(t => t.id === id);
-      if (!timer) throw new Error('タイマーが見つかりません');
+      if (!timer) throw new Error('タイマ�Eが見つかりません');
       
       const updatedTimer = { ...timer, ...updates };
-      await timerDB.saveTimer(updatedTimer);
+      await timerPersistence.saveTimer(updatedTimer);
       
       set((state) => ({
         timers: state.timers.map(timer => 
@@ -173,7 +173,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     } catch (error) {
       set({ 
         loading: false, 
-        error: error instanceof Error ? error.message : 'タイマーの更新に失敗しました' 
+        error: error instanceof Error ? error.message : 'タイマ�Eの更新に失敗しました' 
       });
     }
   },
@@ -209,7 +209,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     try {
       set({ loading: true, error: null });
       
-      await timerDB.deleteTimer(id);
+      await timerPersistence.deleteTimer(id);
       
       set((state) => ({
         timers: state.timers.filter(timer => timer.id !== id),
@@ -219,7 +219,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     } catch (error) {
       set({ 
         loading: false, 
-        error: error instanceof Error ? error.message : 'タイマーの削除に失敗しました' 
+        error: error instanceof Error ? error.message : 'タイマ�Eの削除に失敗しました' 
       });
     }
   },
@@ -230,23 +230,31 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
 
   startSession: async (timerId) => {
     try {
+      const timer = get().timers.find((t) => t.id === timerId);
+      if (!timer) {
+        throw new Error('タイマ�Eが見つかりません');
+      }
+
       const newSession: TimerSession = {
         id: crypto.randomUUID(),
         timerId,
+        timerName: timer.name,
+        plannedDuration: timer.duration,
+        actualDuration: 0,
         startTime: new Date(),
-        duration: 0,
+        status: 'interrupted',
         interruptions: 0,
         tags: [],
       };
       
-      await timerDB.saveSession(newSession);
+      await timerPersistence.saveSession(newSession);
       
       set((state) => ({
         sessions: [...state.sessions, newSession],
       }));
     } catch (error) {
       set({ 
-        error: error instanceof Error ? error.message : 'セッションの開始に失敗しました' 
+        error: error instanceof Error ? error.message : 'セチE��ョンの開始に失敗しました' 
       });
     }
   },
@@ -255,10 +263,16 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     try {
       const state = get();
       const session = state.sessions.find(s => s.id === sessionId);
-      if (!session) throw new Error('セッションが見つかりません');
+      if (!session) throw new Error('セチE��ョンが見つかりません');
       
-      const updatedSession = { ...session, ...data, endTime: new Date() };
-      await timerDB.saveSession(updatedSession);
+      const updatedSession: TimerSession = {
+        ...session,
+        ...data,
+        actualDuration: data.actualDuration ?? session.actualDuration,
+        status: data.status ?? 'completed',
+        endTime: new Date(),
+      };
+      await timerPersistence.saveSession(updatedSession);
       
       set((state) => ({
         sessions: state.sessions.map(session =>
@@ -267,7 +281,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
       }));
     } catch (error) {
       set({ 
-        error: error instanceof Error ? error.message : 'セッションの終了に失敗しました' 
+        error: error instanceof Error ? error.message : 'セチE��ョンの終亁E��失敗しました' 
       });
     }
   },
@@ -275,12 +289,12 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
   updateNotificationSettings: async (settings) => {
     try {
       const newSettings = { ...get().notificationSettings, ...settings };
-      await timerDB.saveNotificationSettings(newSettings);
+      await timerPersistence.saveNotificationSettings(newSettings);
       
       set({ notificationSettings: newSettings });
     } catch (error) {
       set({ 
-        error: error instanceof Error ? error.message : '通知設定の更新に失敗しました' 
+        error: error instanceof Error ? error.message : '通知設定�E更新に失敗しました' 
       });
     }
   },
@@ -288,12 +302,12 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
   updatePomodoroSettings: async (settings) => {
     try {
       const newSettings = { ...get().pomodoroSettings, ...settings };
-      await timerDB.savePomodoroSettings(newSettings);
+      await timerPersistence.savePomodoroSettings(newSettings);
       
       set({ pomodoroSettings: newSettings });
     } catch (error) {
       set({ 
-        error: error instanceof Error ? error.message : 'ポモドーロ設定の更新に失敗しました' 
+        error: error instanceof Error ? error.message : 'ポモド�Eロ設定�E更新に失敗しました' 
       });
     }
   },
@@ -302,14 +316,14 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     try {
       set({ loading: true, error: null });
       
-      // データベース初期化
-      await timerDB.initializeDatabase();
+      // チE�Eタベ�Eス初期匁E
+      await timerPersistence.initializeDatabase();
       
-      // 各種データを並行で読み込み
+      // 吁E��チE�Eタを並行で読み込み
       const [timers, notificationSettings, pomodoroSettings] = await Promise.all([
-        timerDB.getTimers(),
-        timerDB.getNotificationSettings(),
-        timerDB.getPomodoroSettings(),
+        timerPersistence.getTimers(),
+        timerPersistence.getNotificationSettings(),
+        timerPersistence.getPomodoroSettings(),
       ]);
       
       set({ 
@@ -321,27 +335,27 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     } catch (error) {
       set({ 
         loading: false, 
-        error: error instanceof Error ? error.message : 'データの読み込みに失敗しました' 
+        error: error instanceof Error ? error.message : 'チE�Eタの読み込みに失敗しました' 
       });
     }
   },
 
   saveTimer: async (timer) => {
     try {
-      await timerDB.saveTimer(timer);
+      await timerPersistence.saveTimer(timer);
     } catch (error) {
       set({ 
-        error: error instanceof Error ? error.message : 'タイマーの保存に失敗しました' 
+        error: error instanceof Error ? error.message : 'タイマ�Eの保存に失敗しました' 
       });
     }
   },
 
   exportData: async () => {
     try {
-      return await timerDB.exportData();
+      return await timerPersistence.exportData();
     } catch (error) {
       set({ 
-        error: error instanceof Error ? error.message : 'データのエクスポートに失敗しました' 
+        error: error instanceof Error ? error.message : 'チE�Eタのエクスポ�Eトに失敗しました' 
       });
       return '';
     }
@@ -351,12 +365,12 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     try {
       set({ loading: true, error: null });
       
-      await timerDB.importData(data);
-      await get().loadAllData(); // データを再読み込み
+      await timerPersistence.importData(data);
+      await get().loadAllData(); // チE�Eタを�E読み込み
     } catch (error) {
       set({ 
         loading: false, 
-        error: error instanceof Error ? error.message : 'データのインポートに失敗しました' 
+        error: error instanceof Error ? error.message : 'チE�Eタのインポ�Eトに失敗しました' 
       });
     }
   },
@@ -369,3 +383,5 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     set({ loading });
   },
 }));
+
+

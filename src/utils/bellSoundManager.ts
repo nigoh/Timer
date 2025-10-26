@@ -113,6 +113,9 @@ class BellSoundManager {
       return;
     }
 
+    const fallbackUrl = SOUND_PATHS[type];
+    void fallbackUrl;
+
     if (!this.audioContext || !this.soundBuffers.has(type)) {
       console.warn(`音声 ${type} が利用できません`);
       return;

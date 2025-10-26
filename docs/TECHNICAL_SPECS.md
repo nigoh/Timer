@@ -1,55 +1,55 @@
-# タイマーアプリケーション 技術仕様書
+# タイマ�Eアプリケーション 技術仕様書
 
-## 📋 システム構成
+## 📋 シスチE��構�E
 
-### アーキテクチャ概要
+### アーキチE��チャ概要E
 ```
 src/
 ├── features/
-│   ├── timer/                     # 基本タイマー機能
-│   ├── pomodoroTimer/            # ポモドーロタイマー
-│   ├── multiTimer/               # 複数タイマー管理
-│   ├── analytics/                # 統計・分析
-│   ├── settings/                 # 設定管理
-│   └── teamTimer/               # チーム機能（Phase 3）
+━E  ├── timer/                     # 基本タイマ�E機�E
+━E  ├── pomodoroTimer/            # ポモド�Eロタイマ�E
+━E  ├── multiTimer/               # 褁E��タイマ�E管琁E
+━E  ├── analytics/                # 統計�E刁E��
+━E  ├── settings/                 # 設定管琁E
+━E  └── teamTimer/               # チ�Eム機�E�E�Ehase 3�E�E
 ├── components/
-│   ├── layout/                   # 既存レイアウト活用
-│   ├── ui/                      # 基本UIコンポーネント
-│   └── timer/                   # タイマー専用コンポーネント
+━E  ├── layout/                   # 既存レイアウト活用
+━E  ├── ui/                      # 基本UIコンポ�EネンチE
+━E  └── timer/                   # タイマ�E専用コンポ�EネンチE
 ├── hooks/                       # 共通カスタムフック
-├── stores/                      # Zustand状態管理
-├── utils/                       # ユーティリティ関数
+├── stores/                      # Zustand状態管琁E
+├── utils/                       # ユーチE��リチE��関数
 ├── types/                       # TypeScript型定義
 └── constants/                   # 定数・設定値
 ```
 
 ---
 
-## 🎯 コンポーネント設計
+## 🎯 コンポ�Eネント設訁E
 
 ### 1. Timer Feature Structure
 
 ```typescript
 // src/features/timer/
-├── Timer.tsx                    # メインページ
-├── TimerDisplay.tsx            # タイマー表示コンポーネント
+├── Timer.tsx                    # メインペ�Eジ
+├── TimerDisplay.tsx            # タイマ�E表示コンポ�EネンチE
 ├── TimerControls.tsx           # 操作コントロール
 ├── TimerSettings.tsx           # 設定画面
 ├── components/
-│   ├── DigitalDisplay.tsx      # デジタル表示
-│   ├── AnalogDisplay.tsx       # アナログ表示
-│   ├── ProgressRing.tsx        # 進捗リング
-│   ├── NotificationSettings.tsx # 通知設定
-│   └── SoundSelector.tsx       # 音声選択
+━E  ├── DigitalDisplay.tsx      # チE��タル表示
+━E  ├── AnalogDisplay.tsx       # アナログ表示
+━E  ├── ProgressRing.tsx        # 進捗リング
+━E  ├── NotificationSettings.tsx # 通知設宁E
+━E  └── SoundSelector.tsx       # 音声選抁E
 ├── hooks/
-│   ├── useTimer.ts             # タイマーロジック
-│   ├── useNotification.ts      # 通知管理
-│   └── useAudio.ts            # 音声管理
+━E  ├── useTimer.ts             # タイマ�EロジチE��
+━E  ├── useNotification.ts      # 通知管琁E
+━E  └── useAudio.ts            # 音声管琁E
 ├── stores/
-│   ├── useTimerStore.ts        # タイマー状態
-│   └── useTimerSettingsStore.ts # 設定状態
+━E  ├── useTimerStore.ts        # タイマ�E状慁E
+━E  └── useTimerSettingsStore.ts # 設定状慁E
 ├── constants/
-│   └── timerConstants.ts       # タイマー関連定数
+━E  └── timerConstants.ts       # タイマ�E関連定数
 └── types/
     └── timer.types.ts          # 型定義
 ```
@@ -61,7 +61,7 @@ src/
 export interface Timer {
   id: string;
   name: string;
-  duration: number;            // 秒単位
+  duration: number;            // 秒単佁E
   remainingTime: number;       // 残り時間
   status: TimerStatus;
   createdAt: Date;
@@ -91,10 +91,10 @@ export interface TimerSession {
 }
 
 export interface PomodoroSettings {
-  workDuration: number;      // 作業時間（分）
-  shortBreakDuration: number; // 短い休憩（分）
-  longBreakDuration: number;  // 長い休憩（分）
-  longBreakInterval: number;  // 長い休憩の間隔
+  workDuration: number;      // 作業時間�E��E�E�E
+  shortBreakDuration: number; // 短ぁE���E�E��E�E�E
+  longBreakDuration: number;  // 長ぁE���E�E��E�E�E
+  longBreakInterval: number;  // 長ぁE���Eの間隔
   autoStartBreaks: boolean;
   autoStartWork: boolean;
 }
@@ -111,29 +111,29 @@ export interface NotificationSettings {
 
 ---
 
-## 🔧 状態管理設計
+## 🔧 状態管琁E��訁E
 
-### 1. Timer Store（Zustand）
+### 1. Timer Store�E�Eustand�E�E
 
 ```typescript
 // src/stores/useTimerStore.ts
 interface TimerState {
-  // データ
+  // チE�Eタ
   timers: Timer[];
   activeTimer: Timer | null;
   sessions: TimerSession[];
   
-  // UI状態
+  // UI状慁E
   loading: boolean;
   error: string | null;
   
-  // 統計
+  // 統訁E
   todayStats: DayStats;
   weekStats: WeekStats;
 }
 
 interface TimerActions {
-  // タイマー管理
+  // タイマ�E管琁E
   createTimer: (timer: Omit<Timer, 'id'>) => void;
   updateTimer: (id: string, updates: Partial<Timer>) => void;
   deleteTimer: (id: string) => void;
@@ -142,11 +142,11 @@ interface TimerActions {
   stopTimer: (id: string) => void;
   resetTimer: (id: string) => void;
   
-  // セッション管理
+  // セチE��ョン管琁E
   startSession: (timerId: string) => void;
   endSession: (sessionId: string, data: Partial<TimerSession>) => void;
   
-  // データ管理
+  // チE�Eタ管琁E
   loadTimers: () => Promise<void>;
   saveTimer: (timer: Timer) => Promise<void>;
   exportData: () => Promise<string>;
@@ -161,21 +161,21 @@ export type TimerStore = TimerState & TimerActions;
 ```typescript
 // src/stores/useSettingsStore.ts
 interface SettingsState {
-  // 外観設定
+  // 外観設宁E
   theme: 'light' | 'dark' | 'system';
   accentColor: string;
   displayMode: 'digital' | 'analog' | 'both';
   
-  // 通知設定
+  // 通知設宁E
   notifications: NotificationSettings;
   
-  // ポモドーロ設定
+  // ポモド�Eロ設宁E
   pomodoro: PomodoroSettings;
   
-  // ショートカット
+  // ショートカチE��
   shortcuts: { [action: string]: string };
   
-  // 一般設定
+  // 一般設宁E
   autoSave: boolean;
   dataRetention: number;     // 日数
   backupEnabled: boolean;
@@ -194,9 +194,9 @@ interface SettingsActions {
 
 ---
 
-## 🎨 UI/UX 実装詳細
+## 🎨 UI/UX 実裁E��細
 
-### 1. タイマー表示コンポーネント
+### 1. タイマ�E表示コンポ�EネンチE
 
 ```typescript
 // src/components/timer/TimerDisplay.tsx
@@ -215,11 +215,11 @@ const TimerDisplay: React.FC<TimerDisplayProps> = ({
   showProgress = true,
   interactive = true
 }) => {
-  // 実装詳細
+  // 実裁E��細
 };
 ```
 
-### 2. 進捗リングコンポーネント
+### 2. 進捗リングコンポ�EネンチE
 
 ```typescript
 // src/components/timer/ProgressRing.tsx
@@ -234,10 +234,10 @@ interface ProgressRingProps {
 }
 ```
 
-### 3. レスポンシブ対応
+### 3. レスポンシブ対忁E
 
 ```typescript
-// MUIのテーマ拡張
+// MUIのチE�Eマ拡張
 const timerTheme = {
   breakpoints: {
     timer: {
@@ -255,7 +255,7 @@ const timerTheme = {
             fontSize: '3rem',
             padding: theme.spacing(2),
           },
-          // デスクトップ: 複数表示対応
+          // チE��クトッチE 褁E��表示対忁E
           [theme.breakpoints.up('lg')]: {
             fontSize: '2rem',
             minHeight: '200px',
@@ -269,9 +269,9 @@ const timerTheme = {
 
 ---
 
-## ⏰ タイマー機能実装
+## ⏰ タイマ�E機�E実裁E
 
-### 1. 高精度タイマーフック
+### 1. 高精度タイマ�Eフック
 
 ```typescript
 // src/hooks/useTimer.ts
@@ -280,7 +280,7 @@ interface UseTimerOptions {
   onComplete?: () => void;
   onStart?: () => void;
   onPause?: () => void;
-  precision?: number;        // ミリ秒単位の精度
+  precision?: number;        // ミリ秒単位�E精度
 }
 
 export const useTimer = (
@@ -291,11 +291,11 @@ export const useTimer = (
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   
-  // Web Workers使用による高精度タイマー
+  // Web Workers使用による高精度タイマ�E
   const workerRef = useRef<Worker>();
   
   useEffect(() => {
-    // Timer Workerの初期化
+    // Timer Workerの初期匁E
     workerRef.current = new Worker('/workers/timer-worker.js');
     
     workerRef.current.onmessage = (event) => {
@@ -313,7 +313,7 @@ export const useTimer = (
     return () => workerRef.current?.terminate();
   }, []);
   
-  // タイマー操作メソッド
+  // タイマ�E操作メソチE��
   const start = useCallback(() => {
     setIsRunning(true);
     setIsPaused(false);
@@ -325,7 +325,7 @@ export const useTimer = (
     options.onStart?.();
   }, [timeRemaining, options]);
   
-  // その他のメソッド...
+  // そ�E他�EメソチE��...
   
   return {
     timeRemaining,
@@ -340,7 +340,7 @@ export const useTimer = (
 };
 ```
 
-### 2. Timer Worker（高精度処理）
+### 2. Timer Worker�E�高精度処琁E��E
 
 ```javascript
 // public/workers/timer-worker.js
@@ -398,9 +398,9 @@ function startTimer() {
 
 ---
 
-## 🔔 通知システム
+## 🔔 通知シスチE��
 
-### 1. 通知管理フック
+### 1. 通知管琁E��チE��
 
 ```typescript
 // src/hooks/useNotification.ts
@@ -447,7 +447,7 @@ export const useNotification = () => {
 };
 ```
 
-### 2. 音声通知システム
+### 2. 音声通知シスチE��
 
 ```typescript
 // src/hooks/useAudio.ts
@@ -466,7 +466,7 @@ export const useAudio = () => {
       const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
       audioBufferRef.current[name] = audioBuffer;
     } catch (error) {
-      console.error('音声ファイルの読み込みに失敗:', error);
+      console.error('音声ファイルの読み込みに失敁E', error);
     }
   }, []);
   
@@ -498,9 +498,9 @@ export const useAudio = () => {
 
 ---
 
-## 💾 データ永続化
+## 💾 チE�Eタ永続化
 
-### 1. IndexedDB管理
+### 1. IndexedDB管琁E
 
 ```typescript
 // src/utils/database.ts
@@ -532,9 +532,9 @@ class TimerDatabase extends Dexie {
 
 export const db = new TimerDatabase();
 
-// データ操作ヘルパー
-export const timerDB = {
-  // タイマー操作
+// チE�Eタ操作�Eルパ�E
+export const timerPersistence = {
+  // タイマ�E操佁E
   async saveTimer(timer: Timer): Promise<void> {
     await db.timers.put(timer);
   },
@@ -547,7 +547,7 @@ export const timerDB = {
     await db.timers.where('id').equals(id).delete();
   },
   
-  // セッション操作
+  // セチE��ョン操佁E
   async saveSession(session: TimerSession): Promise<void> {
     await db.sessions.put(session);
   },
@@ -564,7 +564,7 @@ export const timerDB = {
       .toArray();
   },
   
-  // エクスポート/インポート
+  // エクスポ�EチEインポ�EチE
   async exportData(): Promise<string> {
     const timers = await db.timers.toArray();
     const sessions = await db.sessions.toArray();
@@ -595,9 +595,9 @@ export const timerDB = {
 
 ---
 
-## 📊 統計・分析機能
+## 📊 統計�E刁E��機�E
 
-### 1. 統計計算ユーティリティ
+### 1. 統計計算ユーチE��リチE��
 
 ```typescript
 // src/utils/analytics.ts
@@ -636,7 +636,7 @@ export const analyticsUtils = {
     );
     
     const categories = daySession.reduce((acc, session) => {
-      const category = session.tags[0] || 'その他';
+      const category = session.tags[0] || 'そ�E仁E;
       acc[category] = (acc[category] || 0) + session.duration;
       return acc;
     }, {} as { [category: string]: number });
@@ -672,7 +672,7 @@ export const analyticsUtils = {
       dailyStats,
       mostProductiveDay,
       averageDailyTime: totalTime / 7,
-      weeklyGoalProgress: 0 // 目標設定機能実装後
+      weeklyGoalProgress: 0 // 目標設定機�E実裁E��E
     };
   }
 };
@@ -693,44 +693,45 @@ function calculateProductivity(sessions: TimerSession[]): number {
 
 ---
 
-## 🎯 実装ロードマップ
+## 🎯 実裁E��ード�EチE�E
 
-### Phase 1: Core MVP（2週間）
-1. **基本プロジェクト設定**
-   - Vite + React + TypeScript環境構築
-   - MUI v7設定、デザインシステム統合
-   - Zustand状態管理基盤
+### Phase 1: Core MVP�E�E週間！E
+1. **基本プロジェクト設宁E*
+   - Vite + React + TypeScript環墁E��篁E
+   - MUI v7設定、デザインシスチE��統吁E
+   - Zustand状態管琁E��盤
 
-2. **基本タイマー機能**
-   - シンプルなカウントダウンタイマー
-   - 開始/一時停止/停止/リセット
-   - 基本的な通知（ブラウザ通知、音声）
+2. **基本タイマ�E機�E**
+   - シンプルなカウントダウンタイマ�E
+   - 開姁E一時停止/停止/リセチE��
+   - 基本皁E��通知�E�ブラウザ通知、E��声�E�E
 
 3. **UI基盤**
-   - レスポンシブレイアウト
-   - タイマー表示（デジタル）
-   - 基本的な設定画面
+   - レスポンシブレイアウチE
+   - タイマ�E表示�E�デジタル�E�E
+   - 基本皁E��設定画面
 
-### Phase 2: Enhanced Features（3週間）
-1. **ポモドーロタイマー**
-2. **複数タイマー管理**
-3. **セッション記録・基本統計**
-4. **データ永続化（IndexedDB）**
-5. **エクスポート/インポート機能**
+### Phase 2: Enhanced Features�E�E週間！E
+1. **ポモド�Eロタイマ�E**
+2. **褁E��タイマ�E管琁E*
+3. **セチE��ョン記録・基本統訁E*
+4. **チE�Eタ永続化�E�EndexedDB�E�E*
+5. **エクスポ�EチEインポ�Eト機�E**
 
-### Phase 3: Advanced Features（4週間）
-1. **詳細統計・分析**
-2. **目標設定・達成度管理**
-3. **高度な通知設定**
-4. **PWA対応**
-5. **チーム機能基盤**
+### Phase 3: Advanced Features�E�E週間！E
+1. **詳細統計�E刁E��**
+2. **目標設定�E達�E度管琁E*
+3. **高度な通知設宁E*
+4. **PWA対忁E*
+5. **チ�Eム機�E基盤**
 
-### Phase 4: Polish & Optimization（2週間）
-1. **パフォーマンス最適化**
-2. **アクセシビリティ向上**
-3. **ユーザビリティテスト・改善**
-4. **ドキュメント整備**
+### Phase 4: Polish & Optimization�E�E週間！E
+1. **パフォーマンス最適匁E*
+2. **アクセシビリチE��向丁E*
+3. **ユーザビリチE��チE��ト�E改喁E*
+4. **ドキュメント整傁E*
 
 ---
 
-この技術仕様書に基づいて、段階的な実装を進めていきます。Phase 1のMVPから始めて、ユーザーフィードバックを収集しながら機能を拡張していく予定です。
+こ�E技術仕様書に基づぁE��、段階的な実裁E��進めてぁE��ます。Phase 1のMVPから始めて、ユーザーフィードバチE��を収雁E��ながら機�Eを拡張してぁE��予定です、E
+

@@ -8,8 +8,6 @@ export const useTimer = (
   const [timeRemaining, setTimeRemaining] = useState(initialTimer.remainingTime);
   const [isRunning, setIsRunning] = useState(initialTimer.status === 'running');
   const [isPaused, setIsPaused] = useState(initialTimer.status === 'paused');
-  const [startTime, setStartTime] = useState<number | null>(null);
-  
   const intervalRef = useRef<number>();
   const precision = options.precision || 1000;
 
@@ -30,7 +28,6 @@ export const useTimer = (
     
     setIsRunning(true);
     setIsPaused(false);
-    setStartTime(Date.now());
     
     intervalRef.current = window.setInterval(() => {
       setTimeRemaining((prev) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -6,14 +6,14 @@ import { Label } from '../../../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { Plus, Play, Pause, Trash2, Edit, Clock } from 'lucide-react';
-import { Timer, TimerType, PomodoroTimer } from '../../../types/timer';
-import { formatTime, formatDuration } from '../../../lib/utils';
-import { cn } from '../../../lib/utils';
+import { Timer, TimerType } from '../../../types/timer';
+import { formatTime, formatDuration, cn } from '../../../lib/utils';
 
 interface TimerListProps {
   timers: Timer[];
-  activeTimer: Timer | null;
-  onTimerSelect: (timer: Timer) => void;
+  activeTimer?: Timer | null;
+  activeTimerId?: string;
+  onTimerSelect: (timer: Timer | null) => void;
   onTimerCreate: (timer: Omit<Timer, 'id' | 'createdAt'>) => void;
   onTimerUpdate: (id: string, updates: Partial<Timer>) => void;
   onTimerDelete: (id: string) => void;
@@ -24,12 +24,13 @@ interface TimerListProps {
 export function TimerList({
   timers,
   activeTimer,
+  activeTimerId,
   onTimerSelect,
   onTimerCreate,
   onTimerUpdate,
   onTimerDelete,
   onTimerStart,
-  onTimerPause
+  onTimerPause,
 }: TimerListProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
@@ -42,8 +43,12 @@ export function TimerList({
     soundEnabled: true,
   });
 
-  const basicTimers = timers.filter(timer => timer.type === 'basic');
-  const pomodoroTimers = timers.filter(timer => timer.type === 'pomodoro');
+  const currentActiveTimer =
+    activeTimer ??
+    (activeTimerId ? timers.find((timer) => timer.id === activeTimerId) ?? null : null);
+
+  const basicTimers = timers.filter((timer) => timer.type === 'basic');
+  const pomodoroTimers = timers.filter((timer) => timer.type === 'pomodoro');
 
   const handleCreateTimer = () => {
     const durationInSeconds = newTimerData.duration * 60;
@@ -105,7 +110,7 @@ export function TimerList({
     <Card 
       className={cn(
         "cursor-pointer transition-all hover:shadow-md",
-        activeTimer?.id === timer.id && "ring-2 ring-primary"
+        currentActiveTimer?.id === timer.id && "ring-2 ring-primary"
       )}
       onClick={() => onTimerSelect(timer)}
     >
