@@ -80,3 +80,15 @@ specify init --here --ai copilot --script ps --ignore-agent-tools --no-git
 ## 9. 参考リンク
 - リポジトリ: https://github.com/github/spec-kit
 - ドキュメント: https://github.github.io/spec-kit/
+
+---
+
+### 付録: /speckit.constitution にファイルを使うには？
+
+`/speckit.constitution` は基本的に「チャットに貼った本文」を入力として扱いますが、VS Code では次のやり方が便利です。
+
+- エディタでファイル（例: `docs/PROJECT_CONSTITUTION.md`）を開き、全選択してチャットに貼る
+- もしくは選択範囲を作って「Add Selection to Chat」でチャットに添付してから `/speckit.constitution` を実行
+- ファイルパスを明示して「このファイルの内容を憲法として適用」と指示（エージェントがワークスペースの内容を参照可能な場合）
+
+本リポジトリでは、憲法の雛形として `docs/PROJECT_CONSTITUTION.md` を用意しています。必要に応じて編集し、上記の方法で `/speckit.constitution` に入力してください。

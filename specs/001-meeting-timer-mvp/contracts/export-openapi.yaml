@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: Meeting Timer Export API (Local Contract)
+  version: 1.0.0
+servers:
+  - url: local://export
+paths:
+  /markdown:
+    post:
+      summary: Export meeting to Markdown
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Markdown content
+          content:
+            text/markdown:
+              schema:
+                type: string
+  /pdf:
+    post:
+      summary: Export meeting to PDF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: PDF binary (base64)
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+  /csv:
+    post:
+      summary: Export meeting to CSV bundle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: CSVs as text payloads
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agendasCsv:
+                    type: string
+                  actionsCsv:
+                    type: string
+components:
+  schemas:
+    ExportRequest:
+      type: object
+      properties:
+        meetingId:
+          type: string
+        includeMinutes:
+          type: boolean
+          default: true
