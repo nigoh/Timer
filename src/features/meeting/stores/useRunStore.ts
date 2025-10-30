@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { useMeetingStore } from './useMeetingStore';
 import { useAgendaStore } from './useAgendaStore';
-import type { AgendaItem, MinuteItem, OverrunDecision } from '../constants/meetingConstants';
+import type { AgendaItem, MinuteItem, MinuteType, OverrunDecision } from '../constants/meetingConstants';
+import { logger } from '../../../utils/logger';
 
 interface RunState {
   isRunning: boolean;
@@ -18,17 +19,43 @@ interface RunActions {
   start: () => void;
   pause: () => void;
   resume: () => void;
-  stop: () => void;
-  nextAgenda: () => void;
-  extendCurrent: (seconds: number) => { ok: boolean; reason?: string };
-  borrowFromNext: (seconds: number) => { ok: boolean; reason?: string };
+  reset: () => void;
+  stop: (reason?: 'complete' | 'manual' | 'error', context?: Record<string, unknown>) => void;
+  nextAgenda: (options?: NextAgendaOptions) => void;
+  extendCurrent: (seconds: number, reason?: string) => { ok: boolean; reason?: string };
+  borrowFromNext: (seconds: number, reason?: string) => { ok: boolean; reason?: string };
   skipCurrent: () => void;
-  addMinute: (text: string) => void;
+  addMinute: (minute: AddMinuteInput) => void;
+  logManualAdjustment: (message: string, context?: Record<string, unknown>) => void;
 }
+
+type NextAgendaOptions = {
+  reason?: 'manual' | 'time' | 'skip';
+  note?: string;
+};
+
+type AddMinuteInput = {
+  agendaId?: string;
+  type: MinuteType;
+  content: string;
+  owner?: string;
+  due?: string;
+  createdAt?: string;
+};
 
 type Store = RunState & RunActions;
 
 const now = () => Date.now();
+
+const RUN_LOG_CATEGORY = 'timer';
+
+const logTimerEvent = (message: string, data?: Record<string, unknown>) => {
+  logger.info(message, data, RUN_LOG_CATEGORY);
+};
+
+const logTimerWarning = (message: string, data?: Record<string, unknown>) => {
+  logger.warn(message, data, RUN_LOG_CATEGORY);
+};
 
 function getActiveMeeting() {
   const { meetings, activeMeetingId } = useMeetingStore.getState();
@@ -67,7 +94,10 @@ export const useRunStore = create<Store>((set, get) => ({
 
   start: () => {
     const meeting = getActiveMeeting();
-    if (!meeting) return;
+    if (!meeting) {
+      logTimerWarning('timer:start_missing_meeting');
+      return;
+    }
     if (!get().currentAgendaId) {
       useRunStore.getState().initialize();
     }
@@ -123,12 +153,25 @@ export const useRunStore = create<Store>((set, get) => ({
       }
     }, 250) as unknown as number;
     set({ isRunning: true, startedAtMs: started, pausedAtMs: null, accumulatedPauseMs: 0, lastEmittedSec: 0, tickId: id });
+
+    const latestAgendaId = get().currentAgendaId;
+    const agendaForLog = latestAgendaId ? meeting.agendas.find((a) => a.id === latestAgendaId) : undefined;
+    logTimerEvent('timer:start', {
+      meetingId: meeting.id,
+      agendaId: latestAgendaId,
+      plannedDuration: agendaForLog?.plannedDuration ?? null,
+    });
   },
 
   pause: () => {
     const s = get();
     if (!s.isRunning || s.pausedAtMs != null) return;
     set({ pausedAtMs: now() });
+    logTimerEvent('timer:pause', {
+      meetingId: getActiveMeeting()?.id,
+      agendaId: s.currentAgendaId,
+      elapsedSeconds: s.lastEmittedSec,
+    });
   },
 
   resume: () => {
@@ -136,22 +179,87 @@ export const useRunStore = create<Store>((set, get) => ({
     if (!s.isRunning || s.pausedAtMs == null) return;
     const pausedFor = now() - s.pausedAtMs;
     set({ accumulatedPauseMs: s.accumulatedPauseMs + pausedFor, pausedAtMs: null });
+    logTimerEvent('timer:resume', {
+      meetingId: getActiveMeeting()?.id,
+      agendaId: s.currentAgendaId,
+      pausedForMs: pausedFor,
+    });
   },
 
-  stop: () => {
+  reset: () => {
+    const meeting = getActiveMeeting();
+    if (!meeting) {
+      logTimerWarning('timer:reset_missing_meeting');
+      return;
+    }
+    const currentId = get().currentAgendaId;
+    if (!currentId) {
+      logTimerWarning('timer:reset_missing_agenda', { meetingId: meeting.id });
+      return;
+    }
+    const state = get();
+    if (state.tickId) clearInterval(state.tickId);
+    set({
+      isRunning: false,
+      tickId: null,
+      startedAtMs: null,
+      pausedAtMs: null,
+      accumulatedPauseMs: 0,
+      lastEmittedSec: 0,
+    });
+    useMeetingStore.setState((storeState) => ({
+      meetings: storeState.meetings.map((m) =>
+        m.id !== meeting.id
+          ? m
+          : {
+              ...m,
+              agendas: m.agendas.map((a) =>
+                a.id === currentId
+                  ? { ...a, actualDuration: 0, startAt: undefined, endAt: undefined }
+                  : a,
+              ),
+            }
+      ),
+    }));
+    logTimerEvent('timer:reset', {
+      meetingId: meeting.id,
+      agendaId: currentId,
+    });
+  },
+
+  stop: (reason = 'manual', context) => {
     const s = get();
     if (s.tickId) clearInterval(s.tickId);
     set({ isRunning: false, tickId: null });
+    const meetingId = getActiveMeeting()?.id;
+    const eventName = reason === 'complete' ? 'timer:finish' : 'timer:stop';
+    logTimerEvent(eventName, {
+      meetingId,
+      agendaId: s.currentAgendaId,
+      elapsedSeconds: s.lastEmittedSec,
+      reason,
+      ...(context ?? {}),
+    });
   },
 
-  nextAgenda: () => {
+  nextAgenda: (options: NextAgendaOptions = {}) => {
+    const { reason = 'manual', note } = options;
     const meeting = getActiveMeeting();
-    if (!meeting) return;
+    if (!meeting) {
+      logTimerWarning('timer:next_missing_meeting', { reason, note });
+      return;
+    }
     const currentId = get().currentAgendaId;
-    if (!currentId) return;
+    if (!currentId) {
+      logTimerWarning('timer:next_missing_current', { meetingId: meeting.id, reason, note });
+      return;
+    }
     const agendas = [...meeting.agendas].sort((a, b) => a.order - b.order);
     const idx = agendas.findIndex((a) => a.id === currentId);
-    if (idx < 0) return;
+    if (idx < 0) {
+      logTimerWarning('timer:next_missing_index', { meetingId: meeting.id, agendaId: currentId, reason, note });
+      return;
+    }
     // end current agenda timebox
     useMeetingStore.setState((s) => ({
       meetings: s.meetings.map((m) =>
@@ -166,7 +274,11 @@ export const useRunStore = create<Store>((set, get) => ({
     const next = agendas[idx + 1];
     if (!next) {
       // end of meeting
-      useRunStore.getState().stop();
+      useRunStore.getState().stop('complete', {
+        meetingId: meeting.id,
+        finishedAgendaId: currentId,
+        note,
+      });
       return;
     }
     set({ currentAgendaId: next.id, startedAtMs: now(), accumulatedPauseMs: 0, pausedAtMs: null, lastEmittedSec: 0 });
@@ -181,15 +293,31 @@ export const useRunStore = create<Store>((set, get) => ({
             }
       ),
     }));
+    logTimerEvent('timer:next', {
+      meetingId: meeting.id,
+      fromAgendaId: currentId,
+      toAgendaId: next.id,
+      reason,
+      note,
+    });
   },
 
-  extendCurrent: (seconds) => {
+  extendCurrent: (seconds, reason) => {
     const meeting = getActiveMeeting();
-    if (!meeting) return { ok: false, reason: 'no-active-meeting' };
+    if (!meeting) {
+      logTimerWarning('timer:extend_missing_meeting', { seconds, reason });
+      return { ok: false, reason: 'no-active-meeting' };
+    }
     const currentId = get().currentAgendaId;
-    if (!currentId) return { ok: false, reason: 'no-current-agenda' };
+    if (!currentId) {
+      logTimerWarning('timer:extend_missing_agenda', { meetingId: meeting.id, seconds, reason });
+      return { ok: false, reason: 'no-current-agenda' };
+    }
     const agenda = meeting.agendas.find((a) => a.id === currentId);
-    if (!agenda) return { ok: false, reason: 'agenda-not-found' };
+    if (!agenda) {
+      logTimerWarning('timer:extend_agenda_not_found', { meetingId: meeting.id, agendaId: currentId, seconds, reason });
+      return { ok: false, reason: 'agenda-not-found' };
+    }
 
     const newPlanned = agenda.plannedDuration + seconds;
     useMeetingStore.setState((s) => ({
@@ -213,22 +341,58 @@ export const useRunStore = create<Store>((set, get) => ({
             }
       ),
     }));
+    logTimerEvent('timer:extend', {
+      meetingId: meeting.id,
+      agendaId: currentId,
+      seconds,
+      reason,
+      newPlannedDuration: newPlanned,
+    });
     return { ok: true };
   },
 
-  borrowFromNext: (seconds) => {
+  borrowFromNext: (seconds, reason) => {
     const meeting = getActiveMeeting();
-    if (!meeting) return { ok: false, reason: 'no-active-meeting' };
+    if (!meeting) {
+      logTimerWarning('timer:borrow_missing_meeting', { seconds, reason });
+      return { ok: false, reason: 'no-active-meeting' };
+    }
     const currentId = get().currentAgendaId;
-    if (!currentId) return { ok: false, reason: 'no-current-agenda' };
-    return useAgendaStore.getState().applyBorrow(currentId, seconds);
+    if (!currentId) {
+      logTimerWarning('timer:borrow_missing_agenda', { meetingId: meeting.id, seconds, reason });
+      return { ok: false, reason: 'no-current-agenda' };
+    }
+    const result = useAgendaStore.getState().applyBorrow(currentId, seconds);
+    if (result.ok) {
+      logTimerEvent('timer:borrow', {
+        meetingId: meeting.id,
+        agendaId: currentId,
+        seconds,
+        reason,
+      });
+    } else {
+      logTimerWarning('timer:borrow_failed', {
+        meetingId: meeting.id,
+        agendaId: currentId,
+        seconds,
+        reason,
+        failureReason: result.reason,
+      });
+    }
+    return result;
   },
 
   skipCurrent: () => {
     const meeting = getActiveMeeting();
-    if (!meeting) return;
+    if (!meeting) {
+      logTimerWarning('timer:skip_missing_meeting');
+      return;
+    }
     const currentId = get().currentAgendaId;
-    if (!currentId) return;
+    if (!currentId) {
+      logTimerWarning('timer:skip_missing_agenda', { meetingId: meeting.id });
+      return;
+    }
     useMeetingStore.setState((s) => ({
       meetings: s.meetings.map((m) =>
         m.id !== meeting.id
@@ -249,20 +413,37 @@ export const useRunStore = create<Store>((set, get) => ({
             }
       ),
     }));
-    useRunStore.getState().nextAgenda();
+    logTimerEvent('timer:skip', {
+      meetingId: meeting.id,
+      agendaId: currentId,
+    });
+    useRunStore.getState().nextAgenda({ reason: 'skip' });
   },
 
-  addMinute: (text) => {
+  addMinute: (minuteInput) => {
     const meeting = getActiveMeeting();
-    if (!meeting) return;
-    const currentId = get().currentAgendaId;
-    if (!currentId) return;
+    if (!meeting) {
+      logTimerWarning('minutes:add_missing_meeting', { minuteInput });
+      return;
+    }
+    const agendaId = minuteInput.agendaId ?? get().currentAgendaId;
+    if (!agendaId) {
+      logTimerWarning('minutes:add_missing_agenda', { meetingId: meeting.id, minuteInput });
+      return;
+    }
+    const agendaExists = meeting.agendas.some((a) => a.id === agendaId);
+    if (!agendaExists) {
+      logTimerWarning('minutes:add_agenda_not_found', { meetingId: meeting.id, agendaId, minuteInput });
+      return;
+    }
     const minute: MinuteItem = {
       id: (crypto as any)?.randomUUID?.() ?? Math.random().toString(36).slice(2),
-      agendaId: currentId,
-      type: 'Note',
-      content: text,
-      createdAt: new Date().toISOString(),
+      agendaId,
+      type: minuteInput.type,
+      content: minuteInput.content,
+      owner: minuteInput.owner,
+      due: minuteInput.due,
+      createdAt: minuteInput.createdAt ?? new Date().toISOString(),
     };
     useMeetingStore.setState((s) => ({
       meetings: s.meetings.map((m) =>
@@ -270,9 +451,18 @@ export const useRunStore = create<Store>((set, get) => ({
           ? m
           : {
               ...m,
-              agendas: m.agendas.map((a) => (a.id === currentId ? { ...a, minutes: [...a.minutes, minute] } : a)),
+              agendas: m.agendas.map((a) => (a.id === agendaId ? { ...a, minutes: [...a.minutes, minute] } : a)),
             }
       ),
     }));
+    logTimerEvent('minutes:recorded', {
+      meetingId: meeting.id,
+      agendaId,
+      type: minute.type,
+    });
+  },
+
+  logManualAdjustment: (message, context) => {
+    logTimerEvent('timer:manual_adjustment', { message, ...(context ?? {}) });
   },
 }));

@@ -36,14 +36,14 @@ Plan: ./plan.md | Spec: ./spec.md | Date: 2025-10-26
 Goal: アジェンダごとの進行（超過：延長/次へ/借用）と議事録入力、終了時サマリー/出力の前段
 Independent Test: 2–3アジェンダで開始→超過→三択→議事録入力→サマリー確認
 
-- [ ] T012 [P] [US1] Create MeetingRunPage at src/features/meeting/meeting.tsx using FeatureLayout/Header/Content
-- [ ] T013 [P] [US1] Implement TimerControls component at src/features/meeting/components/MeetingDialogs.tsx (start/pause/resume/reset/next)
-- [ ] T014 [P] [US1] Implement OverrunDialog in src/features/meeting/components/MeetingDialogs.tsx (extend/next/borrow)
-- [ ] T015 [P] [US1] Implement MinutesPane in src/features/meeting/components/MeetingDialogs.tsx (Note/Decision/Action入力)
-- [ ] T016 [US1] Wire stores to MeetingRunPage (selectors, useCallback, 100行以内分割)
-- [ ] T017 [US1] Record overrun decisions and actual durations (useAgendaStore/useRunStore)
-- [ ] T018 [US1] Add summary view shell in src/features/meeting/components/MeetingListTable.tsx (planned vs actual/decisions)
-- [ ] T019 [US1] Log key events (timer:start/extend/borrow/next/finish) via src/utils/logger.ts
+- [X] T012 [P] [US1] Create MeetingRunPage at src/features/meeting/meeting.tsx using FeatureLayout/Header/Content
+- [X] T013 [P] [US1] Implement TimerControls component at src/features/meeting/components/MeetingDialogs.tsx (start/pause/resume/reset/next)
+- [X] T014 [P] [US1] Implement OverrunDialog in src/features/meeting/components/MeetingDialogs.tsx (extend/next/borrow)
+- [X] T015 [P] [US1] Implement MinutesPane in src/features/meeting/components/MeetingDialogs.tsx (Note/Decision/Action入力)
+- [X] T016 [US1] Wire stores to MeetingRunPage (selectors, useCallback, 100行以内分割)
+- [X] T017 [US1] Record overrun decisions and actual durations (useAgendaStore/useRunStore)
+- [X] T018 [US1] Add summary view shell in src/features/meeting/components/MeetingListTable.tsx (planned vs actual/decisions)
+- [X] T019 [US1] Log key events (timer:start/extend/borrow/next/finish) via src/utils/logger.ts
 
 ---
 
