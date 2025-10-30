@@ -112,6 +112,7 @@ export const useAgendaStore = create<Store>(() => ({
     const nextIdx = fromIdx + 1;
     if (nextIdx >= agendas.length) return { ok: false, reason: 'no-next-agenda' };
     const next = agendas[nextIdx];
+    const from = agendas[fromIdx];
     const newPlanned = next.plannedDuration - seconds;
     if (newPlanned < 0) return { ok: false, reason: 'negative-next' };
 
@@ -127,6 +128,7 @@ export const useAgendaStore = create<Store>(() => ({
                   : a.id === fromAgendaId
                   ? {
                       ...a,
+                      plannedDuration: from.plannedDuration + seconds,
                       overrunDecisions: [
                         ...a.overrunDecisions,
                         { type: 'borrow', amountSec: seconds, at: new Date().toISOString(), fromAgendaId, toAgendaId: next.id },
