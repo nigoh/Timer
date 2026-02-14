@@ -44,29 +44,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto p-2 md:p-3">
-        <header className="mb-2 flex items-center justify-between">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card">
-            <Timer className="h-5 w-5" />
-          </div>
+      <div className="w-full px-2 md:px-3">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <header className="mb-2 flex items-center gap-2">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card">
+              <Timer className="h-5 w-5" />
+            </div>
 
-          <div>
-            <LogViewer>
-              <Button variant="outline" size="sm">
-                <Bug className="w-4 h-4 mr-2" />
-                ログ
-              </Button>
-            </LogViewer>
-          </div>
-        </header>
-
-        <main>
-          <Tabs
-            value={activeTab}
-            onValueChange={handleTabChange}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsList className="grid h-10 flex-1 grid-cols-4">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <Timer className="w-4 h-4" />
                 基本タイマー
@@ -85,6 +70,15 @@ function App() {
               </TabsTrigger>
             </TabsList>
 
+            <LogViewer>
+              <Button variant="outline" size="sm">
+                <Bug className="w-4 h-4 mr-2" />
+                ログ
+              </Button>
+            </LogViewer>
+          </header>
+
+          <main>
             <TabsContent value="basic">
               <ErrorBoundary componentName="BasicTimer">
                 <BasicTimer />
@@ -108,8 +102,8 @@ function App() {
                 <MultiTimer />
               </ErrorBoundary>
             </TabsContent>
-          </Tabs>
-        </main>
+          </main>
+        </Tabs>
       </div>
     </div>
   );

@@ -130,7 +130,6 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       status: 'pending',
       minutesContent: '',
       minutesFormat: 'markdown',
-      sectionStatus: 'not_started',
       order: 0,
       remainingTime: plannedDuration,
     };

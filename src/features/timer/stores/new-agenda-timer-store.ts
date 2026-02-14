@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { AgendaTimerState, Meeting, AgendaItem } from "@/types/agenda";
 import { bellSoundManager } from "@/utils/bellSoundManager";
 import { logger } from "@/utils/logger";
@@ -27,11 +28,6 @@ export interface AgendaTimerStore extends AgendaTimerState {
     meetingId: string,
     agendaId: string,
     updates: Pick<AgendaItem, "minutesContent" | "minutesFormat">,
-  ) => void;
-  updateAgendaSectionStatus: (
-    meetingId: string,
-    agendaId: string,
-    sectionStatus: AgendaItem["sectionStatus"],
   ) => void;
   deleteAgenda: (meetingId: string, agendaId: string) => void;
   selectAgenda: (meetingId: string, agendaId: string) => void;
@@ -81,7 +77,9 @@ const syncMeetingCurrentAgendaId = (
   };
 };
 
-export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
+export const useAgendaTimerStore = create<AgendaTimerStore>()(
+  persist(
+    (set, get) => ({
   currentMeeting: null,
   meetings: [],
   isRunning: false,
@@ -207,7 +205,6 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       status: "pending",
       minutesContent: "",
       minutesFormat: "markdown",
-      sectionStatus: "not_started",
     };
 
     set((state) => {
@@ -294,11 +291,6 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
   updateAgendaMinutes: (meetingId: string, agendaId: string, updates) => {
     get().updateAgenda(meetingId, agendaId, updates);
   },
-
-  updateAgendaSectionStatus: (meetingId: string, agendaId: string, sectionStatus) => {
-    get().updateAgenda(meetingId, agendaId, { sectionStatus });
-  },
-
 
   deleteAgenda: (meetingId: string, agendaId: string) => {
     set((state) => {
@@ -437,7 +429,6 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     get().updateAgenda(currentMeeting.id, currentAgenda.id, {
       status: "running",
-      sectionStatus: "in_progress",
       startTime: currentAgenda.startTime || now,
     });
 
@@ -501,7 +492,6 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
       status: "completed",
-      sectionStatus: "completed",
       endTime: new Date(),
     });
 
@@ -684,4 +674,14 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       });
     }
   },
-}));
+    }),
+    {
+      name: "agenda-timer-store",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        currentMeeting: state.currentMeeting,
+        meetings: state.meetings,
+      }),
+    },
+  ),
+);

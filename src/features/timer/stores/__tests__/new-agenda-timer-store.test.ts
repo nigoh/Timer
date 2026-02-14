@@ -188,7 +188,7 @@ describe("useAgendaTimerStore", () => {
   });
 
 
-  it("議事録フォーマットとセクション状態を更新できる", () => {
+  it("議事録フォーマットを更新できる", () => {
     const store = useAgendaTimerStore.getState();
     store.createMeeting("議事録テスト");
 
@@ -201,7 +201,6 @@ describe("useAgendaTimerStore", () => {
       minutesContent: "<p>決定事項</p>",
       minutesFormat: "richtext",
     });
-    store.updateAgendaSectionStatus(meetingId, agendaId, "on_hold");
 
     const updatedAgenda = useAgendaTimerStore
       .getState()
@@ -209,7 +208,6 @@ describe("useAgendaTimerStore", () => {
 
     expect(updatedAgenda?.minutesFormat).toBe("richtext");
     expect(updatedAgenda?.minutesContent).toBe("<p>決定事項</p>");
-    expect(updatedAgenda?.sectionStatus).toBe("on_hold");
   });
 
   it("tickで経過時間が更新され、予定超過時はovertimeになる", () => {

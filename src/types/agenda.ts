@@ -5,7 +5,6 @@ export interface AgendaItem {
   memo?: string; // メモ
   minutesContent: string; // 議事録内容
   minutesFormat: 'richtext' | 'markdown'; // 議事録入力形式
-  sectionStatus: 'not_started' | 'in_progress' | 'completed' | 'on_hold'; // セクション状態
   actualDuration: number;  // 実際の時間（秒）
   status: 'pending' | 'running' | 'paused' | 'completed' | 'overtime';
   startTime?: Date;

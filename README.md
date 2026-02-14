@@ -23,9 +23,16 @@ READMEは要約のみを記載し、詳細仕様は正本要件へ集約しま�
 npm install
 npm run dev
 npm run build
+npm run build:pages
 npm run test
 npm run lint
 ```
+
+## GitHub Pages 公開
+
+- このリポジトリには GitHub Pages 自動デプロイ用 Workflow を追加済みです: `.github/workflows/deploy-pages.yml`
+- `main` ブランチへ push すると、`npm run build:pages` でビルドして `dist` を Pages に公開します
+- 初回のみ GitHub リポジトリ設定で Pages の Build and deployment を `GitHub Actions` にしてください
 
 
 ## Codex MCP 設定

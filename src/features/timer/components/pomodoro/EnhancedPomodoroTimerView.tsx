@@ -326,7 +326,7 @@ export const EnhancedPomodoroTimerView = ({
     : { text: '待機中', variant: 'outline' as const };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       <Card className="w-full">
         <CardHeader>
           <div className="flex items-center justify-between">
