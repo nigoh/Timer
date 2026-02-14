@@ -10,6 +10,7 @@ const { mockLogger } = vi.hoisted(() => ({
     getLogStatistics: vi.fn(),
     exportLogs: vi.fn(() => '[]'),
     clearLogs: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -89,6 +90,7 @@ vi.mock('@/components/ui/scroll-area', () => ({
 vi.mock('lucide-react', () => ({
   Download: () => <span>download</span>,
   Trash2: () => <span>trash</span>,
+  Copy: () => <span>copy</span>,
   Bug: () => <span>bug</span>,
   AlertTriangle: () => <span>alert</span>,
   Info: () => <span>info</span>,
@@ -119,6 +121,7 @@ const logs = [
 
 describe('LogViewer', () => {
   let container: HTMLDivElement;
+  const writeText = vi.fn();
 
   beforeEach(() => {
     container = document.createElement('div');
@@ -135,10 +138,16 @@ describe('LogViewer', () => {
     });
     mockLogger.clearLogs.mockReset();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
+    Object.assign(navigator, {
+      clipboard: {
+        writeText,
+      },
+    });
+    writeText.mockResolvedValue(undefined);
   });
 
   // REQ-5.6
-  it('レベル・カテゴリ・全文検索・クリア処理が動作する', async () => {
+  it('レベル・カテゴリ・全文検索・各ログのAI向けコピー・クリア処理が動作する', async () => {
     await act(async () => {
       createRoot(container).render(
         <LogViewer>
@@ -164,22 +173,28 @@ describe('LogViewer', () => {
     expect(container.textContent).not.toContain('UI loaded');
 
     await act(async () => {
-      selects[0].value = 'all';
-      selects[0].dispatchEvent(new Event('change', { bubbles: true }));
-      selects[1].value = 'ui';
-      selects[1].dispatchEvent(new Event('change', { bubbles: true }));
+      const copyButton = Array.from(container.querySelectorAll('button')).find((button) =>
+        button.textContent?.includes('このログをAI解析文としてコピー'),
+      )!;
+      copyButton.click();
     });
-    expect(container.textContent).toContain('UI loaded');
-    expect(container.textContent).not.toContain('Network down');
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText.mock.calls[0][0]).toContain('Network down');
+    expect(writeText.mock.calls[0][0]).not.toContain('UI loaded');
+    expect(container.textContent).toContain('このログのAI分析文をコピーしました');
 
     await act(async () => {
+      selects[0].value = 'all';
+      selects[0].dispatchEvent(new Event('change', { bubbles: true }));
       selects[1].value = 'all';
       selects[1].dispatchEvent(new Event('change', { bubbles: true }));
       search.value = 'timeout';
       search.dispatchEvent(new Event('input', { bubbles: true }));
+      search.dispatchEvent(new Event('change', { bubbles: true }));
     });
+
     expect(container.textContent).toContain('Network down');
-    expect(container.textContent).not.toContain('UI loaded');
 
     await act(async () => {
       clearButton.click();
