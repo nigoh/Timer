@@ -53,6 +53,8 @@ const syncMeetingCurrentAgendaId = (
   meetingId: string,
   agendaId?: string,
 ) => {
+  // 不変条件: meetingId が currentMeeting と一致する場合、
+  // meetings 配列側と currentMeeting 側の currentAgendaId を必ず同じ値に保つ。
   const updatedMeetings = state.meetings.map((meeting) =>
     meeting.id === meetingId
       ? { ...meeting, currentAgendaId: agendaId }
@@ -278,6 +280,8 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
   deleteAgenda: (meetingId: string, agendaId: string) => {
     set((state) => {
+      // 不変条件: 対象会議が currentMeeting のとき、
+      // currentAgendaId は meetings/currentMeeting の双方で一致させる。
       const targetMeeting = state.meetings.find(
         (meeting) => meeting.id === meetingId,
       );
@@ -485,6 +489,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       .sort((a, b) => a.order - b.order)[0];
 
     if (nextAgenda) {
+      // 不変条件: 議題遷移時は meetings/currentMeeting で currentAgendaId を同値に維持する。
       set((prevState) => ({
         ...syncMeetingCurrentAgendaId(
           prevState,
@@ -498,15 +503,28 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
         setTimeout(() => get().startTimer(), 1000);
       }
     } else {
-      get().stopTimer();
+      const completedAt = new Date();
       set((prevState) => ({
+        meetings: prevState.meetings.map((meeting) =>
+          meeting.id === prevState.currentMeeting?.id
+            ? {
+                ...meeting,
+                status: "completed",
+                endTime: completedAt,
+              }
+            : meeting,
+        ),
         currentMeeting: prevState.currentMeeting
           ? {
               ...prevState.currentMeeting,
               status: "completed",
-              endTime: new Date(),
+              endTime: completedAt,
             }
           : null,
+        isRunning: false,
+        currentTime: 0,
+        meetingStartTime: undefined,
+        lastTickTime: undefined,
       }));
     }
   },
@@ -600,6 +618,9 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
   getCurrentAgenda: () => {
     const state = get();
     if (!state.currentMeeting) return null;
+
+    // 不変条件: currentMeeting.currentAgendaId が未設定/不正な場合でも、
+    // meetings/currentMeeting の currentAgendaId を同期しながら復旧する。
 
     const sortedPendingAgendas = [...state.currentMeeting.agenda]
       .filter((agenda) => agenda.status === "pending")

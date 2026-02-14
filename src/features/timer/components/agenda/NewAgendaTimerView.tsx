@@ -23,7 +23,6 @@ import {
 import {
   Play,
   Pause,
-  Square,
   Clock,
   CheckCircle2,
   Circle,
@@ -462,7 +461,6 @@ const TimerDisplay: React.FC = () => {
     getProgressPercentage,
     startTimer,
     pauseTimer,
-    stopTimer,
     nextAgenda,
     previousAgenda,
     syncTime,
@@ -472,7 +470,7 @@ const TimerDisplay: React.FC = () => {
   const progress = getProgressPercentage();
   const progressDisplay = getProgressDisplay(progress);
   const isPaused = currentAgenda?.status === "paused";
-  const canStopSession =
+  const canCompleteSession =
     currentAgenda?.status === "running" || currentAgenda?.status === "paused";
 
   // バックグラウンド復帰時の時間同期
@@ -593,7 +591,7 @@ const TimerDisplay: React.FC = () => {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          一時停止は経過時間を保持して再開できます。セッション停止は進行中の計測を初期化します。
+          一時停止で調整し、区切りがついたらセッション完了で次のセッションへ進めます。
         </p>
 
         {/* 制御ボタン */}
@@ -603,18 +601,8 @@ const TimerDisplay: React.FC = () => {
             前へ
           </Button>
 
-          <Button
-            onClick={stopTimer}
-            variant="destructive"
-            size="sm"
-            disabled={!canStopSession}
-          >
-            <Square className="w-4 h-4 mr-1" />
-            セッション停止
-          </Button>
-
-          <Button onClick={nextAgenda} variant="outline" size="sm">
-            次へ
+          <Button onClick={nextAgenda} variant="default" size="sm" disabled={!canCompleteSession}>
+            セッション完了
             <SkipForward className="w-4 h-4 ml-1" />
           </Button>
         </div>
