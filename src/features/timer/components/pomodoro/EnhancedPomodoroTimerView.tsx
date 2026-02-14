@@ -404,7 +404,12 @@ export const EnhancedPomodoroTimerView = ({
               </Button>
             )}
 
-            <Button onClick={onStop} variant="destructive" size="lg">
+            <Button
+              onClick={onStop}
+              variant="destructive"
+              size="lg"
+              disabled={!isRunning && !isPaused}
+            >
               <Square className="mr-2 h-5 w-5" />
               停止
             </Button>
