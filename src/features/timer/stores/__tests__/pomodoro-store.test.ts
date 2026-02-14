@@ -73,6 +73,7 @@ describe('usePomodoroStore', () => {
 
     usePomodoroStore.setState({ timeRemaining: 1 });
     store.start();
+    store.tick(); // 1 -> 0
     store.tick(); // completes work phase
 
     const state = usePomodoroStore.getState();
@@ -94,4 +95,3 @@ describe('usePomodoroStore', () => {
     expect(state.isRunning).toBe(false);
   });
 });
-
