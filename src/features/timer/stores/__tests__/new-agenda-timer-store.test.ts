@@ -166,8 +166,6 @@ describe("useAgendaTimerStore", () => {
     store.nextAgenda();
     expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(firstAgenda?.id);
 
-    store.previousAgenda();
-    expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(firstAgenda?.id);
   });
 
   it("未開始のpending議題では次へを実行できない", () => {
@@ -187,6 +185,31 @@ describe("useAgendaTimerStore", () => {
     expect(after?.currentAgendaId).toBe(currentAgendaId);
     const firstAgenda = after?.agenda.find((agenda) => agenda.title === "議題1");
     expect(firstAgenda?.status).toBe("pending");
+  });
+
+
+  it("議事録フォーマットとセクション状態を更新できる", () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting("議事録テスト");
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.addAgenda(meetingId, "議題1", 60);
+
+    const agendaId = useAgendaTimerStore.getState().currentMeeting!.agenda[0].id;
+
+    store.updateAgendaMinutes(meetingId, agendaId, {
+      minutesContent: "<p>決定事項</p>",
+      minutesFormat: "richtext",
+    });
+    store.updateAgendaSectionStatus(meetingId, agendaId, "on_hold");
+
+    const updatedAgenda = useAgendaTimerStore
+      .getState()
+      .currentMeeting?.agenda.find((agenda) => agenda.id === agendaId);
+
+    expect(updatedAgenda?.minutesFormat).toBe("richtext");
+    expect(updatedAgenda?.minutesContent).toBe("<p>決定事項</p>");
+    expect(updatedAgenda?.sectionStatus).toBe("on_hold");
   });
 
   it("tickで経過時間が更新され、予定超過時はovertimeになる", () => {
