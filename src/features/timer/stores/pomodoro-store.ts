@@ -121,7 +121,15 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
     const state = get();
     if (!state.isRunning) return;
 
-    if (state.timeRemaining <= 0) {
+    const nextRemaining = state.timeRemaining - 1;
+
+    if (nextRemaining <= 0) {
+      set({
+        isRunning: false,
+        isPaused: false,
+        timeRemaining: 0,
+      });
+
       get().completeSession();
       playNotificationSound();
 
@@ -136,10 +144,9 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
         }, 1000);
       } else {
         get().nextPhase();
-        set({ isRunning: false });
       }
     } else {
-      set({ timeRemaining: state.timeRemaining - 1 });
+      set({ timeRemaining: nextRemaining });
     }
   },
 
@@ -226,4 +233,3 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
     });
   },
 }));
-
