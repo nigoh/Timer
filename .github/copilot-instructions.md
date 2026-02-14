@@ -141,3 +141,8 @@ const handleSave = useCallback(async () => {
 - [ ] TypeScript型定義完備
 - [ ] 100行以内のコンポーネント分割
 - [ ] コンポーネント分離（FeatureLayout使用）
+
+## Skill設計原本の参照
+- 要件整理・仕様分解・実装計画を行う場合は、`docs/skills/timer-ssd-bootstrap/SKILL.md` を参照する。
+- 対応表は `docs/skills/timer-ssd-bootstrap/references/requirements-map.md` を利用する。
+- DoDは `docs/skills/timer-ssd-bootstrap/references/dod-checklist.md` を利用する。
