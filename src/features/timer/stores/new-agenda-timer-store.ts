@@ -102,7 +102,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     set((state) => ({
       meetings: [...state.meetings, newMeeting],
-      currentMeeting: state.currentMeeting || newMeeting,
+      currentMeeting: newMeeting,
     }));
 
     logger.info(
@@ -446,27 +446,16 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
   },
 
   stopTimer: () => {
-    // セッション停止は「一時停止」ではなく初期化として扱う。
-    // 対象アジェンダの経過情報をリセットし、次回開始時は先頭状態から再開する。
-    const state = get();
-    const currentAgenda = get().getCurrentAgenda();
-
-    if (currentAgenda && state.currentMeeting) {
-      get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
-        status: "pending",
-        actualDuration: 0,
-        remainingTime: currentAgenda.plannedDuration,
-        startTime: undefined,
-        endTime: undefined,
+    // セッション完了として扱い、現在議題を完了させて次の議題へ遷移する。
+    // 実行中であれば自動で一時停止状態にしてから遷移判定を行う。
+    if (get().isRunning) {
+      set({
+        isRunning: false,
+        lastTickTime: undefined,
       });
     }
 
-    set({
-      isRunning: false,
-      currentTime: 0,
-      meetingStartTime: undefined,
-      lastTickTime: undefined,
-    });
+    get().nextAgenda();
   },
 
   nextAgenda: () => {
