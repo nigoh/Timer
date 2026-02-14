@@ -66,7 +66,7 @@ describe('usePomodoroStore', () => {
       workDuration: 1,
       shortBreakDuration: 1,
       longBreakDuration: 1,
-      longBreakInterval: 1,
+      longBreakInterval: 4,
       autoStartBreaks: false,
       autoStartWork: false,
     });

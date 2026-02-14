@@ -1,6 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgendaTimerStore } from '../new-agenda-timer-store';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/utils/bellSoundManager', () => ({
   bellSoundManager: {
@@ -16,7 +15,6 @@ vi.mock('@/utils/logger', () => ({
 }));
 
 import { bellSoundManager } from '@/utils/bellSoundManager';
-import { useAgendaTimerStore } from '../new-agenda-timer-store';
 
 const resetAgendaTimerStore = () => {
   useAgendaTimerStore.setState({
@@ -55,6 +53,7 @@ const setupMeetingWithAgendas = () => {
 
 describe('useAgendaTimerStore', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     resetAgendaTimerStore();
   });
 
@@ -136,6 +135,8 @@ describe('useAgendaTimerStore', () => {
     expect(agenda?.status).toBe('overtime');
 
     nowSpy.mockRestore();
+  });
+
   it('開始/停止/次アジェンダ遷移で currentAgendaId を meetings と currentMeeting の両方で維持する', () => {
     const store = useAgendaTimerStore.getState();
     store.createMeeting('定例会議');
@@ -191,16 +192,6 @@ describe('useAgendaTimerStore', () => {
     expect(state.currentTime).toBeGreaterThan(0);
     expect(afterTickAgenda?.actualDuration).toBe(state.currentTime);
     expect(afterTickAgenda?.status).toBe('running');
-    vi.clearAllMocks();
-    vi.stubGlobal('window', {
-      addEventListener: vi.fn(),
-      location: { href: 'http://localhost/' },
-    });
-    vi.stubGlobal('navigator', { userAgent: 'vitest' });
-    vi.stubGlobal('Notification', {
-      permission: 'granted',
-      requestPermission: vi.fn(),
-    });
   });
 
   it('nextAgenda で現在議題を完了にして次の議題へ遷移する', () => {

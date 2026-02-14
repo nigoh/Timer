@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
 import { LogLevel } from '@/utils/logger';
 import LogViewer from '../LogViewer';
 
-const mockLogger = {
-  getStoredLogs: vi.fn(),
-  getLogStatistics: vi.fn(),
-  exportLogs: vi.fn(() => '[]'),
-  clearLogs: vi.fn(),
-};
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: {
+    getStoredLogs: vi.fn(),
+    getLogStatistics: vi.fn(),
+    exportLogs: vi.fn(() => '[]'),
+    clearLogs: vi.fn(),
+  },
+}));
 
 vi.mock('@/utils/logger', async () => {
   const actual = await vi.importActual<typeof import('@/utils/logger')>('@/utils/logger');
@@ -21,7 +22,19 @@ vi.mock('@/utils/logger', async () => {
 });
 
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Dialog: ({
+    children,
+    onOpenChange,
+  }: {
+    children: React.ReactNode;
+    onOpenChange?: (open: boolean) => void;
+  }) => {
+    React.useEffect(() => {
+      onOpenChange?.(true);
+    }, [onOpenChange]);
+
+    return <div>{children}</div>;
+  },
   DialogTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -174,61 +187,5 @@ describe('LogViewer', () => {
 
     expect(mockLogger.clearLogs).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain('ログがありません');
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { logger, LogLevel } from '@/utils/logger';
-
-const { mockLogger, mockLogLevel } = vi.hoisted(() => ({
-  mockLogger: {
-    getStoredLogs: vi.fn(),
-    getLogStatistics: vi.fn(),
-    exportLogs: vi.fn(),
-    clearLogs: vi.fn(),
-  },
-  mockLogLevel: {
-    ERROR: 0,
-    WARN: 1,
-    INFO: 2,
-    DEBUG: 3,
-    TRACE: 4,
-  },
-}));
-
-vi.mock('@/utils/logger', () => ({
-  logger: mockLogger,
-  LogLevel: mockLogLevel,
-}));
-
-describe('LogViewer logger mock', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockLogger.getStoredLogs.mockReturnValue([
-      {
-        id: 'log-1',
-        timestamp: new Date('2025-01-01T00:00:00.000Z'),
-        level: LogLevel.INFO,
-        category: 'ui',
-        message: 'テストログ',
-      },
-    ]);
-    mockLogger.getLogStatistics.mockReturnValue({
-      total: 1,
-      byLevel: {
-        [LogLevel.ERROR]: 0,
-        [LogLevel.WARN]: 0,
-        [LogLevel.INFO]: 1,
-        [LogLevel.DEBUG]: 0,
-        [LogLevel.TRACE]: 0,
-      },
-      byCategory: { ui: 1 },
-      oldestEntry: new Date('2025-01-01T00:00:00.000Z'),
-      newestEntry: new Date('2025-01-01T00:00:00.000Z'),
-    });
-  });
-
-  it('beforeEach で設定した mockLogger を利用できる', () => {
-    const logs = logger.getStoredLogs();
-    expect(logs).toHaveLength(1);
-    expect(logs[0]?.message).toBe('テストログ');
-    expect(mockLogger.getStoredLogs).toHaveBeenCalledTimes(1);
   });
 });
