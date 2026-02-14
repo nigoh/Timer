@@ -1,5 +1,5 @@
-import { NewAgendaTimerView } from '../components/agenda/NewAgendaTimerView';
+import { AgendaTimerView } from '../components/agenda/AgendaTimerView';
 
 export const AgendaTimer = () => {
-  return <NewAgendaTimerView />;
+  return <AgendaTimerView />;
 };

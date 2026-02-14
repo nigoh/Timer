@@ -20,13 +20,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip } from "@radix-ui/themes";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Play,
   Pause,
   Clock,
   CheckCircle2,
   Circle,
-  SkipForward,
   Square,
   Plus,
   Edit,
@@ -35,6 +37,7 @@ import {
   Users,
   Timer,
   AlertCircle,
+  CircleHelp,
   ChevronRight,
   Volume2,
   VolumeX,
@@ -522,8 +525,11 @@ interface MinutesEditorProps {
 }
 
 const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
-  const { updateAgendaMinutes, updateAgendaSectionStatus } = useAgendaTimerStore();
-  const [activeFormat, setActiveFormat] = useState<AgendaItem["minutesFormat"]>(agenda.minutesFormat);
+  const { updateAgendaMinutes } = useAgendaTimerStore();
+  const [activeFormat, setActiveFormat] = useState<AgendaItem["minutesFormat"]>(
+    agenda.minutesFormat,
+  );
+  const [isMarkdownPreview, setIsMarkdownPreview] = useState(false);
   const richEditorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -531,13 +537,20 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   }, [agenda.minutesFormat, agenda.id]);
 
   useEffect(() => {
-    if (activeFormat === "richtext" && richEditorRef.current && richEditorRef.current.innerHTML !== agenda.minutesContent) {
+    if (
+      activeFormat === "richtext" &&
+      richEditorRef.current &&
+      richEditorRef.current.innerHTML !== agenda.minutesContent
+    ) {
       richEditorRef.current.innerHTML = agenda.minutesContent;
     }
   }, [agenda.minutesContent, activeFormat]);
 
   const handleFormatChange = (format: AgendaItem["minutesFormat"]) => {
     setActiveFormat(format);
+    if (format !== "markdown") {
+      setIsMarkdownPreview(false);
+    }
     updateAgendaMinutes(meetingId, agenda.id, {
       minutesContent: agenda.minutesContent,
       minutesFormat: format,
@@ -550,22 +563,6 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">議事録</CardTitle>
           <div className="flex items-center gap-2">
-            <Select
-              value={agenda.sectionStatus}
-              onValueChange={(value: AgendaItem["sectionStatus"]) =>
-                updateAgendaSectionStatus(meetingId, agenda.id, value)
-              }
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="状態" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="not_started">未開始</SelectItem>
-                <SelectItem value="in_progress">進行中</SelectItem>
-                <SelectItem value="completed">終了</SelectItem>
-                <SelectItem value="on_hold">保留</SelectItem>
-              </SelectContent>
-            </Select>
             <div className="flex rounded-md border p-1">
               <Button
                 type="button"
@@ -584,22 +581,56 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
                 Markdown
               </Button>
             </div>
+            {activeFormat === "markdown" && (
+              <div className="flex rounded-md border p-1">
+                <Button
+                  type="button"
+                  variant={!isMarkdownPreview ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setIsMarkdownPreview(false)}
+                >
+                  編集
+                </Button>
+                <Button
+                  type="button"
+                  variant={isMarkdownPreview ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setIsMarkdownPreview(true)}
+                >
+                  プレビュー
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent>
         {activeFormat === "markdown" ? (
-          <Textarea
-            value={agenda.minutesContent}
-            onChange={(event) =>
-              updateAgendaMinutes(meetingId, agenda.id, {
-                minutesContent: event.target.value,
-                minutesFormat: "markdown",
-              })
-            }
-            rows={8}
-            placeholder="議事録をMarkdownで入力してください"
-          />
+          isMarkdownPreview ? (
+            <div className="min-h-40 rounded-md border bg-background p-3 text-sm">
+              {agenda.minutesContent.trim() ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {agenda.minutesContent}
+                </ReactMarkdown>
+              ) : (
+                <p className="text-muted-foreground">
+                  プレビューする内容がありません
+                </p>
+              )}
+            </div>
+          ) : (
+            <Textarea
+              value={agenda.minutesContent}
+              onChange={(event) =>
+                updateAgendaMinutes(meetingId, agenda.id, {
+                  minutesContent: event.target.value,
+                  minutesFormat: "markdown",
+                })
+              }
+              rows={8}
+              placeholder="議事録をMarkdownで入力してください"
+            />
+          )
         ) : (
           <div
             ref={richEditorRef}
@@ -621,6 +652,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
 
 // メインタイマー表示
 const TimerDisplay: React.FC = () => {
+  const [isHelpTooltipOpen, setIsHelpTooltipOpen] = useState(false);
 
   const {
     currentMeeting,
@@ -630,7 +662,6 @@ const TimerDisplay: React.FC = () => {
     startTimer,
     pauseTimer,
     stopTimer,
-    nextAgenda,
     syncTime,
   } = useAgendaTimerStore();
 
@@ -670,19 +701,10 @@ const TimerDisplay: React.FC = () => {
     );
   }
 
-  const canMoveNext =
-    !isRunning &&
-    (currentAgenda.status === "running" ||
-      currentAgenda.status === "paused" ||
-      currentAgenda.status === "overtime") &&
-    currentMeeting.agenda.some(
-      (agenda) => agenda.status === "pending" && agenda.id !== currentAgenda.id,
-    );
-
   return (
     <Card
       className={cn(
-        "transition-all duration-300",
+        "",
         isRunning && "ring-2 ring-blue-200 shadow-lg",
       )}
     >
@@ -745,38 +767,38 @@ const TimerDisplay: React.FC = () => {
           </div>
         </div>
 
-        <MinutesEditor meetingId={currentMeeting.id} agenda={currentAgenda} />
-
-        {/* ワンタップ開始ボタン */}
-        <div className="flex justify-center">
-          {!isRunning ? (
+        <div className="flex justify-center gap-2">
+          <Tooltip
+            content="開始/一時停止で進行を調整し、区切りがついたらセッション完了で次のセッションへ進めます。"
+            side="top"
+            open={isHelpTooltipOpen}
+            onOpenChange={setIsHelpTooltipOpen}
+          >
             <Button
-              onClick={startTimer}
-              size="lg"
-              className="px-12 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setIsHelpTooltipOpen((prev) => !prev)}
+              aria-label={
+                isHelpTooltipOpen ? "操作説明を閉じる" : "操作説明を表示"
+              }
             >
-              <Play className="mr-3 h-6 w-6" />
+              <CircleHelp className="h-4 w-4" />
+            </Button>
+          </Tooltip>
+          {!isRunning ? (
+            <Button onClick={startTimer} size="sm">
+              <Play className="mr-1 h-4 w-4" />
               {isPaused ? "再開" : "開始"}
             </Button>
           ) : (
-            <Button
-              onClick={pauseTimer}
-              variant="outline"
-              size="lg"
-              className="px-12 py-6 text-lg rounded-full"
-            >
-              <Pause className="mr-3 h-6 w-6" />
+            <Button onClick={pauseTimer} variant="outline" size="sm">
+              <Pause className="mr-1 h-4 w-4" />
               一時停止
             </Button>
           )}
-        </div>
 
-        <p className="text-center text-sm text-muted-foreground">
-          開始/一時停止で進行を調整し、区切りがついたらセッション完了で次のセッションへ進めます。
-        </p>
-
-        {/* 制御ボタン */}
-        <div className="flex justify-center gap-3">
           <Button
             onClick={stopTimer}
             variant="destructive"
@@ -786,17 +808,9 @@ const TimerDisplay: React.FC = () => {
             <Square className="w-4 h-4 mr-1" />
             セッション完了
           </Button>
-
-          <Button
-            onClick={nextAgenda}
-            variant="outline"
-            size="sm"
-            disabled={!canMoveNext}
-          >
-            次へ
-            <SkipForward className="w-4 h-4 ml-1" />
-          </Button>
         </div>
+
+        <MinutesEditor meetingId={currentMeeting.id} agenda={currentAgenda} />
       </CardContent>
     </Card>
   );
@@ -806,15 +820,67 @@ const TimerDisplay: React.FC = () => {
 interface AgendaListProps {
   onAddAgenda: () => void;
   onEditAgenda: (agenda: AgendaItem) => void;
+  onCloseList?: () => void;
 }
 
-const AgendaList: React.FC<AgendaListProps> = ({ onAddAgenda, onEditAgenda }) => {
-  const {
-    currentMeeting,
-    deleteAgenda,
-    getCurrentAgenda,
-    updateAgendaSectionStatus,
-  } = useAgendaTimerStore();
+interface MeetingListProps {
+  meetings: Meeting[];
+  currentMeetingId?: string;
+  onSelectMeeting: (meetingId: string) => void;
+}
+
+const MeetingList: React.FC<MeetingListProps> = ({
+  meetings,
+  currentMeetingId,
+  onSelectMeeting,
+}) => {
+  return (
+    <Card>
+      <CardHeader className="px-3 py-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-1.5 text-sm">
+            <Users className="h-4 w-4" />
+            会議一覧
+          </CardTitle>
+          <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+            {meetings.length}件
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="px-3 pb-3 pt-0">
+        {meetings.length === 0 ? (
+          <p className="text-xs text-muted-foreground">会議がありません</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {meetings.map((meeting) => (
+              <Button
+                key={meeting.id}
+                type="button"
+                variant={meeting.id === currentMeetingId ? "default" : "outline"}
+                size="sm"
+                className="h-7 max-w-[220px] gap-1 px-2 text-xs"
+                onClick={() => onSelectMeeting(meeting.id)}
+              >
+                <span className="truncate text-left">{meeting.title}</span>
+                <span className="shrink-0 text-[10px] opacity-80">
+                  {meeting.agenda.length}件
+                </span>
+              </Button>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const AgendaList: React.FC<AgendaListProps> = ({
+  onAddAgenda,
+  onEditAgenda,
+  onCloseList,
+}) => {
+  const { currentMeeting, deleteAgenda, getCurrentAgenda, selectAgenda } =
+    useAgendaTimerStore();
 
   const currentAgenda = getCurrentAgenda();
 
@@ -824,19 +890,35 @@ const AgendaList: React.FC<AgendaListProps> = ({ onAddAgenda, onEditAgenda }) =>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-1.5 text-sm">
+            <Clock className="h-4 w-4" />
             アジェンダ一覧
           </CardTitle>
-          <Button
-            onClick={() => {
-              onAddAgenda();
-            }}
-            size="sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            追加
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                onAddAgenda();
+              }}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              追加
+            </Button>
+            {onCloseList && (
+              <Tooltip content="一覧を閉じる" side="top">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 touch-manipulation"
+                  onClick={onCloseList}
+                  aria-label="一覧を閉じる"
+                >
+                  <PanelRightClose className="h-4 w-4 pointer-events-none" />
+                </Button>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </CardHeader>
 
@@ -862,37 +944,38 @@ const AgendaList: React.FC<AgendaListProps> = ({ onAddAgenda, onEditAgenda }) =>
                   <div
                     key={agenda.id}
                     className={cn(
-                      "p-4 rounded-lg border transition-all duration-200",
+                      "p-4 rounded-lg border cursor-pointer",
                       isActive && "border-blue-200 bg-blue-50 shadow-md",
                       agenda.status === "completed" &&
                         "bg-green-50 border-green-200",
                       agenda.status === "overtime" &&
                         "bg-purple-50 border-purple-200",
                     )}
+                    onClick={() => selectAgenda(currentMeeting.id, agenda.id)}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           {agenda.status === "completed" ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
                           ) : isActive ? (
                             progressDisplay.icon
                           ) : (
-                            <Circle className="w-4 h-4 text-muted-foreground" />
+                            <Circle className="w-3.5 h-3.5 text-muted-foreground" />
                           )}
-                          <h4 className="min-w-0 flex-1 font-medium break-words sm:truncate">
+                          <h4 className="min-w-0 flex-1 text-sm font-medium break-words sm:truncate">
                             {agenda.title}
                           </h4>
                           {isActive && (
-                            <ChevronRight className="w-4 h-4 text-blue-500" />
+                            <ChevronRight className="w-3.5 h-3.5 text-blue-500" />
                           )}
-                          <Badge variant="secondary">
+                          <Badge variant="secondary" className="text-[10px]">
                             {sectionStatusLabels[agenda.sectionStatus]}
                           </Badge>
                         </div>
 
                         {agenda.memo && (
-                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                          <p className="mb-2 text-xs text-muted-foreground line-clamp-2">
                             {agenda.memo}
                           </p>
                         )}
@@ -902,33 +985,25 @@ const AgendaList: React.FC<AgendaListProps> = ({ onAddAgenda, onEditAgenda }) =>
                             予定: {formatMinutes(agenda.plannedDuration)}
                           </span>
                           {agenda.actualDuration > 0 && (
-                            <span className={cn("shrink-0 whitespace-nowrap", progressDisplay.color)}>
+                            <span
+                              className={cn(
+                                "shrink-0 whitespace-nowrap",
+                                progressDisplay.color,
+                              )}
+                            >
                               実績: {formatMinutes(agenda.actualDuration)}
                             </span>
                           )}
-                          <Badge variant="outline" className="shrink-0 whitespace-nowrap">
+                          <Badge
+                            variant="outline"
+                            className="shrink-0 whitespace-nowrap text-[10px]"
+                          >
                             {agenda.status === "pending" && "待機"}
                             {agenda.status === "running" && "実行中"}
                             {agenda.status === "paused" && "一時停止"}
                             {agenda.status === "completed" && "完了"}
                             {agenda.status === "overtime" && "超過中"}
                           </Badge>
-                          <Select
-                            value={agenda.sectionStatus}
-                            onValueChange={(value: AgendaItem["sectionStatus"]) =>
-                              updateAgendaSectionStatus(currentMeeting.id, agenda.id, value)
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-[130px] shrink-0 whitespace-nowrap">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="not_started">未開始</SelectItem>
-                              <SelectItem value="in_progress">進行中</SelectItem>
-                              <SelectItem value="completed">終了</SelectItem>
-                              <SelectItem value="on_hold">保留</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
 
                         {agenda.actualDuration > 0 && (
@@ -975,8 +1050,8 @@ const AgendaList: React.FC<AgendaListProps> = ({ onAddAgenda, onEditAgenda }) =>
 };
 
 // メインコンポーネント
-export const NewAgendaTimerView: React.FC = () => {
-  const { currentMeeting, meetings, tick, createMeeting, isRunning } =
+export const AgendaTimerView: React.FC = () => {
+  const { currentMeeting, meetings, tick, createMeeting, setCurrentMeeting, isRunning } =
     useAgendaTimerStore();
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
@@ -1005,10 +1080,6 @@ export const NewAgendaTimerView: React.FC = () => {
       {/* ヘッダー */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            会議タイマー
-          </h2>
           <p className="text-muted-foreground">
             {currentMeeting?.title || "会議を選択してください"}
           </p>
@@ -1022,7 +1093,7 @@ export const NewAgendaTimerView: React.FC = () => {
             }}
           >
             <Plus className="w-4 h-4 mr-2" />
-            ＋新しい会議
+            新しい会議
           </Button>
           {currentMeeting && (
             <Button
@@ -1047,6 +1118,12 @@ export const NewAgendaTimerView: React.FC = () => {
           )}
         </div>
       </div>
+
+      <MeetingList
+        meetings={meetings}
+        currentMeetingId={currentMeeting?.id}
+        onSelectMeeting={setCurrentMeeting}
+      />
 
       <div className="lg:hidden">
         <Button
@@ -1076,30 +1153,17 @@ export const NewAgendaTimerView: React.FC = () => {
       >
         <div className="hidden lg:block">
           {isAgendaPanelOpen ? (
-            <div className="space-y-2">
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="min-w-[128px] touch-manipulation justify-center"
-                  onClick={() => setIsAgendaPanelOpen(false)}
-                >
-                  <PanelRightClose className="w-4 h-4 mr-2 pointer-events-none" />
-                  一覧を閉じる
-                </Button>
-              </div>
-              <AgendaList
-                onAddAgenda={() => {
-                  setEditingAgenda(null);
-                  setIsAgendaDialogOpen(true);
-                }}
-                onEditAgenda={(agenda) => {
-                  setEditingAgenda(agenda);
-                  setIsAgendaDialogOpen(true);
-                }}
-              />
-            </div>
+            <AgendaList
+              onAddAgenda={() => {
+                setEditingAgenda(null);
+                setIsAgendaDialogOpen(true);
+              }}
+              onEditAgenda={(agenda) => {
+                setEditingAgenda(agenda);
+                setIsAgendaDialogOpen(true);
+              }}
+              onCloseList={() => setIsAgendaPanelOpen(false)}
+            />
           ) : (
             <Button
               type="button"
@@ -1128,26 +1192,6 @@ export const NewAgendaTimerView: React.FC = () => {
             className="mr-auto h-full w-[88vw] max-w-md bg-background p-4 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-3 flex justify-between gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="touch-manipulation"
-                onClick={() => setIsAgendaPanelOpen(false)}
-              >
-                <PanelRightClose className="h-4 w-4 mr-2 pointer-events-none" />
-                一覧を閉じる
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsAgendaPanelOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
             <AgendaList
               onAddAgenda={() => {
                 setEditingAgenda(null);
@@ -1157,6 +1201,7 @@ export const NewAgendaTimerView: React.FC = () => {
                 setEditingAgenda(agenda);
                 setIsAgendaDialogOpen(true);
               }}
+              onCloseList={() => setIsAgendaPanelOpen(false)}
             />
           </div>
         </div>

@@ -1,54 +1,56 @@
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import { Button } from './components/ui/button';
-import { Timer, List, Target, Clock, Bug } from 'lucide-react';
-import { BasicTimer } from './features/timer/containers/BasicTimer';
-import { AgendaTimer } from './features/timer/containers/AgendaTimer';
-import { EnhancedPomodoroTimer } from './features/timer/containers/EnhancedPomodoroTimer';
-import { MultiTimer } from './features/timer/containers/MultiTimer';
-import LogViewer from './components/LogViewer';
-import ErrorBoundary from './components/ErrorBoundary';
-import { logger } from './utils/logger';
-import './globals.css';
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { Button } from "./components/ui/button";
+import { Timer, List, Target, Clock, Bug } from "lucide-react";
+import { BasicTimer } from "./features/timer/containers/BasicTimer";
+import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
+import { EnhancedPomodoroTimer } from "./features/timer/containers/EnhancedPomodoroTimer";
+import { MultiTimer } from "./features/timer/containers/MultiTimer";
+import LogViewer from "./components/LogViewer";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { logger } from "./utils/logger";
+import "./globals.css";
 
 function App() {
-  const [activeTab, setActiveTab] = useState('basic');
+  const [activeTab, setActiveTab] = useState("basic");
 
   // アプリケーション開始ログ
   React.useEffect(() => {
-    logger.info('Application started', {
-      userAgent: navigator.userAgent,
-      screen: {
-        width: window.screen.width,
-        height: window.screen.height
+    logger.info(
+      "Application started",
+      {
+        userAgent: navigator.userAgent,
+        screen: {
+          width: window.screen.width,
+          height: window.screen.height,
+        },
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
       },
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight
-      }
-    }, 'app');
+      "app",
+    );
   }, []);
 
   // タブ切り替えログ
   const handleTabChange = (value: string) => {
-    logger.userAction('Tab switched', {
+    logger.userAction("Tab switched", {
       from: activeTab,
-      to: value
+      to: value,
     });
     setActiveTab(value);
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto p-4">
-        <header className="text-center py-8 relative">
-          <h1 className="text-4xl font-bold mb-2">Timer App</h1>
-          <p className="text-muted-foreground">
-            業務効率化を目的とした多機能タイマーアプリケーション
-          </p>
-          
-          {/* ログビューアーボタン */}
-          <div className="absolute top-4 right-4">
+      <div className="container mx-auto p-2 md:p-3">
+        <header className="mb-2 flex items-center justify-between">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card">
+            <Timer className="h-5 w-5" />
+          </div>
+
+          <div>
             <LogViewer>
               <Button variant="outline" size="sm">
                 <Bug className="w-4 h-4 mr-2" />
@@ -57,9 +59,13 @@ function App() {
             </LogViewer>
           </div>
         </header>
-        
+
         <main>
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-4 mb-8">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <Timer className="w-4 h-4" />

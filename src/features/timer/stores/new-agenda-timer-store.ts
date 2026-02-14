@@ -34,6 +34,7 @@ export interface AgendaTimerStore extends AgendaTimerState {
     sectionStatus: AgendaItem["sectionStatus"],
   ) => void;
   deleteAgenda: (meetingId: string, agendaId: string) => void;
+  selectAgenda: (meetingId: string, agendaId: string) => void;
   reorderAgendas: (meetingId: string, agendaIds: string[]) => void;
   startTimer: () => void;
   pauseTimer: () => void;
@@ -357,6 +358,10 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
             : state.currentMeeting,
       };
     });
+  },
+
+  selectAgenda: (meetingId: string, agendaId: string) => {
+    set((state) => syncMeetingCurrentAgendaId(state, meetingId, agendaId));
   },
 
   reorderAgendas: (meetingId: string, agendaIds: string[]) => {
