@@ -1,7 +1,16 @@
 name: Spec Kit Check
 
 on:
+  push:
+    paths:
+      - 'docs/**'
+      - '.specify/**'
+      - '.github/workflows/spec-kit-check.yml'
   pull_request:
+    paths:
+      - 'docs/**'
+      - '.specify/**'
+      - '.github/workflows/spec-kit-check.yml'
   workflow_dispatch:
 
 jobs:

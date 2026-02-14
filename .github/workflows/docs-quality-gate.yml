@@ -2,7 +2,6 @@ name: Documentation Quality Gate
 
 on:
   push:
-    branches: [main, develop]
     paths:
       - 'docs/**'
       - 'README.md'
@@ -13,7 +12,6 @@ on:
       - '.github/markdown-link-check-config.json'
       - '.github/workflows/docs-quality-gate.yml'
   pull_request:
-    branches: [main, develop]
     paths:
       - 'docs/**'
       - 'README.md'
