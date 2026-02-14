@@ -26,3 +26,14 @@ npm run build
 npm run test
 npm run lint
 ```
+
+
+## Codex MCP 設定
+
+Codex で MCP (Model Context Protocol) を利用するため、Playwright サーバーを追加しています。
+
+- 設定ファイル: `.codex/config.toml`
+- 追加サーバー: `playwright`
+- 実行コマンド: `npx -y @playwright/mcp@latest`
+
+Codex 起動時に上記設定が読み込まれると、ブラウザの操作・検査を MCP ツールとして利用できます。
