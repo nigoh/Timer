@@ -2,23 +2,29 @@ name: Documentation Quality Gate
 
 on:
   push:
-    branches: [ main, develop ]
-    paths: 
+    branches: [main, develop]
+    paths:
       - 'docs/**'
       - 'README.md'
       - '.markdownlint.json'
       - '.editorconfig'
       - '.vscode/**'
       - '.github/scripts/**'
+      - '.github/markdown-link-check-config.json'
+      - '.github/workflows/docs-quality-gate.yml'
   pull_request:
-    branches: [ main, develop ]
-    paths: 
+    branches: [main, develop]
+    paths:
       - 'docs/**'
       - 'README.md'
       - '.markdownlint.json'
       - '.editorconfig'
       - '.vscode/**'
       - '.github/scripts/**'
+      - '.github/markdown-link-check-config.json'
+      - '.github/workflows/docs-quality-gate.yml'
+  schedule:
+    - cron: '0 9 * * 1'
   workflow_dispatch:
 
 concurrency:
@@ -28,196 +34,192 @@ concurrency:
 jobs:
   documentation-quality:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: |
-        npm ci
-        npm install -g markdown-link-check markdownlint-cli2
-        
-    - name: Create tmp directory
-      run: mkdir -p /tmp
-        
-    - name: Run Markdown linting
-      id: markdownlint
-      run: |
-        echo "Running markdownlint..."
-        if markdownlint-cli2 "**/*.md" "#node_modules"; then
-          echo "✅ Markdown linting passed"
-          echo "result=success" >> $GITHUB_OUTPUT
-        else
-          echo "❌ Markdown linting failed"
-          echo "result=failure" >> $GITHUB_OUTPUT
-          exit 1
-        fi
 
-    - name: Check UTF-8 encoding and mojibake
-      id: docs-encoding
-      run: |
-        echo "Checking UTF-8 encoding and mojibake..."
-        if node .github/scripts/check-docs-encoding.cjs; then
-          echo "✅ Encoding check passed"
-          echo "result=success" >> $GITHUB_OUTPUT
-        else
-          echo "❌ Encoding check failed"
-          echo "result=failure" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-    - name: Check internal links
-      id: internal-links
-      run: |
-        echo "Checking internal links..."
-        if node .github/scripts/check-internal-links.cjs; then
-          echo "✅ Internal link check passed"
-          echo "result=success" >> $GITHUB_OUTPUT
-        else
-          echo "❌ Internal link check failed"
-          echo "result=failure" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-    - name: Check image references
-      id: image-check
-      run: |
-        echo "Checking image references..."
-        if node .github/scripts/check-images.cjs; then
-          echo "✅ Image reference check passed"
-          echo "result=success" >> $GITHUB_OUTPUT
-        else
-          echo "❌ Image reference check failed"
-          echo "result=failure" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-    - name: Test code blocks
-      id: code-blocks
-      run: |
-        echo "Testing code blocks..."
-        if node .github/scripts/test-code-blocks.cjs; then
-          echo "✅ Code block tests passed"
-          echo "result=success" >> $GITHUB_OUTPUT
-        else
-          echo "❌ Code block tests failed"
-          echo "result=failure" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-    - name: Test shell commands
-      id: shell-commands
-      run: |
-        echo "Testing shell commands..."
-        if node .github/scripts/test-shell-commands.cjs; then
-          echo "✅ Shell command tests passed"
-          echo "result=success" >> $GITHUB_OUTPUT
-        else
-          echo "❌ Shell command tests failed"
-          echo "result=failure" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-    - name: Check external links
-      id: external-links
-      continue-on-error: true
-      run: |
-        echo "Checking external links..."
-        # Check README first
-        if markdown-link-check README.md --config .github/markdown-link-check-config.json; then
-          echo "✅ README external links check passed"
-        else
-          echo "⚠️ README external links check failed"
-        fi
-        
-        # Check docs directory
-        find docs -name "*.md" -exec markdown-link-check {} --config .github/markdown-link-check-config.json \; || true
-        echo "External link check completed (non-blocking)"
-        
-    - name: Generate quality report
-      id: quality-report
-      if: always()
-      run: |
-        echo "Generating quality report..."
-        node .github/scripts/generate-quality-report.cjs
-        echo "Quality report generated"
-        
-    - name: Upload quality report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: documentation-quality-report-${{ github.run_number }}
-        path: quality-report.md
-        retention-days: 30
-        
-    - name: Comment quality report on PR
-      if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          
-          if (fs.existsSync('quality-report.md')) {
-            const report = fs.readFileSync('quality-report.md', 'utf8');
-            
-            // Create a summary comment
-            const summary = `## 📊 Documentation Quality Report
-            
-          **Quality Check Results:**
-          - Markdown Linting: ${{ steps.markdownlint.outputs.result == 'success' && '✅' || '❌' }}
-          - Internal Links: ${{ steps.internal-links.outputs.result == 'success' && '✅' || '❌' }}
-          - Image References: ${{ steps.image-check.outputs.result == 'success' && '✅' || '❌' }}
-          - Code Blocks: ${{ steps.code-blocks.outputs.result == 'success' && '✅' || '❌' }}
-          - Shell Commands: ${{ steps.shell-commands.outputs.result == 'success' && '✅' || '❌' }}
-          
-          <details>
-          <summary>📋 Full Quality Report</summary>
-          
-          \`\`\`markdown
-          ${report}
-          \`\`\`
-          
-          </details>
-          
-          *Report generated automatically by Documentation Quality Automation*`;
-          
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: summary
-            });
-          }
-          
-    - name: Set quality gate status
-      if: always()
-      run: |
-        echo "📊 Documentation Quality Gate Summary:"
-        echo "- Markdown Linting: ${{ steps.markdownlint.outputs.result }}"
-        echo "- UTF-8 Encoding: ${{ steps.docs-encoding.outputs.result }}"
-        echo "- Internal Links: ${{ steps.internal-links.outputs.result }}"
-        echo "- Image References: ${{ steps.image-check.outputs.result }}"
-        echo "- Code Blocks: ${{ steps.code-blocks.outputs.result }}"
-        echo "- Shell Commands: ${{ steps.shell-commands.outputs.result }}"
-        
-        # Fail the workflow if any required check failed
-        if [[ "${{ steps.markdownlint.outputs.result }}" == "failure" ]] || \
-           [[ "${{ steps.docs-encoding.outputs.result }}" == "failure" ]] || \
-           [[ "${{ steps.internal-links.outputs.result }}" == "failure" ]] || \
-           [[ "${{ steps.image-check.outputs.result }}" == "failure" ]] || \
-           [[ "${{ steps.code-blocks.outputs.result }}" == "failure" ]] || \
-           [[ "${{ steps.shell-commands.outputs.result }}" == "failure" ]]; then
-          echo "❌ Documentation quality gate failed"
-          exit 1
-        else
-          echo "✅ Documentation quality gate passed"
-        fi
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install -g markdown-link-check markdownlint-cli2
+
+      - name: Create tmp directory
+        run: mkdir -p /tmp
+
+      - name: Run Markdown linting
+        id: markdownlint
+        run: |
+          echo "Running markdownlint..."
+          if markdownlint-cli2 "**/*.md" "#node_modules"; then
+            echo "✅ Markdown linting passed"
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Markdown linting failed"
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Check UTF-8 encoding and mojibake
+        id: docs-encoding
+        run: |
+          echo "Checking UTF-8 encoding and mojibake..."
+          if node .github/scripts/check-docs-encoding.cjs; then
+            echo "✅ Encoding check passed"
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Encoding check failed"
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Check internal links
+        id: internal-links
+        run: |
+          echo "Checking internal links..."
+          if node .github/scripts/check-internal-links.cjs; then
+            echo "✅ Internal link check passed"
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Internal link check failed"
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Check image references
+        id: image-check
+        run: |
+          echo "Checking image references..."
+          if node .github/scripts/check-images.cjs; then
+            echo "✅ Image reference check passed"
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Image reference check failed"
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Test code blocks
+        id: code-blocks
+        run: |
+          echo "Testing code blocks..."
+          if node .github/scripts/test-code-blocks.cjs; then
+            echo "✅ Code block tests passed"
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Code block tests failed"
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Test shell commands
+        id: shell-commands
+        run: |
+          echo "Testing shell commands..."
+          if node .github/scripts/test-shell-commands.cjs; then
+            echo "✅ Shell command tests passed"
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Shell command tests failed"
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Check external links
+        id: external-links
+        continue-on-error: true
+        run: |
+          echo "Checking external links..."
+          if markdown-link-check README.md --config .github/markdown-link-check-config.json; then
+            echo "✅ README external links check passed"
+          else
+            echo "⚠️ README external links check failed"
+          fi
+
+          find docs -name "*.md" -exec markdown-link-check {} --config .github/markdown-link-check-config.json \; || true
+          echo "External link check completed (non-blocking)"
+
+      - name: Generate quality report
+        id: quality-report
+        if: always()
+        run: |
+          echo "Generating quality report..."
+          node .github/scripts/generate-quality-report.cjs
+          echo "Quality report generated"
+
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: documentation-quality-report-${{ github.run_number }}
+          path: quality-report.md
+          retention-days: 30
+
+      - name: Comment quality report on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            if (fs.existsSync('quality-report.md')) {
+              const report = fs.readFileSync('quality-report.md', 'utf8');
+
+              const summary = `## 📊 Documentation Quality Report
+
+            **Quality Check Results:**
+            - Markdown Linting: ${{ steps.markdownlint.outputs.result == 'success' && '✅' || '❌' }}
+            - Internal Links: ${{ steps.internal-links.outputs.result == 'success' && '✅' || '❌' }}
+            - Image References: ${{ steps.image-check.outputs.result == 'success' && '✅' || '❌' }}
+            - Code Blocks: ${{ steps.code-blocks.outputs.result == 'success' && '✅' || '❌' }}
+            - Shell Commands: ${{ steps.shell-commands.outputs.result == 'success' && '✅' || '❌' }}
+
+            <details>
+            <summary>📋 Full Quality Report</summary>
+
+            \`\`\`markdown
+            ${report}
+            \`\`\`
+
+            </details>
+
+            *Report generated automatically by Documentation Quality Automation*`;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: summary,
+              });
+            }
+
+      - name: Set quality gate status
+        if: always()
+        run: |
+          echo "📊 Documentation Quality Gate Summary:"
+          echo "- Markdown Linting: ${{ steps.markdownlint.outputs.result }}"
+          echo "- UTF-8 Encoding: ${{ steps.docs-encoding.outputs.result }}"
+          echo "- Internal Links: ${{ steps.internal-links.outputs.result }}"
+          echo "- Image References: ${{ steps.image-check.outputs.result }}"
+          echo "- Code Blocks: ${{ steps.code-blocks.outputs.result }}"
+          echo "- Shell Commands: ${{ steps.shell-commands.outputs.result }}"
+
+          if [[ "${{ steps.markdownlint.outputs.result }}" == "failure" ]] || \
+             [[ "${{ steps.docs-encoding.outputs.result }}" == "failure" ]] || \
+             [[ "${{ steps.internal-links.outputs.result }}" == "failure" ]] || \
+             [[ "${{ steps.image-check.outputs.result }}" == "failure" ]] || \
+             [[ "${{ steps.code-blocks.outputs.result }}" == "failure" ]] || \
+             [[ "${{ steps.shell-commands.outputs.result }}" == "failure" ]]; then
+            echo "❌ Documentation quality gate failed"
+            exit 1
+          else
+            echo "✅ Documentation quality gate passed"
+          fi
