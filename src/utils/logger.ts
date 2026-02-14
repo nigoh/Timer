@@ -25,6 +25,40 @@ export interface LogEntry {
   sessionId: string;
 }
 
+export const createAiAnalysisPrompt = (logs: LogEntry[]): string => {
+  const targetLogs = logs.filter((log) => log.level <= LogLevel.WARN);
+
+  if (targetLogs.length === 0) {
+    return [
+      '以下のアプリケーションログを確認しましたが、ERROR/WARNログは見つかりませんでした。',
+      '追加の調査観点が必要な場合は、再現手順と直前の操作を確認してください。',
+    ].join('\n');
+  }
+
+  const summary = targetLogs
+    .slice(0, 20)
+    .map((log, index) => {
+      const dataText = log.data ? JSON.stringify(log.data, null, 2) : 'なし';
+      return [
+        `#${index + 1}`,
+        `- 発生時刻: ${new Date(log.timestamp).toISOString()}`,
+        `- レベル: ${LogLevel[log.level]}`,
+        `- カテゴリ: ${log.category}`,
+        `- メッセージ: ${log.message}`,
+        `- データ: ${dataText}`,
+        `- スタックトレース: ${log.stackTrace ?? 'なし'}`,
+      ].join('\n');
+    })
+    .join('\n\n');
+
+  return [
+    '次のアプリケーションエラーログを解析して、原因候補・切り分け手順・修正案を日本語で提案してください。',
+    '回答フォーマットは「原因候補」「確認手順」「推奨修正」「再発防止策」の4項目でお願いします。',
+    '',
+    summary,
+  ].join('\n');
+};
+
 export interface LoggerConfig {
   level: LogLevel;
   enableConsole: boolean;
