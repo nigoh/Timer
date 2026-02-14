@@ -28,6 +28,7 @@ import {
   Circle,
   SkipForward,
   SkipBack,
+  Square,
   Plus,
   Edit,
   Trash2,
@@ -461,6 +462,7 @@ const TimerDisplay: React.FC = () => {
     getProgressPercentage,
     startTimer,
     pauseTimer,
+    stopTimer,
     nextAgenda,
     previousAgenda,
     syncTime,
@@ -623,7 +625,7 @@ const TimerDisplay: React.FC = () => {
             onClick={stopTimer}
             variant="destructive"
             size="sm"
-            disabled={!canStopSession}
+            disabled={!canCompleteSession}
           >
             <Square className="w-4 h-4 mr-1" />
             セッション停止
