@@ -23,13 +23,22 @@ export interface AgendaTimerStore extends AgendaTimerState {
     agendaId: string,
     updates: Partial<AgendaItem>,
   ) => void;
+  updateAgendaMinutes: (
+    meetingId: string,
+    agendaId: string,
+    updates: Pick<AgendaItem, "minutesContent" | "minutesFormat">,
+  ) => void;
+  updateAgendaSectionStatus: (
+    meetingId: string,
+    agendaId: string,
+    sectionStatus: AgendaItem["sectionStatus"],
+  ) => void;
   deleteAgenda: (meetingId: string, agendaId: string) => void;
   reorderAgendas: (meetingId: string, agendaIds: string[]) => void;
   startTimer: () => void;
   pauseTimer: () => void;
   stopTimer: () => void;
   nextAgenda: () => void;
-  previousAgenda: () => void;
   tick: () => void;
   getCurrentAgenda: () => AgendaItem | null;
   getProgressPercentage: () => number;
@@ -195,6 +204,9 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       actualDuration: 0,
       remainingTime: plannedDuration,
       status: "pending",
+      minutesContent: "",
+      minutesFormat: "markdown",
+      sectionStatus: "not_started",
     };
 
     set((state) => {
@@ -277,6 +289,15 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       };
     });
   },
+
+  updateAgendaMinutes: (meetingId: string, agendaId: string, updates) => {
+    get().updateAgenda(meetingId, agendaId, updates);
+  },
+
+  updateAgendaSectionStatus: (meetingId: string, agendaId: string, sectionStatus) => {
+    get().updateAgenda(meetingId, agendaId, { sectionStatus });
+  },
+
 
   deleteAgenda: (meetingId: string, agendaId: string) => {
     set((state) => {
@@ -411,6 +432,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     get().updateAgenda(currentMeeting.id, currentAgenda.id, {
       status: "running",
+      sectionStatus: "in_progress",
       startTime: currentAgenda.startTime || now,
     });
 
@@ -474,6 +496,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
       status: "completed",
+      sectionStatus: "completed",
       endTime: new Date(),
     });
 
@@ -521,29 +544,6 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
         currentTime: 0,
         meetingStartTime: undefined,
         lastTickTime: undefined,
-      }));
-    }
-  },
-
-  previousAgenda: () => {
-    const state = get();
-    if (!state.currentMeeting || state.isRunning) return;
-
-    const currentAgenda = get().getCurrentAgenda();
-    if (!currentAgenda) return;
-
-    const prevAgenda = state.currentMeeting.agenda
-      .filter((agenda) => agenda.order < currentAgenda.order)
-      .sort((a, b) => b.order - a.order)[0];
-
-    if (prevAgenda) {
-      set((prevState) => ({
-        ...syncMeetingCurrentAgendaId(
-          prevState,
-          state.currentMeeting!.id,
-          prevAgenda.id,
-        ),
-        currentTime: 0,
       }));
     }
   },

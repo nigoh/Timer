@@ -128,6 +128,9 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       memo,
       actualDuration: 0,
       status: 'pending',
+      minutesContent: '',
+      minutesFormat: 'markdown',
+      sectionStatus: 'not_started',
       order: 0,
       remainingTime: plannedDuration,
     };
