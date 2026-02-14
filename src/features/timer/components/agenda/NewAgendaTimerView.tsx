@@ -546,7 +546,7 @@ const TimerDisplay: React.FC = () => {
             前へ
           </Button>
           
-          <Button onClick={stopTimer} variant="destructive" size="sm">
+          <Button onClick={stopTimer} variant="destructive" size="sm" disabled={!isRunning}>
             <Square className="w-4 h-4 mr-1" />
             停止
           </Button>
