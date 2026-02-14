@@ -1,18 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  Play, 
-  Pause, 
-  Square, 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Play,
+  Pause,
+  Square,
   Clock,
   CheckCircle2,
   Circle,
@@ -27,11 +38,11 @@ import {
   AlertCircle,
   ChevronRight,
   Volume2,
-  VolumeX
-} from 'lucide-react';
-import { useAgendaTimerStore } from '@/features/timer/stores/new-agenda-timer-store';
-import { AgendaItem, Meeting } from '@/types/agenda';
-import { cn } from '@/lib/utils';
+  VolumeX,
+} from "lucide-react";
+import { useAgendaTimerStore } from "@/features/timer/stores/new-agenda-timer-store";
+import { AgendaItem, Meeting } from "@/types/agenda";
+import { cn } from "@/lib/utils";
 
 const formatTime = (seconds: number): string => {
   const isNegative = seconds < 0;
@@ -40,10 +51,11 @@ const formatTime = (seconds: number): string => {
   const mins = Math.floor((absSeconds % 3600) / 60);
   const secs = absSeconds % 60;
 
-  const timeStr = hrs > 0 
-    ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    : `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  
+  const timeStr =
+    hrs > 0
+      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+      : `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+
   return isNegative ? `-${timeStr}` : timeStr;
 };
 
@@ -55,33 +67,33 @@ const formatMinutes = (seconds: number): string => {
 const getProgressDisplay = (percentage: number) => {
   if (percentage <= 70) {
     return {
-      color: 'text-green-600',
-      bgColor: 'bg-green-500',
+      color: "text-green-600",
+      bgColor: "bg-green-500",
       icon: <Clock className="w-4 h-4" />,
-      label: '余裕',
+      label: "余裕",
     };
   }
   if (percentage <= 90) {
     return {
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-500',
+      color: "text-orange-600",
+      bgColor: "bg-orange-500",
       icon: <AlertCircle className="w-4 h-4" />,
-      label: '残り少',
+      label: "残り少",
     };
   }
   if (percentage <= 100) {
     return {
-      color: 'text-red-600',
-      bgColor: 'bg-red-500',
+      color: "text-red-600",
+      bgColor: "bg-red-500",
       icon: <Timer className="w-4 h-4" />,
-      label: '終了間近',
+      label: "終了間近",
     };
   }
   return {
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-500',
+    color: "text-purple-600",
+    bgColor: "bg-purple-500",
     icon: <AlertCircle className="w-4 h-4" />,
-    label: '超過中',
+    label: "超過中",
   };
 };
 
@@ -92,12 +104,16 @@ interface MeetingDialogProps {
   onClose: () => void;
 }
 
-const MeetingDialog: React.FC<MeetingDialogProps> = ({ meeting, isOpen, onClose }) => {
-  const { createMeeting } = useAgendaTimerStore();
-  const [title, setTitle] = useState(meeting?.title || '');
+const MeetingDialog: React.FC<MeetingDialogProps> = ({
+  meeting,
+  isOpen,
+  onClose,
+}) => {
+  const { createMeeting, updateMeetingTitle } = useAgendaTimerStore();
+  const [title, setTitle] = useState(meeting?.title || "");
 
   useEffect(() => {
-    setTitle(meeting?.title || '');
+    setTitle(meeting?.title || "");
   }, [meeting]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -105,12 +121,12 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({ meeting, isOpen, onClose 
     if (!title.trim()) return;
 
     if (meeting) {
-      // 既存会議の更新は別途実装
+      updateMeetingTitle(meeting.id, title);
     } else {
       createMeeting(title);
     }
-    
-    setTitle('');
+
+    setTitle("");
     onClose();
   };
 
@@ -120,10 +136,10 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({ meeting, isOpen, onClose 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            {meeting ? '会議を編集' : '新しい会議を作成'}
+            {meeting ? "会議を編集" : "新しい会議を作成"}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="meeting-title">会議名</Label>
@@ -135,14 +151,12 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({ meeting, isOpen, onClose 
               required
             />
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               キャンセル
             </Button>
-            <Button type="submit">
-              {meeting ? '更新' : '作成'}
-            </Button>
+            <Button type="submit">{meeting ? "更新" : "作成"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -158,16 +172,23 @@ interface AgendaDialogProps {
   onClose: () => void;
 }
 
-const AgendaDialog: React.FC<AgendaDialogProps> = ({ meetingId, agenda, isOpen, onClose }) => {
+const AgendaDialog: React.FC<AgendaDialogProps> = ({
+  meetingId,
+  agenda,
+  isOpen,
+  onClose,
+}) => {
   const { addAgenda, updateAgenda } = useAgendaTimerStore();
-  const [title, setTitle] = useState(agenda?.title || '');
-  const [duration, setDuration] = useState(agenda ? Math.ceil(agenda.plannedDuration / 60) : 10);
-  const [memo, setMemo] = useState(agenda?.memo || '');
+  const [title, setTitle] = useState(agenda?.title || "");
+  const [duration, setDuration] = useState(
+    agenda ? Math.ceil(agenda.plannedDuration / 60) : 10,
+  );
+  const [memo, setMemo] = useState(agenda?.memo || "");
 
   useEffect(() => {
-    setTitle(agenda?.title || '');
+    setTitle(agenda?.title || "");
     setDuration(agenda ? Math.ceil(agenda.plannedDuration / 60) : 10);
-    setMemo(agenda?.memo || '');
+    setMemo(agenda?.memo || "");
   }, [agenda]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -186,10 +207,10 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({ meetingId, agenda, isOpen, 
     } else {
       addAgenda(meetingId, title, durationSeconds, memo);
     }
-    
-    setTitle('');
+
+    setTitle("");
     setDuration(10);
-    setMemo('');
+    setMemo("");
     onClose();
   };
 
@@ -199,10 +220,10 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({ meetingId, agenda, isOpen, 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
-            {agenda ? 'アジェンダを編集' : '新しいアジェンダを追加'}
+            {agenda ? "アジェンダを編集" : "新しいアジェンダを追加"}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="agenda-title">アジェンダタイトル</Label>
@@ -214,7 +235,7 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({ meetingId, agenda, isOpen, 
               required
             />
           </div>
-          
+
           <div>
             <Label htmlFor="agenda-duration">予定時間（分）</Label>
             <Input
@@ -227,7 +248,7 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({ meetingId, agenda, isOpen, 
               required
             />
           </div>
-          
+
           <div>
             <Label htmlFor="agenda-memo">メモ（任意）</Label>
             <Textarea
@@ -238,14 +259,12 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({ meetingId, agenda, isOpen, 
               rows={3}
             />
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               キャンセル
             </Button>
-            <Button type="submit">
-              {agenda ? '更新' : '追加'}
-            </Button>
+            <Button type="submit">{agenda ? "更新" : "追加"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -260,7 +279,11 @@ interface SettingsDialogProps {
   onClose: () => void;
 }
 
-const SettingsDialog: React.FC<SettingsDialogProps> = ({ meeting, isOpen, onClose }) => {
+const SettingsDialog: React.FC<SettingsDialogProps> = ({
+  meeting,
+  isOpen,
+  onClose,
+}) => {
   const { updateMeetingSettings } = useAgendaTimerStore();
   const [settings, setSettings] = useState(meeting.settings);
 
@@ -282,12 +305,12 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ meeting, isOpen, onClos
             会議設定
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* 基本設定 */}
           <div className="space-y-4">
             <h4 className="font-medium">基本設定</h4>
-            
+
             <div className="flex items-center justify-between">
               <Label className="text-sm">
                 自動遷移
@@ -297,13 +320,15 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ meeting, isOpen, onClos
               </Label>
               <Switch
                 checked={settings.autoTransition}
-                onCheckedChange={(checked) => setSettings({
-                  ...settings,
-                  autoTransition: checked
-                })}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    autoTransition: checked,
+                  })
+                }
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <Label className="text-sm">
                 サイレントモード
@@ -313,26 +338,33 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ meeting, isOpen, onClos
               </Label>
               <Switch
                 checked={settings.silentMode}
-                onCheckedChange={(checked) => setSettings({
-                  ...settings,
-                  silentMode: checked
-                })}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    silentMode: checked,
+                  })
+                }
               />
             </div>
           </div>
-          
+
           {/* ベル設定 */}
           <div className="space-y-4">
             <h4 className="font-medium">ベル通知設定</h4>
-            
+
             <div>
               <Label className="text-sm mb-2 block">ベル音の種類</Label>
               <Select
                 value={settings.bellSettings.soundType}
-                onValueChange={(value: 'single' | 'double' | 'loop') => setSettings({
-                  ...settings,
-                  bellSettings: { ...settings.bellSettings, soundType: value }
-                })}
+                onValueChange={(value: "single" | "double" | "loop") =>
+                  setSettings({
+                    ...settings,
+                    bellSettings: {
+                      ...settings.bellSettings,
+                      soundType: value,
+                    },
+                  })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -344,61 +376,76 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ meeting, isOpen, onClos
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">開始時</Label>
                 <Switch
                   checked={settings.bellSettings.start}
-                  onCheckedChange={(checked) => setSettings({
-                    ...settings,
-                    bellSettings: { ...settings.bellSettings, start: checked }
-                  })}
+                  onCheckedChange={(checked) =>
+                    setSettings({
+                      ...settings,
+                      bellSettings: {
+                        ...settings.bellSettings,
+                        start: checked,
+                      },
+                    })
+                  }
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label className="text-xs">残り5分</Label>
                 <Switch
                   checked={settings.bellSettings.fiveMinWarning}
-                  onCheckedChange={(checked) => setSettings({
-                    ...settings,
-                    bellSettings: { ...settings.bellSettings, fiveMinWarning: checked }
-                  })}
+                  onCheckedChange={(checked) =>
+                    setSettings({
+                      ...settings,
+                      bellSettings: {
+                        ...settings.bellSettings,
+                        fiveMinWarning: checked,
+                      },
+                    })
+                  }
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label className="text-xs">終了時</Label>
                 <Switch
                   checked={settings.bellSettings.end}
-                  onCheckedChange={(checked) => setSettings({
-                    ...settings,
-                    bellSettings: { ...settings.bellSettings, end: checked }
-                  })}
+                  onCheckedChange={(checked) =>
+                    setSettings({
+                      ...settings,
+                      bellSettings: { ...settings.bellSettings, end: checked },
+                    })
+                  }
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label className="text-xs">超過時</Label>
                 <Switch
                   checked={settings.bellSettings.overtime}
-                  onCheckedChange={(checked) => setSettings({
-                    ...settings,
-                    bellSettings: { ...settings.bellSettings, overtime: checked }
-                  })}
+                  onCheckedChange={(checked) =>
+                    setSettings({
+                      ...settings,
+                      bellSettings: {
+                        ...settings.bellSettings,
+                        overtime: checked,
+                      },
+                    })
+                  }
                 />
               </div>
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
               キャンセル
             </Button>
-            <Button onClick={handleSave}>
-              設定を保存
-            </Button>
+            <Button onClick={handleSave}>設定を保存</Button>
           </div>
         </div>
       </DialogContent>
@@ -433,8 +480,9 @@ const TimerDisplay: React.FC = () => {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [syncTime]);
 
   if (!currentMeeting || !currentAgenda) {
@@ -452,10 +500,12 @@ const TimerDisplay: React.FC = () => {
   }
 
   return (
-    <Card className={cn(
-      "transition-all duration-300",
-      isRunning && "ring-2 ring-blue-200 shadow-lg"
-    )}>
+    <Card
+      className={cn(
+        "transition-all duration-300",
+        isRunning && "ring-2 ring-blue-200 shadow-lg",
+      )}
+    >
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -474,7 +524,7 @@ const TimerDisplay: React.FC = () => {
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
         {/* アジェンダタイトル */}
         <div className="text-center">
@@ -485,7 +535,7 @@ const TimerDisplay: React.FC = () => {
             </p>
           )}
         </div>
-        
+
         {/* 時間表示 */}
         <div className="text-center space-y-4">
           <div className="space-y-2">
@@ -496,11 +546,11 @@ const TimerDisplay: React.FC = () => {
               予定時間: {formatTime(currentAgenda.plannedDuration)}
             </div>
           </div>
-          
+
           {/* 進捗バー */}
           <div className="space-y-2">
-            <Progress 
-              value={Math.min(progress, 100)} 
+            <Progress
+              value={Math.min(progress, 100)}
               className="h-4"
               indicatorClassName={progressDisplay.bgColor}
             />
@@ -509,12 +559,12 @@ const TimerDisplay: React.FC = () => {
                 {progress.toFixed(1)}% 経過
               </span>
               <span className="text-muted-foreground">
-                {progress > 100 ? `+${(progress - 100).toFixed(1)}% 超過` : ''}
+                {progress > 100 ? `+${(progress - 100).toFixed(1)}% 超過` : ""}
               </span>
             </div>
           </div>
         </div>
-        
+
         {/* ワンタップ開始ボタン */}
         <div className="flex justify-center">
           {!isRunning ? (
@@ -538,19 +588,24 @@ const TimerDisplay: React.FC = () => {
             </Button>
           )}
         </div>
-        
+
         {/* 制御ボタン */}
         <div className="flex justify-center gap-3">
           <Button onClick={previousAgenda} variant="outline" size="sm">
             <SkipBack className="w-4 h-4 mr-1" />
             前へ
           </Button>
-          
-          <Button onClick={stopTimer} variant="destructive" size="sm" disabled={!isRunning}>
+
+          <Button
+            onClick={stopTimer}
+            variant="destructive"
+            size="sm"
+            disabled={!isRunning}
+          >
             <Square className="w-4 h-4 mr-1" />
             停止
           </Button>
-          
+
           <Button onClick={nextAgenda} variant="outline" size="sm">
             次へ
             <SkipForward className="w-4 h-4 ml-1" />
@@ -563,7 +618,8 @@ const TimerDisplay: React.FC = () => {
 
 // アジェンダ一覧
 const AgendaList: React.FC = () => {
-  const { currentMeeting, deleteAgenda, getCurrentAgenda } = useAgendaTimerStore();
+  const { currentMeeting, deleteAgenda, getCurrentAgenda } =
+    useAgendaTimerStore();
   const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
   const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
 
@@ -591,7 +647,7 @@ const AgendaList: React.FC = () => {
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-3">
           {currentMeeting.agenda.length === 0 ? (
@@ -604,43 +660,48 @@ const AgendaList: React.FC = () => {
               .sort((a, b) => a.order - b.order)
               .map((agenda) => {
                 const isActive = currentAgenda?.id === agenda.id;
-                const progress = agenda.plannedDuration > 0 
-                  ? (agenda.actualDuration / agenda.plannedDuration) * 100 
-                  : 0;
+                const progress =
+                  agenda.plannedDuration > 0
+                    ? (agenda.actualDuration / agenda.plannedDuration) * 100
+                    : 0;
                 const progressDisplay = getProgressDisplay(progress);
-                
+
                 return (
                   <div
                     key={agenda.id}
                     className={cn(
                       "p-4 rounded-lg border transition-all duration-200",
                       isActive && "border-blue-200 bg-blue-50 shadow-md",
-                      agenda.status === 'completed' && "bg-green-50 border-green-200",
-                      agenda.status === 'overtime' && "bg-purple-50 border-purple-200"
+                      agenda.status === "completed" &&
+                        "bg-green-50 border-green-200",
+                      agenda.status === "overtime" &&
+                        "bg-purple-50 border-purple-200",
                     )}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {agenda.status === 'completed' ? (
+                          {agenda.status === "completed" ? (
                             <CheckCircle2 className="w-4 h-4 text-green-500" />
                           ) : isActive ? (
                             progressDisplay.icon
                           ) : (
                             <Circle className="w-4 h-4 text-muted-foreground" />
                           )}
-                          <h4 className="font-medium truncate">{agenda.title}</h4>
+                          <h4 className="font-medium truncate">
+                            {agenda.title}
+                          </h4>
                           {isActive && (
                             <ChevronRight className="w-4 h-4 text-blue-500" />
                           )}
                         </div>
-                        
+
                         {agenda.memo && (
                           <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                             {agenda.memo}
                           </p>
                         )}
-                        
+
                         <div className="flex items-center gap-4 text-sm">
                           <span>
                             予定: {formatMinutes(agenda.plannedDuration)}
@@ -651,25 +712,25 @@ const AgendaList: React.FC = () => {
                             </span>
                           )}
                           <Badge variant="outline">
-                            {agenda.status === 'pending' && '待機'}
-                            {agenda.status === 'running' && '実行中'}
-                            {agenda.status === 'paused' && '一時停止'}
-                            {agenda.status === 'completed' && '完了'}
-                            {agenda.status === 'overtime' && '超過中'}
+                            {agenda.status === "pending" && "待機"}
+                            {agenda.status === "running" && "実行中"}
+                            {agenda.status === "paused" && "一時停止"}
+                            {agenda.status === "completed" && "完了"}
+                            {agenda.status === "overtime" && "超過中"}
                           </Badge>
                         </div>
-                        
+
                         {agenda.actualDuration > 0 && (
                           <div className="mt-2">
-                            <Progress 
-                              value={Math.min(progress, 100)} 
+                            <Progress
+                              value={Math.min(progress, 100)}
                               className="h-2"
                               indicatorClassName={progressDisplay.bgColor}
                             />
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex gap-1 ml-2">
                         <Button
                           variant="ghost"
@@ -684,7 +745,9 @@ const AgendaList: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteAgenda(currentMeeting.id, agenda.id)}
+                          onClick={() =>
+                            deleteAgenda(currentMeeting.id, agenda.id)
+                          }
                           className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -696,7 +759,7 @@ const AgendaList: React.FC = () => {
               })
           )}
         </div>
-        
+
         <AgendaDialog
           meetingId={currentMeeting.id}
           agenda={editingAgenda}
@@ -713,8 +776,10 @@ const AgendaList: React.FC = () => {
 
 // メインコンポーネント
 export const NewAgendaTimerView: React.FC = () => {
-  const { currentMeeting, meetings, tick, createMeeting, isRunning } = useAgendaTimerStore();
+  const { currentMeeting, meetings, tick, createMeeting, isRunning } =
+    useAgendaTimerStore();
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
 
   // タイマーのtick処理
@@ -728,7 +793,7 @@ export const NewAgendaTimerView: React.FC = () => {
   // 初期会議作成
   useEffect(() => {
     if (meetings.length === 0) {
-      createMeeting('新しい会議');
+      createMeeting("新しい会議");
     }
   }, [meetings.length, createMeeting]);
 
@@ -742,17 +807,32 @@ export const NewAgendaTimerView: React.FC = () => {
             会議タイマー
           </h2>
           <p className="text-muted-foreground">
-            {currentMeeting?.title || '会議を選択してください'}
+            {currentMeeting?.title || "会議を選択してください"}
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => setIsMeetingDialogOpen(true)}
+            onClick={() => {
+              setEditingMeeting(null);
+              setIsMeetingDialogOpen(true);
+            }}
           >
             <Plus className="w-4 h-4 mr-2" />
             新しい会議
           </Button>
+          {currentMeeting && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingMeeting(currentMeeting);
+                setIsMeetingDialogOpen(true);
+              }}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              会議名を編集
+            </Button>
+          )}
           {currentMeeting && (
             <Button
               variant="outline"
@@ -773,10 +853,14 @@ export const NewAgendaTimerView: React.FC = () => {
 
       {/* ダイアログ */}
       <MeetingDialog
+        meeting={editingMeeting}
         isOpen={isMeetingDialogOpen}
-        onClose={() => setIsMeetingDialogOpen(false)}
+        onClose={() => {
+          setIsMeetingDialogOpen(false);
+          setEditingMeeting(null);
+        }}
       />
-      
+
       {currentMeeting && (
         <SettingsDialog
           meeting={currentMeeting}
