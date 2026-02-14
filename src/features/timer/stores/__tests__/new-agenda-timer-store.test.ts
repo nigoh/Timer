@@ -1,20 +1,20 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAgendaTimerStore } from '../new-agenda-timer-store';
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { useAgendaTimerStore } from "../new-agenda-timer-store";
 
-vi.mock('@/utils/bellSoundManager', () => ({
+vi.mock("@/utils/bellSoundManager", () => ({
   bellSoundManager: {
     notifyWithBell: vi.fn(),
   },
 }));
 
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: {
     info: vi.fn(),
     timerStart: vi.fn(),
   },
 }));
 
-import { bellSoundManager } from '@/utils/bellSoundManager';
+import { bellSoundManager } from "@/utils/bellSoundManager";
 
 const resetAgendaTimerStore = () => {
   useAgendaTimerStore.setState({
@@ -28,45 +28,42 @@ const resetAgendaTimerStore = () => {
 };
 
 beforeAll(() => {
-  vi.stubGlobal(
-    'Notification',
-    {
-      permission: 'denied',
-      requestPermission: vi.fn().mockResolvedValue('denied'),
-    } as unknown as Notification,
-  );
+  vi.stubGlobal("Notification", {
+    permission: "denied",
+    requestPermission: vi.fn().mockResolvedValue("denied"),
+  } as unknown as Notification);
 });
 const setupMeetingWithAgendas = () => {
   const store = useAgendaTimerStore.getState();
-  store.createMeeting('定例MTG');
+  store.createMeeting("定例MTG");
 
   const meeting = useAgendaTimerStore.getState().currentMeeting;
   if (!meeting) {
-    throw new Error('meeting was not created');
+    throw new Error("meeting was not created");
   }
 
-  store.addAgenda(meeting.id, '議題1', 10);
-  store.addAgenda(meeting.id, '議題2', 5);
+  store.addAgenda(meeting.id, "議題1", 10);
+  store.addAgenda(meeting.id, "議題2", 5);
 
   return useAgendaTimerStore.getState().currentMeeting!;
 };
 
-describe('useAgendaTimerStore', () => {
+describe("useAgendaTimerStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAgendaTimerStore();
   });
 
   // REQ-5.4
-  it('会議作成とアジェンダ追加/更新/削除ができる', () => {
+  it("会議作成とアジェンダ追加/更新/削除ができる", () => {
     const store = useAgendaTimerStore.getState();
 
-    store.createMeeting('定例会議');
+    store.createMeeting("定例会議");
     const createdMeeting = useAgendaTimerStore.getState().currentMeeting;
     expect(createdMeeting).not.toBeNull();
 
     const meetingId = createdMeeting!.id;
-    store.addAgenda(meetingId, '進捗確認', 60, '先週分');
+    store.addAgenda(meetingId, "進捗確認", 60, "先週分");
 
     let updatedMeeting = useAgendaTimerStore.getState().currentMeeting;
     expect(updatedMeeting?.agenda).toHaveLength(1);
@@ -74,12 +71,12 @@ describe('useAgendaTimerStore', () => {
 
     const agendaId = updatedMeeting!.agenda[0].id;
     store.updateAgenda(meetingId, agendaId, {
-      title: '進捗確認（更新）',
+      title: "進捗確認（更新）",
       plannedDuration: 90,
     });
 
     updatedMeeting = useAgendaTimerStore.getState().currentMeeting;
-    expect(updatedMeeting?.agenda[0].title).toBe('進捗確認（更新）');
+    expect(updatedMeeting?.agenda[0].title).toBe("進捗確認（更新）");
     expect(updatedMeeting?.totalPlannedDuration).toBe(90);
 
     store.deleteAgenda(meetingId, agendaId);
@@ -88,24 +85,38 @@ describe('useAgendaTimerStore', () => {
     expect(updatedMeeting?.totalPlannedDuration).toBe(0);
   });
 
-  // REQ-5.4
-  it('開始/停止/次アジェンダ遷移が動作する', () => {
+  it("会議名更新時に meetings と currentMeeting のタイトルが同期される", () => {
     const store = useAgendaTimerStore.getState();
-    store.createMeeting('顧客MTG');
+    store.createMeeting("更新前会議");
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.updateMeetingTitle(meetingId, "更新後会議");
+
+    const updatedState = useAgendaTimerStore.getState();
+    expect(updatedState.currentMeeting?.title).toBe("更新後会議");
+    expect(
+      updatedState.meetings.find((meeting) => meeting.id === meetingId)?.title,
+    ).toBe("更新後会議");
+  });
+
+  // REQ-5.4
+  it("開始/停止/次アジェンダ遷移が動作する", () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting("顧客MTG");
     const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
 
-    store.addAgenda(meetingId, '導入説明', 30);
-    store.addAgenda(meetingId, '質疑応答', 45);
+    store.addAgenda(meetingId, "導入説明", 30);
+    store.addAgenda(meetingId, "質疑応答", 45);
 
     store.startTimer();
     expect(useAgendaTimerStore.getState().isRunning).toBe(true);
 
     const currentAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
-    expect(currentAgenda?.status).toBe('running');
+    expect(currentAgenda?.status).toBe("running");
 
     store.nextAgenda();
     const nextAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
-    expect(nextAgenda?.title).toBe('質疑応答');
+    expect(nextAgenda?.title).toBe("質疑応答");
 
     store.stopTimer();
     expect(useAgendaTimerStore.getState().isRunning).toBe(false);
@@ -113,14 +124,14 @@ describe('useAgendaTimerStore', () => {
   });
 
   // REQ-5.4
-  it('tickで経過時間が更新され、予定超過時はovertimeになる', () => {
-    const nowSpy = vi.spyOn(Date, 'now');
+  it("tickで経過時間が更新され、予定超過時はovertimeになる", () => {
+    const nowSpy = vi.spyOn(Date, "now");
 
     const store = useAgendaTimerStore.getState();
-    store.createMeeting('時間管理テスト');
+    store.createMeeting("時間管理テスト");
     const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
 
-    store.addAgenda(meetingId, '短時間アジェンダ', 2);
+    store.addAgenda(meetingId, "短時間アジェンダ", 2);
 
     nowSpy.mockReturnValue(2_000);
     store.startTimer();
@@ -132,19 +143,19 @@ describe('useAgendaTimerStore', () => {
     expect(useAgendaTimerStore.getState().currentTime).toBe(3);
     expect(agenda?.actualDuration).toBe(3);
     expect(agenda?.remainingTime).toBe(-1);
-    expect(agenda?.status).toBe('overtime');
+    expect(agenda?.status).toBe("overtime");
 
     nowSpy.mockRestore();
   });
 
-  it('開始/停止/次アジェンダ遷移で currentAgendaId を meetings と currentMeeting の両方で維持する', () => {
+  it("開始/停止/次アジェンダ遷移で currentAgendaId を meetings と currentMeeting の両方で維持する", () => {
     const store = useAgendaTimerStore.getState();
-    store.createMeeting('定例会議');
+    store.createMeeting("定例会議");
 
     const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
 
-    store.addAgenda(meetingId, '議題1', 120);
-    store.addAgenda(meetingId, '議題2', 60);
+    store.addAgenda(meetingId, "議題1", 120);
+    store.addAgenda(meetingId, "議題2", 60);
 
     const firstAgenda = store.getCurrentAgenda();
     expect(firstAgenda).not.toBeNull();
@@ -163,45 +174,55 @@ describe('useAgendaTimerStore', () => {
 
     store.nextAgenda();
     const movedState = useAgendaTimerStore.getState();
-    const secondAgenda = movedState.currentMeeting?.agenda.find((agenda) => agenda.title === '議題2');
+    const secondAgenda = movedState.currentMeeting?.agenda.find(
+      (agenda) => agenda.title === "議題2",
+    );
 
     expect(movedState.currentMeeting?.currentAgendaId).toBe(secondAgenda?.id);
     expect(movedState.meetings[0].currentAgendaId).toBe(secondAgenda?.id);
   });
 
-  it('現在アジェンダを削除したとき、order順の次候補へ再選択して currentAgendaId を再同期する', () => {
+  it("現在アジェンダを削除したとき、order順の次候補へ再選択して currentAgendaId を再同期する", () => {
     const store = useAgendaTimerStore.getState();
-    store.createMeeting('削除再選択テスト');
+    store.createMeeting("削除再選択テスト");
 
     const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
-    store.addAgenda(meetingId, '議題1', 30);
-    store.addAgenda(meetingId, '議題2', 20);
-    store.addAgenda(meetingId, '議題3', 10);
+    store.addAgenda(meetingId, "議題1", 30);
+    store.addAgenda(meetingId, "議題2", 20);
+    store.addAgenda(meetingId, "議題3", 10);
 
     const meeting = useAgendaTimerStore.getState().currentMeeting!;
-    const secondAgenda = meeting.agenda.find((agenda) => agenda.title === '議題2');
-    const thirdAgenda = meeting.agenda.find((agenda) => agenda.title === '議題3');
+    const secondAgenda = meeting.agenda.find(
+      (agenda) => agenda.title === "議題2",
+    );
+    const thirdAgenda = meeting.agenda.find(
+      (agenda) => agenda.title === "議題3",
+    );
 
     expect(secondAgenda).toBeDefined();
     expect(thirdAgenda).toBeDefined();
 
     store.nextAgenda();
-    expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(secondAgenda!.id);
+    expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(
+      secondAgenda!.id,
+    );
 
     store.deleteAgenda(meetingId, secondAgenda!.id);
 
     const updatedState = useAgendaTimerStore.getState();
-    expect(updatedState.currentMeeting?.agenda.map((agenda) => agenda.title)).toEqual(['議題1', '議題3']);
+    expect(
+      updatedState.currentMeeting?.agenda.map((agenda) => agenda.title),
+    ).toEqual(["議題1", "議題3"]);
     expect(updatedState.currentMeeting?.currentAgendaId).toBe(thirdAgenda!.id);
     expect(updatedState.meetings[0].currentAgendaId).toBe(thirdAgenda!.id);
   });
 
-  it('tick 実行時に running と currentTime が更新される', () => {
+  it("tick 実行時に running と currentTime が更新される", () => {
     const store = useAgendaTimerStore.getState();
-    store.createMeeting('進捗会議');
+    store.createMeeting("進捗会議");
 
     const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
-    store.addAgenda(meetingId, '進捗共有', 180);
+    store.addAgenda(meetingId, "進捗共有", 180);
 
     const currentAgenda = store.getCurrentAgenda();
     expect(currentAgenda).not.toBeNull();
@@ -213,20 +234,26 @@ describe('useAgendaTimerStore', () => {
     store.tick();
 
     const state = useAgendaTimerStore.getState();
-    const afterTickAgenda = state.currentMeeting?.agenda.find((agenda) => agenda.id === currentAgenda!.id);
+    const afterTickAgenda = state.currentMeeting?.agenda.find(
+      (agenda) => agenda.id === currentAgenda!.id,
+    );
 
     expect(state.isRunning).toBe(true);
     expect(state.currentTime).toBeGreaterThan(0);
     expect(afterTickAgenda?.actualDuration).toBe(state.currentTime);
-    expect(afterTickAgenda?.status).toBe('running');
+    expect(afterTickAgenda?.status).toBe("running");
   });
 
-  it('nextAgenda で現在議題を完了にして次の議題へ遷移する', () => {
+  it("nextAgenda で現在議題を完了にして次の議題へ遷移する", () => {
     const meeting = setupMeetingWithAgendas();
     const store = useAgendaTimerStore.getState();
 
-    const firstAgenda = meeting.agenda.find((agenda) => agenda.title === '議題1');
-    const secondAgenda = meeting.agenda.find((agenda) => agenda.title === '議題2');
+    const firstAgenda = meeting.agenda.find(
+      (agenda) => agenda.title === "議題1",
+    );
+    const secondAgenda = meeting.agenda.find(
+      (agenda) => agenda.title === "議題2",
+    );
 
     expect(firstAgenda).toBeDefined();
     expect(secondAgenda).toBeDefined();
@@ -235,15 +262,19 @@ describe('useAgendaTimerStore', () => {
     store.nextAgenda();
 
     const updatedMeeting = useAgendaTimerStore.getState().currentMeeting;
-    const updatedFirst = updatedMeeting?.agenda.find((agenda) => agenda.id === firstAgenda!.id);
+    const updatedFirst = updatedMeeting?.agenda.find(
+      (agenda) => agenda.id === firstAgenda!.id,
+    );
 
     expect(updatedMeeting?.currentAgendaId).toBeDefined();
-    expect([firstAgenda!.id, secondAgenda!.id]).toContain(updatedMeeting?.currentAgendaId);
-    expect(updatedFirst?.status).toBe('completed');
+    expect([firstAgenda!.id, secondAgenda!.id]).toContain(
+      updatedMeeting?.currentAgendaId,
+    );
+    expect(updatedFirst?.status).toBe("completed");
     expect(useAgendaTimerStore.getState().currentTime).toBe(0);
   });
 
-  it('tick で経過時間を進め、残り時間を更新する', () => {
+  it("tick で経過時間を進め、残り時間を更新する", () => {
     const meeting = setupMeetingWithAgendas();
     const store = useAgendaTimerStore.getState();
 
@@ -265,11 +296,13 @@ describe('useAgendaTimerStore', () => {
     );
 
     expect(updatedState.currentTime).toBeGreaterThanOrEqual(1);
-    expect(updatedAgenda?.remainingTime).toBeLessThan(currentAgenda!.plannedDuration);
-    expect(updatedAgenda?.status).toBe('running');
+    expect(updatedAgenda?.remainingTime).toBeLessThan(
+      currentAgenda!.plannedDuration,
+    );
+    expect(updatedAgenda?.status).toBe("running");
   });
 
-  it('startTimer は bellSoundManager のモックを呼び出す', () => {
+  it("startTimer は bellSoundManager のモックを呼び出す", () => {
     const meeting = setupMeetingWithAgendas();
 
     useAgendaTimerStore.setState({
