@@ -7,6 +7,7 @@
 本プロジェクトの要件・受け入れ基準・Phase定義の正本は以下です。
 
 - [要件定義（正本）](./docs/REQUIREMENTS.md)
+- [非機能要件の検証手順](./docs/NON_FUNCTIONAL_VERIFICATION.md)
 
 参照ドキュメント:
 
