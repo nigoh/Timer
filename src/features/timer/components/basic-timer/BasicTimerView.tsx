@@ -110,13 +110,13 @@ export const BasicTimerView: React.FC<BasicTimerViewProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-3 sm:flex-nowrap">
             {!isRunning ? (
               <Button
                 onClick={onStart}
                 size="lg"
                 disabled={remainingTime === 0}
-                className="px-8"
+                className="px-4 sm:px-8"
               >
                 <Play className="mr-2 h-5 w-5" />
                 {isPaused ? '再開' : '開始'}
@@ -126,30 +126,25 @@ export const BasicTimerView: React.FC<BasicTimerViewProps> = ({
                 onClick={onPause}
                 variant="outline"
                 size="lg"
-                className="px-8"
+                className="px-4 sm:px-8"
               >
                 <Pause className="mr-2 h-5 w-5" />
                 一時停止
               </Button>
             )}
 
-            <Button
-              onClick={onStop}
-              variant="destructive"
-              size="lg"
-              disabled={!isRunning && !isPaused}
-            >
+            <Button onClick={onStop} variant="destructive" size="lg" className="px-4 sm:px-8">
               <Square className="mr-2 h-5 w-5" />
               停止
             </Button>
 
-            <Button onClick={onReset} variant="outline" size="lg">
+            <Button onClick={onReset} variant="outline" size="lg" className="px-4 sm:px-8">
               <RotateCcw className="mr-2 h-5 w-5" />
               リセット
             </Button>
           </div>
 
-          <div className="flex justify-center gap-3 pt-2 border-t">
+          <div className="flex flex-wrap justify-center gap-3 pt-2 border-t sm:flex-nowrap">
             <TimerSettings
               duration={duration}
               onDurationChange={onDurationChange}
