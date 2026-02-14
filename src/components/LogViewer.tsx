@@ -201,7 +201,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-6xl h-[80vh]">
+      <DialogContent className="max-w-6xl h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>アプリケーションログ</DialogTitle>
           <DialogDescription>
@@ -209,16 +209,16 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="logs" className="h-full">
+        <Tabs defaultValue="logs" className="flex h-full min-h-0 flex-col">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="logs">ログ一覧</TabsTrigger>
             <TabsTrigger value="statistics">統計情報</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="logs" className="h-full">
-            <div className="space-y-4 h-full">
+          <TabsContent value="logs" className="flex-1 min-h-0">
+            <div className="space-y-4 h-full min-h-0 flex flex-col">
               {/* フィルター・検索バー */}
-              <div className="flex gap-4 flex-wrap">
+              <div className="flex gap-4 flex-wrap shrink-0">
                 <div className="flex-1 min-w-[200px]">
                   <Input
                     placeholder="ログを検索..."
@@ -264,7 +264,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
               </div>
 
               {/* ログ一覧 */}
-              <ScrollArea className="h-[calc(100%-80px)]">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="space-y-2">
                   {filteredLogs.length === 0 ? (
                     <Card>
@@ -284,7 +284,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
             </div>
           </TabsContent>
 
-          <TabsContent value="statistics" className="h-full">
+          <TabsContent value="statistics" className="flex-1 min-h-0">
             <ScrollArea className="h-full">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 基本統計 */}
