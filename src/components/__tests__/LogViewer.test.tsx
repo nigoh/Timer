@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
 import { LogLevel } from '@/utils/logger';
 import LogViewer from '../LogViewer';
 
@@ -23,7 +22,19 @@ vi.mock('@/utils/logger', async () => {
 });
 
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Dialog: ({
+    children,
+    onOpenChange,
+  }: {
+    children: React.ReactNode;
+    onOpenChange?: (open: boolean) => void;
+  }) => {
+    React.useEffect(() => {
+      onOpenChange?.(true);
+    }, [onOpenChange]);
+
+    return <div>{children}</div>;
+  },
   DialogTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
