@@ -271,12 +271,13 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
   startTimer: () => {
     const state = get();
     const currentAgenda = get().getCurrentAgenda();
+    const currentMeeting = state.currentMeeting;
 
-    if (!currentAgenda || !state.currentMeeting) return;
+    if (!currentAgenda || !currentMeeting) return;
 
     const now = new Date();
 
-    set((prevState) => syncMeetingCurrentAgendaId(prevState, state.currentMeeting.id, currentAgenda.id));
+    set((prevState) => syncMeetingCurrentAgendaId(prevState, currentMeeting.id, currentAgenda.id));
 
     set({
       isRunning: true,
@@ -289,8 +290,8 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
     logger.info(
       'Agenda timer started',
       {
-        meetingId: state.currentMeeting.id,
-        meetingTitle: state.currentMeeting.title,
+        meetingId: currentMeeting.id,
+        meetingTitle: currentMeeting.title,
         agendaId: currentAgenda.id,
         agendaTitle: currentAgenda.title,
         plannedDuration: currentAgenda.plannedDuration,
@@ -298,15 +299,15 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       'agenda',
     );
 
-    get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
+    get().updateAgenda(currentMeeting.id, currentAgenda.id, {
       status: 'running',
       startTime: currentAgenda.startTime || now,
     });
 
-    if (state.currentMeeting.settings.bellSettings.start) {
+    if (currentMeeting.settings.bellSettings.start) {
       bellSoundManager.notifyWithBell(
         'start',
-        state.currentMeeting.settings.bellSettings,
+        currentMeeting.settings.bellSettings,
         `アジェンダ「${currentAgenda.title}」を開始しました`,
       );
     }

@@ -1,6 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgendaTimerStore } from '../new-agenda-timer-store';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/utils/bellSoundManager', () => ({
   bellSoundManager: {
@@ -16,7 +15,6 @@ vi.mock('@/utils/logger', () => ({
 }));
 
 import { bellSoundManager } from '@/utils/bellSoundManager';
-import { useAgendaTimerStore } from '../new-agenda-timer-store';
 
 const resetAgendaTimerStore = () => {
   useAgendaTimerStore.setState({
@@ -136,6 +134,8 @@ describe('useAgendaTimerStore', () => {
     expect(agenda?.status).toBe('overtime');
 
     nowSpy.mockRestore();
+  });
+
   it('開始/停止/次アジェンダ遷移で currentAgendaId を meetings と currentMeeting の両方で維持する', () => {
     const store = useAgendaTimerStore.getState();
     store.createMeeting('定例会議');
