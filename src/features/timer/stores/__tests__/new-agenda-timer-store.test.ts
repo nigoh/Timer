@@ -129,6 +129,26 @@ describe("useAgendaTimerStore", () => {
   // REQ-5.4
 
 
+
+  it("セッション完了で現在議題を完了し次の議題へ遷移する", () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting("セッション完了テスト");
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.addAgenda(meetingId, "議題1", 60);
+    store.addAgenda(meetingId, "議題2", 60);
+
+    store.startTimer();
+    store.stopTimer();
+
+    const state = useAgendaTimerStore.getState();
+    const currentAgenda = state.getCurrentAgenda();
+    const firstAgenda = state.currentMeeting?.agenda.find((agenda) => agenda.title === "議題1");
+
+    expect(state.isRunning).toBe(false);
+    expect(firstAgenda?.status).toBe("completed");
+    expect(currentAgenda?.title).toBe("議題2");
+  });
   it("実行中は前へ/次へが無効で議題遷移しない", () => {
     const store = useAgendaTimerStore.getState();
     store.createMeeting("厳密運用テスト");
@@ -367,6 +387,8 @@ describe("useAgendaTimerStore", () => {
     store.addAgenda(meetingId, "最終議題", 10);
 
     store.getCurrentAgenda();
+    store.startTimer();
+    store.pauseTimer();
     store.nextAgenda();
 
     const completedState = useAgendaTimerStore.getState();

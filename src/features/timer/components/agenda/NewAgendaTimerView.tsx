@@ -131,7 +131,14 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -473,7 +480,9 @@ const TimerDisplay: React.FC = () => {
   const progressDisplay = getProgressDisplay(progress);
   const isPaused = currentAgenda?.status === "paused";
   const canCompleteSession =
-    currentAgenda?.status === "running" || currentAgenda?.status === "paused";
+    currentAgenda?.status === "running" ||
+    currentAgenda?.status === "paused" ||
+    currentAgenda?.status === "overtime";
 
   // バックグラウンド復帰時の時間同期
   useEffect(() => {
@@ -606,7 +615,7 @@ const TimerDisplay: React.FC = () => {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          一時停止で調整し、区切りがついたらセッション完了で次のセッションへ進めます。
+          開始/一時停止で進行を調整し、区切りがついたらセッション完了で次のセッションへ進めます。
         </p>
 
         {/* 制御ボタン */}
@@ -628,7 +637,7 @@ const TimerDisplay: React.FC = () => {
             disabled={!canCompleteSession}
           >
             <Square className="w-4 h-4 mr-1" />
-            セッション停止
+            セッション完了
           </Button>
 
           <Button
@@ -849,7 +858,7 @@ export const NewAgendaTimerView: React.FC = () => {
             }}
           >
             <Plus className="w-4 h-4 mr-2" />
-            新しい会議
+            ＋新しい会議
           </Button>
           {currentMeeting && (
             <Button
