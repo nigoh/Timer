@@ -53,6 +53,7 @@ const setupMeetingWithAgendas = () => {
 
 describe('useAgendaTimerStore', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     resetAgendaTimerStore();
   });
 
@@ -191,16 +192,6 @@ describe('useAgendaTimerStore', () => {
     expect(state.currentTime).toBeGreaterThan(0);
     expect(afterTickAgenda?.actualDuration).toBe(state.currentTime);
     expect(afterTickAgenda?.status).toBe('running');
-    vi.clearAllMocks();
-    vi.stubGlobal('window', {
-      addEventListener: vi.fn(),
-      location: { href: 'http://localhost/' },
-    });
-    vi.stubGlobal('navigator', { userAgent: 'vitest' });
-    vi.stubGlobal('Notification', {
-      permission: 'granted',
-      requestPermission: vi.fn(),
-    });
   });
 
   it('nextAgenda で現在議題を完了にして次の議題へ遷移する', () => {

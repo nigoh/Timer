@@ -5,12 +5,14 @@ import { act } from 'react-dom/test-utils';
 import { LogLevel } from '@/utils/logger';
 import LogViewer from '../LogViewer';
 
-const mockLogger = {
-  getStoredLogs: vi.fn(),
-  getLogStatistics: vi.fn(),
-  exportLogs: vi.fn(() => '[]'),
-  clearLogs: vi.fn(),
-};
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: {
+    getStoredLogs: vi.fn(),
+    getLogStatistics: vi.fn(),
+    exportLogs: vi.fn(() => '[]'),
+    clearLogs: vi.fn(),
+  },
+}));
 
 vi.mock('@/utils/logger', async () => {
   const actual = await vi.importActual<typeof import('@/utils/logger')>('@/utils/logger');

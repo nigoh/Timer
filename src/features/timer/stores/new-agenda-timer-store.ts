@@ -275,14 +275,15 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     if (!currentAgenda || !currentMeeting) return;
 
-    const now = new Date();
+    const nowTimestamp = Date.now();
+    const now = new Date(nowTimestamp);
 
     set((prevState) => syncMeetingCurrentAgendaId(prevState, currentMeeting.id, currentAgenda.id));
 
     set({
       isRunning: true,
       meetingStartTime: state.meetingStartTime || now,
-      lastTickTime: now.getTime(),
+      lastTickTime: nowTimestamp,
     });
 
     logger.timerStart(currentAgenda.id, 'agenda', currentAgenda.plannedDuration * 60);
