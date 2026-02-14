@@ -502,6 +502,19 @@ const TimerDisplay: React.FC = () => {
     );
   }
 
+
+  const canMovePrevious =
+    !isRunning &&
+    currentMeeting.agenda.some((agenda) => agenda.order < currentAgenda.order);
+  const canMoveNext =
+    !isRunning &&
+    (currentAgenda.status === "running" ||
+      currentAgenda.status === "paused" ||
+      currentAgenda.status === "overtime") &&
+    currentMeeting.agenda.some(
+      (agenda) => agenda.status === "pending" && agenda.id !== currentAgenda.id,
+    );
+
   return (
     <Card
       className={cn(
@@ -598,7 +611,12 @@ const TimerDisplay: React.FC = () => {
 
         {/* 制御ボタン */}
         <div className="flex justify-center gap-3">
-          <Button onClick={previousAgenda} variant="outline" size="sm">
+          <Button
+            onClick={previousAgenda}
+            variant="outline"
+            size="sm"
+            disabled={!canMovePrevious}
+          >
             <SkipBack className="w-4 h-4 mr-1" />
             前へ
           </Button>
@@ -613,7 +631,12 @@ const TimerDisplay: React.FC = () => {
             セッション停止
           </Button>
 
-          <Button onClick={nextAgenda} variant="outline" size="sm">
+          <Button
+            onClick={nextAgenda}
+            variant="outline"
+            size="sm"
+            disabled={!canMoveNext}
+          >
             次へ
             <SkipForward className="w-4 h-4 ml-1" />
           </Button>
