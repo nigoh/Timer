@@ -73,13 +73,46 @@ describe('usePomodoroStore', () => {
 
     usePomodoroStore.setState({ timeRemaining: 1 });
     store.start();
-    store.tick(); // 1 -> 0
-    store.tick(); // completes work phase
+    store.tick(); // completes work phase in one tick
 
     const state = usePomodoroStore.getState();
     expect(state.currentPhase).toBe('short-break');
     expect(state.timeRemaining).toBe(state.settings.shortBreakDuration * 60);
     expect(state.isRunning).toBe(false);
+  });
+
+  it('does not complete session twice before auto-start timeout fires', () => {
+    vi.useFakeTimers();
+
+    try {
+      const store = usePomodoroStore.getState();
+      store.updateSettings({
+        workDuration: 1,
+        shortBreakDuration: 1,
+        longBreakDuration: 1,
+        longBreakInterval: 4,
+        autoStartBreaks: true,
+        autoStartWork: false,
+      });
+
+      usePomodoroStore.setState({ timeRemaining: 1 });
+      store.start();
+      store.tick();
+      store.tick();
+
+      const beforeTimeout = usePomodoroStore.getState();
+      expect(beforeTimeout.sessions).toHaveLength(1);
+      expect(beforeTimeout.currentPhase).toBe('work');
+      expect(beforeTimeout.isRunning).toBe(false);
+
+      vi.advanceTimersByTime(1000);
+
+      const afterTimeout = usePomodoroStore.getState();
+      expect(afterTimeout.currentPhase).toBe('short-break');
+      expect(afterTimeout.isRunning).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('resets the cycle and task name', () => {
