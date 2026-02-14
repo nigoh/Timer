@@ -615,25 +615,12 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
     const state = get();
     if (!state.currentMeeting) return null;
 
-    // 不変条件: currentMeeting.currentAgendaId が未設定/不正な場合でも、
-    // meetings/currentMeeting の currentAgendaId を同期しながら復旧する。
-
     const sortedPendingAgendas = [...state.currentMeeting.agenda]
       .filter((agenda) => agenda.status === "pending")
       .sort((a, b) => a.order - b.order);
     const firstPending = sortedPendingAgendas[0];
 
     if (!state.currentMeeting.currentAgendaId) {
-      if (firstPending) {
-        set((prevState) =>
-          syncMeetingCurrentAgendaId(
-            prevState,
-            state.currentMeeting!.id,
-            firstPending.id,
-          ),
-        );
-      }
-
       return firstPending || null;
     }
 
@@ -642,14 +629,6 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
     );
 
     if (!currentAgenda) {
-      set((prevState) =>
-        syncMeetingCurrentAgendaId(
-          prevState,
-          state.currentMeeting!.id,
-          firstPending?.id,
-        ),
-      );
-
       return firstPending || null;
     }
 

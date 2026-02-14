@@ -148,12 +148,23 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
         }
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md [&>button]:hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            {meeting ? "会議を編集" : "新しい会議を作成"}
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              {meeting ? "会議を編集" : "新しい会議を作成"}
+            </DialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="ダイアログを閉じる"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -231,13 +242,31 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md [&>button]:hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            {agenda ? "アジェンダを編集" : "新しいアジェンダを追加"}
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              {agenda ? "アジェンダを編集" : "新しいアジェンダを追加"}
+            </DialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="ダイアログを閉じる"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -313,13 +342,31 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md [&>button]:hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            会議設定
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              会議設定
+            </DialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="ダイアログを閉じる"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -756,15 +803,18 @@ const TimerDisplay: React.FC = () => {
 };
 
 // アジェンダ一覧
-const AgendaList: React.FC = () => {
+interface AgendaListProps {
+  onAddAgenda: () => void;
+  onEditAgenda: (agenda: AgendaItem) => void;
+}
+
+const AgendaList: React.FC<AgendaListProps> = ({ onAddAgenda, onEditAgenda }) => {
   const {
     currentMeeting,
     deleteAgenda,
     getCurrentAgenda,
     updateAgendaSectionStatus,
   } = useAgendaTimerStore();
-  const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
-  const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
 
   const currentAgenda = getCurrentAgenda();
 
@@ -780,8 +830,7 @@ const AgendaList: React.FC = () => {
           </CardTitle>
           <Button
             onClick={() => {
-              setEditingAgenda(null);
-              setIsAgendaDialogOpen(true);
+              onAddAgenda();
             }}
             size="sm"
           >
@@ -799,7 +848,7 @@ const AgendaList: React.FC = () => {
               <p>アジェンダを追加してください</p>
             </div>
           ) : (
-            currentMeeting.agenda
+            [...currentMeeting.agenda]
               .sort((a, b) => a.order - b.order)
               .map((agenda) => {
                 const isActive = currentAgenda?.id === agenda.id;
@@ -821,9 +870,9 @@ const AgendaList: React.FC = () => {
                         "bg-purple-50 border-purple-200",
                     )}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
                           {agenda.status === "completed" ? (
                             <CheckCircle2 className="w-4 h-4 text-green-500" />
                           ) : isActive ? (
@@ -831,7 +880,7 @@ const AgendaList: React.FC = () => {
                           ) : (
                             <Circle className="w-4 h-4 text-muted-foreground" />
                           )}
-                          <h4 className="font-medium truncate">
+                          <h4 className="min-w-0 flex-1 font-medium break-words sm:truncate">
                             {agenda.title}
                           </h4>
                           {isActive && (
@@ -848,16 +897,16 @@ const AgendaList: React.FC = () => {
                           </p>
                         )}
 
-                        <div className="flex items-center gap-4 text-sm">
-                          <span>
+                        <div className="flex flex-wrap items-center gap-2 text-sm sm:gap-4">
+                          <span className="shrink-0 whitespace-nowrap">
                             予定: {formatMinutes(agenda.plannedDuration)}
                           </span>
                           {agenda.actualDuration > 0 && (
-                            <span className={progressDisplay.color}>
+                            <span className={cn("shrink-0 whitespace-nowrap", progressDisplay.color)}>
                               実績: {formatMinutes(agenda.actualDuration)}
                             </span>
                           )}
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="shrink-0 whitespace-nowrap">
                             {agenda.status === "pending" && "待機"}
                             {agenda.status === "running" && "実行中"}
                             {agenda.status === "paused" && "一時停止"}
@@ -870,7 +919,7 @@ const AgendaList: React.FC = () => {
                               updateAgendaSectionStatus(currentMeeting.id, agenda.id, value)
                             }
                           >
-                            <SelectTrigger className="h-8 w-[130px]">
+                            <SelectTrigger className="h-8 w-[130px] shrink-0 whitespace-nowrap">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -893,13 +942,12 @@ const AgendaList: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="flex gap-1 ml-2">
+                      <div className="ml-auto flex shrink-0 gap-1 sm:ml-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            setEditingAgenda(agenda);
-                            setIsAgendaDialogOpen(true);
+                            onEditAgenda(agenda);
                           }}
                         >
                           <Edit className="w-3 h-3" />
@@ -921,16 +969,6 @@ const AgendaList: React.FC = () => {
               })
           )}
         </div>
-
-        <AgendaDialog
-          meetingId={currentMeeting.id}
-          agenda={editingAgenda}
-          isOpen={isAgendaDialogOpen}
-          onClose={() => {
-            setIsAgendaDialogOpen(false);
-            setEditingAgenda(null);
-          }}
-        />
       </CardContent>
     </Card>
   );
@@ -942,6 +980,8 @@ export const NewAgendaTimerView: React.FC = () => {
     useAgendaTimerStore();
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
+  const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isAgendaPanelOpen, setIsAgendaPanelOpen] = useState(true);
 
@@ -977,19 +1017,6 @@ export const NewAgendaTimerView: React.FC = () => {
           <Button
             variant="outline"
             onClick={() => {
-              setIsAgendaPanelOpen((prev) => !prev);
-            }}
-          >
-            {isAgendaPanelOpen ? (
-              <PanelRightClose className="w-4 h-4 mr-2" />
-            ) : (
-              <PanelRightOpen className="w-4 h-4 mr-2" />
-            )}
-            一覧
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
               setEditingMeeting(null);
               setIsMeetingDialogOpen(true);
             }}
@@ -1021,29 +1048,130 @@ export const NewAgendaTimerView: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <TimerDisplay />
-        {isAgendaPanelOpen && (
-          <div className="hidden lg:block">
-            <AgendaList />
-          </div>
+      <div className="lg:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full touch-manipulation justify-center"
+          onClick={() => {
+            setIsAgendaPanelOpen((prev) => !prev);
+          }}
+        >
+          {isAgendaPanelOpen ? (
+            <PanelRightClose className="w-4 h-4 mr-2 pointer-events-none" />
+          ) : (
+            <PanelRightOpen className="w-4 h-4 mr-2 pointer-events-none" />
+          )}
+          一覧
+        </Button>
+      </div>
+
+      <div
+        className={cn(
+          "grid gap-4",
+          isAgendaPanelOpen
+            ? "lg:grid-cols-[360px_minmax(0,1fr)]"
+            : "lg:grid-cols-[auto_minmax(0,1fr)]",
         )}
+      >
+        <div className="hidden lg:block">
+          {isAgendaPanelOpen ? (
+            <div className="space-y-2">
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="min-w-[128px] touch-manipulation justify-center"
+                  onClick={() => setIsAgendaPanelOpen(false)}
+                >
+                  <PanelRightClose className="w-4 h-4 mr-2 pointer-events-none" />
+                  一覧を閉じる
+                </Button>
+              </div>
+              <AgendaList
+                onAddAgenda={() => {
+                  setEditingAgenda(null);
+                  setIsAgendaDialogOpen(true);
+                }}
+                onEditAgenda={(agenda) => {
+                  setEditingAgenda(agenda);
+                  setIsAgendaDialogOpen(true);
+                }}
+              />
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-w-[128px] touch-manipulation justify-center"
+              onClick={() => setIsAgendaPanelOpen(true)}
+            >
+              <PanelRightOpen className="w-4 h-4 mr-2 pointer-events-none" />
+              一覧を開く
+            </Button>
+          )}
+        </div>
+
+        <div>
+          <TimerDisplay />
+        </div>
       </div>
 
       {isAgendaPanelOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setIsAgendaPanelOpen(false)}>
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setIsAgendaPanelOpen(false)}
+        >
           <div
-            className="ml-auto h-full w-[88vw] max-w-md bg-background p-4 shadow-xl"
+            className="mr-auto h-full w-[88vw] max-w-md bg-background p-4 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-3 flex justify-end">
-              <Button variant="ghost" size="sm" onClick={() => setIsAgendaPanelOpen(false)}>
+            <div className="mb-3 flex justify-between gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="touch-manipulation"
+                onClick={() => setIsAgendaPanelOpen(false)}
+              >
+                <PanelRightClose className="h-4 w-4 mr-2 pointer-events-none" />
+                一覧を閉じる
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAgendaPanelOpen(false)}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <AgendaList />
+            <AgendaList
+              onAddAgenda={() => {
+                setEditingAgenda(null);
+                setIsAgendaDialogOpen(true);
+              }}
+              onEditAgenda={(agenda) => {
+                setEditingAgenda(agenda);
+                setIsAgendaDialogOpen(true);
+              }}
+            />
           </div>
         </div>
+      )}
+
+      {currentMeeting && (
+        <AgendaDialog
+          meetingId={currentMeeting.id}
+          agenda={editingAgenda}
+          isOpen={isAgendaDialogOpen}
+          onClose={() => {
+            setIsAgendaDialogOpen(false);
+            setEditingAgenda(null);
+          }}
+        />
       )}
 
       {/* ダイアログ */}

@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Button } from './components/ui/button';
 import { Timer, List, Target, Clock, Bug } from 'lucide-react';
 import { BasicTimer } from './features/timer/containers/BasicTimer';
-import { NewAgendaTimer } from './features/timer/containers/NewAgendaTimer';
+import { AgendaTimer } from './features/timer/containers/AgendaTimer';
 import { EnhancedPomodoroTimer } from './features/timer/containers/EnhancedPomodoroTimer';
 import { MultiTimer } from './features/timer/containers/MultiTimer';
 import LogViewer from './components/LogViewer';
@@ -92,8 +92,8 @@ function App() {
             </TabsContent>
 
             <TabsContent value="agenda">
-              <ErrorBoundary componentName="NewAgendaTimer">
-                <NewAgendaTimer />
+              <ErrorBoundary componentName="AgendaTimer">
+                <AgendaTimer />
               </ErrorBoundary>
             </TabsContent>
 
