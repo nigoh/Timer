@@ -226,7 +226,7 @@ describe("useAgendaTimerStore", () => {
     expect(movedState.meetings[0].currentAgendaId).toBe(secondAgenda?.id);
   });
 
-  it("現在アジェンダを削除したとき、order順の次候補へ再選択して currentAgendaId を再同期する", () => {
+  it("現在議題削除時は order順で次候補を優先し、なければ先頭候補へ再選択する", () => {
     const store = useAgendaTimerStore.getState();
     store.createMeeting("削除再選択テスト");
 
@@ -235,7 +235,7 @@ describe("useAgendaTimerStore", () => {
     store.addAgenda(meetingId, "議題2", 20);
     store.addAgenda(meetingId, "議題3", 10);
 
-    const meeting = useAgendaTimerStore.getState().currentMeeting!;
+    let meeting = useAgendaTimerStore.getState().currentMeeting!;
     const secondAgenda = meeting.agenda.find(
       (agenda) => agenda.title === "議題2",
     );
@@ -261,6 +261,43 @@ describe("useAgendaTimerStore", () => {
     ).toEqual(["議題1", "議題3"]);
     expect(updatedState.currentMeeting?.currentAgendaId).toBe(thirdAgenda!.id);
     expect(updatedState.meetings[0].currentAgendaId).toBe(thirdAgenda!.id);
+
+    store.deleteAgenda(meetingId, thirdAgenda!.id);
+
+    const fallbackState = useAgendaTimerStore.getState();
+    meeting = fallbackState.currentMeeting!;
+    const firstAgenda = meeting.agenda.find((agenda) => agenda.title === "議題1");
+    expect(firstAgenda).toBeDefined();
+    expect(meeting.currentAgendaId).toBe(firstAgenda!.id);
+    expect(fallbackState.meetings[0].currentAgendaId).toBe(firstAgenda!.id);
+  });
+
+  it("壊れた currentAgendaId から getCurrentAgenda で復旧し、meetings/currentMeeting を再同期する", () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting("currentAgendaId復旧テスト");
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.addAgenda(meetingId, "議題A", 15);
+    store.addAgenda(meetingId, "議題B", 15);
+
+    const firstAgenda = store.getCurrentAgenda();
+    expect(firstAgenda).toBeDefined();
+
+    useAgendaTimerStore.setState((state) => ({
+      currentMeeting: state.currentMeeting
+        ? { ...state.currentMeeting, currentAgendaId: "broken-id" }
+        : state.currentMeeting,
+      meetings: state.meetings.map((meeting) =>
+        meeting.id === meetingId ? { ...meeting, currentAgendaId: "broken-id" } : meeting,
+      ),
+    }));
+
+    const recoveredAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
+    const recoveredState = useAgendaTimerStore.getState();
+
+    expect(recoveredAgenda?.id).toBe(firstAgenda!.id);
+    expect(recoveredState.currentMeeting?.currentAgendaId).toBe(firstAgenda!.id);
+    expect(recoveredState.meetings[0].currentAgendaId).toBe(firstAgenda!.id);
   });
 
   it("tick 実行時に running と currentTime が更新される", () => {
@@ -320,6 +357,34 @@ describe("useAgendaTimerStore", () => {
     );
     expect(updatedFirst?.status).toBe("completed");
     expect(useAgendaTimerStore.getState().currentTime).toBe(0);
+  });
+
+  it("最終議題完了時は会議を completed へ遷移し、終了時刻を保持する", () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting("完了遷移テスト");
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.addAgenda(meetingId, "最終議題", 10);
+
+    store.getCurrentAgenda();
+    store.nextAgenda();
+
+    const completedState = useAgendaTimerStore.getState();
+    const completedAgenda = completedState.currentMeeting?.agenda.find(
+      (agenda) => agenda.title === "最終議題",
+    );
+
+    expect(completedAgenda?.status).toBe("completed");
+    expect(completedState.currentMeeting?.status).toBe("completed");
+    expect(completedState.currentMeeting?.endTime).toBeDefined();
+    expect(completedState.isRunning).toBe(false);
+    expect(completedState.currentTime).toBe(0);
+    expect(
+      completedState.meetings.find((meeting) => meeting.id === meetingId)?.status,
+    ).toBe("completed");
+    expect(
+      completedState.meetings.find((meeting) => meeting.id === meetingId)?.endTime,
+    ).toBeDefined();
   });
 
   it("tick で経過時間を進め、残り時間を更新する", () => {
