@@ -128,4 +128,35 @@ describe('useMultiTimerStore', () => {
     expect(timer.isRunning).toBe(false);
     expect(useMultiTimerStore.getState().isAnyRunning).toBe(false);
   });
+
+  // REQ-5.5
+  it('完了済みタイマーに対するstartは拒否される', () => {
+    const store = useMultiTimerStore.getState();
+
+    store.addTimer({ name: '再開不可', duration: 2, category: 'その他', color: '#444444' });
+    const timerId = useMultiTimerStore.getState().timers[0].id;
+
+    useMultiTimerStore.setState((state) => ({
+      timers: state.timers.map((item) =>
+        item.id === timerId
+          ? {
+              ...item,
+              isCompleted: true,
+              isRunning: false,
+              isPaused: false,
+              remainingTime: 0,
+            }
+          : item,
+      ),
+      isAnyRunning: false,
+    }));
+
+    store.startTimer(timerId);
+
+    const timer = useMultiTimerStore.getState().timers[0];
+    expect(timer.isCompleted).toBe(true);
+    expect(timer.isRunning).toBe(false);
+    expect(timer.remainingTime).toBe(0);
+    expect(useMultiTimerStore.getState().isAnyRunning).toBe(false);
+  });
 });

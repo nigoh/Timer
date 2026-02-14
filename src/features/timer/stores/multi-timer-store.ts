@@ -103,7 +103,7 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
   startTimer: (id) => {
     const state = get();
     const timer = state.timers.find((item) => item.id === id);
-    if (!timer || timer.isRunning) return;
+    if (!timer || timer.isRunning || timer.isCompleted) return;
 
     const now = Date.now();
     set({
@@ -279,4 +279,3 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
 
   getCompletedTimers: () => get().timers.filter((timer) => timer.isCompleted),
 }));
-
