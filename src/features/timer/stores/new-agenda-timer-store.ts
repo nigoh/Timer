@@ -37,7 +37,7 @@ const getProgressColor = (percentage: number): string => {
 const syncMeetingCurrentAgendaId = (
   state: AgendaTimerStore,
   meetingId: string,
-  agendaId: string,
+  agendaId?: string,
 ) => {
   const updatedMeetings = state.meetings.map((meeting) =>
     meeting.id === meetingId ? { ...meeting, currentAgendaId: agendaId } : meeting,
@@ -216,27 +216,43 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
   deleteAgenda: (meetingId: string, agendaId: string) => {
     set((state) => {
+      const targetMeeting = state.meetings.find((meeting) => meeting.id === meetingId);
+      const deletedAgenda = targetMeeting?.agenda.find((item) => item.id === agendaId);
+      const shouldReselectCurrentAgenda =
+        targetMeeting?.currentAgendaId !== undefined && targetMeeting.currentAgendaId === agendaId;
+
       const updatedMeetings = state.meetings.map((meeting) => {
         if (meeting.id === meetingId) {
-          const agenda = meeting.agenda.find((item) => item.id === agendaId);
           const updatedAgenda = meeting.agenda
             .filter((item) => item.id !== agendaId)
             .map((item, index) => ({ ...item, order: index }));
 
+          const nextCandidate = shouldReselectCurrentAgenda
+            ? updatedAgenda
+                .filter((item) => item.order > (deletedAgenda?.order ?? -1))
+                .sort((a, b) => a.order - b.order)[0] ||
+              [...updatedAgenda].sort((a, b) => a.order - b.order)[0]
+            : undefined;
+
           return {
             ...meeting,
             agenda: updatedAgenda,
-            totalPlannedDuration: meeting.totalPlannedDuration - (agenda?.plannedDuration || 0),
+            totalPlannedDuration: meeting.totalPlannedDuration - (deletedAgenda?.plannedDuration || 0),
+            currentAgendaId: shouldReselectCurrentAgenda
+              ? nextCandidate?.id
+              : meeting.currentAgendaId,
           };
         }
         return meeting;
       });
 
+      const updatedMeeting = updatedMeetings.find((meeting) => meeting.id === meetingId);
+
       return {
         meetings: updatedMeetings,
         currentMeeting:
           state.currentMeeting?.id === meetingId
-            ? updatedMeetings.find((meeting) => meeting.id === meetingId) || state.currentMeeting
+            ? updatedMeeting || state.currentMeeting
             : state.currentMeeting,
       };
     });
@@ -454,12 +470,15 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
   getCurrentAgenda: () => {
     const state = get();
-    if (!state.currentMeeting || !state.currentMeeting.currentAgendaId) {
-      const firstPending = state.currentMeeting?.agenda
-        .filter((agenda) => agenda.status === 'pending')
-        .sort((a, b) => a.order - b.order)[0];
+    if (!state.currentMeeting) return null;
 
-      if (firstPending && state.currentMeeting) {
+    const sortedPendingAgendas = [...state.currentMeeting.agenda]
+      .filter((agenda) => agenda.status === 'pending')
+      .sort((a, b) => a.order - b.order);
+    const firstPending = sortedPendingAgendas[0];
+
+    if (!state.currentMeeting.currentAgendaId) {
+      if (firstPending) {
         set((prevState) =>
           syncMeetingCurrentAgendaId(prevState, state.currentMeeting!.id, firstPending.id),
         );
@@ -468,11 +487,19 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       return firstPending || null;
     }
 
-    return (
-      state.currentMeeting.agenda.find(
-        (agenda) => agenda.id === state.currentMeeting!.currentAgendaId,
-      ) || null
+    const currentAgenda = state.currentMeeting.agenda.find(
+      (agenda) => agenda.id === state.currentMeeting!.currentAgendaId,
     );
+
+    if (!currentAgenda) {
+      set((prevState) =>
+        syncMeetingCurrentAgendaId(prevState, state.currentMeeting!.id, firstPending?.id),
+      );
+
+      return firstPending || null;
+    }
+
+    return currentAgenda;
   },
 
   getProgressPercentage: () => {

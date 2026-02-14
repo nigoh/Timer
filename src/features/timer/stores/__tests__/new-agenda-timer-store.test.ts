@@ -169,6 +169,33 @@ describe('useAgendaTimerStore', () => {
     expect(movedState.meetings[0].currentAgendaId).toBe(secondAgenda?.id);
   });
 
+  it('現在アジェンダを削除したとき、order順の次候補へ再選択して currentAgendaId を再同期する', () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting('削除再選択テスト');
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.addAgenda(meetingId, '議題1', 30);
+    store.addAgenda(meetingId, '議題2', 20);
+    store.addAgenda(meetingId, '議題3', 10);
+
+    const meeting = useAgendaTimerStore.getState().currentMeeting!;
+    const secondAgenda = meeting.agenda.find((agenda) => agenda.title === '議題2');
+    const thirdAgenda = meeting.agenda.find((agenda) => agenda.title === '議題3');
+
+    expect(secondAgenda).toBeDefined();
+    expect(thirdAgenda).toBeDefined();
+
+    store.nextAgenda();
+    expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(secondAgenda!.id);
+
+    store.deleteAgenda(meetingId, secondAgenda!.id);
+
+    const updatedState = useAgendaTimerStore.getState();
+    expect(updatedState.currentMeeting?.agenda.map((agenda) => agenda.title)).toEqual(['議題1', '議題3']);
+    expect(updatedState.currentMeeting?.currentAgendaId).toBe(thirdAgenda!.id);
+    expect(updatedState.meetings[0].currentAgendaId).toBe(thirdAgenda!.id);
+  });
+
   it('tick 実行時に running と currentTime が更新される', () => {
     const store = useAgendaTimerStore.getState();
     store.createMeeting('進捗会議');
