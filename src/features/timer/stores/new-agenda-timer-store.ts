@@ -471,15 +471,22 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
   nextAgenda: () => {
     const state = get();
-    if (!state.currentMeeting) return;
+    if (!state.currentMeeting || state.isRunning) return;
 
     const currentAgenda = get().getCurrentAgenda();
-    if (currentAgenda) {
-      get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
-        status: "completed",
-        endTime: new Date(),
-      });
-    }
+    if (!currentAgenda) return;
+
+    const canAdvance =
+      currentAgenda.status === "running" ||
+      currentAgenda.status === "paused" ||
+      currentAgenda.status === "overtime";
+
+    if (!canAdvance) return;
+
+    get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
+      status: "completed",
+      endTime: new Date(),
+    });
 
     const nextAgenda = state.currentMeeting.agenda
       .filter(
@@ -531,7 +538,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
   previousAgenda: () => {
     const state = get();
-    if (!state.currentMeeting) return;
+    if (!state.currentMeeting || state.isRunning) return;
 
     const currentAgenda = get().getCurrentAgenda();
     if (!currentAgenda) return;

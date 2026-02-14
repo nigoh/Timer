@@ -114,6 +114,9 @@ describe("useAgendaTimerStore", () => {
     const currentAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
     expect(currentAgenda?.status).toBe("running");
 
+    store.pauseTimer();
+    expect(useAgendaTimerStore.getState().isRunning).toBe(false);
+
     store.nextAgenda();
     const nextAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
     expect(nextAgenda?.title).toBe("質疑応答");
@@ -124,6 +127,48 @@ describe("useAgendaTimerStore", () => {
   });
 
   // REQ-5.4
+
+
+  it("実行中は前へ/次へが無効で議題遷移しない", () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting("厳密運用テスト");
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.addAgenda(meetingId, "議題1", 60);
+    store.addAgenda(meetingId, "議題2", 60);
+
+    const firstAgenda = store.getCurrentAgenda();
+    expect(firstAgenda?.title).toBe("議題1");
+
+    store.startTimer();
+    expect(useAgendaTimerStore.getState().isRunning).toBe(true);
+
+    store.nextAgenda();
+    expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(firstAgenda?.id);
+
+    store.previousAgenda();
+    expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(firstAgenda?.id);
+  });
+
+  it("未開始のpending議題では次へを実行できない", () => {
+    const store = useAgendaTimerStore.getState();
+    store.createMeeting("pending遷移防止");
+
+    const meetingId = useAgendaTimerStore.getState().currentMeeting!.id;
+    store.addAgenda(meetingId, "議題1", 60);
+    store.addAgenda(meetingId, "議題2", 60);
+
+    const before = useAgendaTimerStore.getState().currentMeeting;
+    const currentAgendaId = before?.currentAgendaId || store.getCurrentAgenda()?.id;
+
+    store.nextAgenda();
+
+    const after = useAgendaTimerStore.getState().currentMeeting;
+    expect(after?.currentAgendaId).toBe(currentAgendaId);
+    const firstAgenda = after?.agenda.find((agenda) => agenda.title === "議題1");
+    expect(firstAgenda?.status).toBe("pending");
+  });
+
   it("tickで経過時間が更新され、予定超過時はovertimeになる", () => {
     const nowSpy = vi.spyOn(Date, "now");
 
@@ -167,10 +212,9 @@ describe("useAgendaTimerStore", () => {
     store.startTimer();
     expect(useAgendaTimerStore.getState().isRunning).toBe(true);
 
-    store.stopTimer();
-    const stoppedState = useAgendaTimerStore.getState();
-    expect(stoppedState.isRunning).toBe(false);
-    expect(stoppedState.currentTime).toBe(0);
+    store.pauseTimer();
+    const pausedState = useAgendaTimerStore.getState();
+    expect(pausedState.isRunning).toBe(false);
 
     store.nextAgenda();
     const movedState = useAgendaTimerStore.getState();
@@ -202,6 +246,8 @@ describe("useAgendaTimerStore", () => {
     expect(secondAgenda).toBeDefined();
     expect(thirdAgenda).toBeDefined();
 
+    store.startTimer();
+    store.pauseTimer();
     store.nextAgenda();
     expect(useAgendaTimerStore.getState().currentMeeting?.currentAgendaId).toBe(
       secondAgenda!.id,
@@ -296,6 +342,8 @@ describe("useAgendaTimerStore", () => {
     expect(secondAgenda).toBeDefined();
 
     store.getCurrentAgenda();
+    store.startTimer();
+    store.pauseTimer();
     store.nextAgenda();
 
     const updatedMeeting = useAgendaTimerStore.getState().currentMeeting;
