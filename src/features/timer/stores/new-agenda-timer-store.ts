@@ -34,6 +34,25 @@ const getProgressColor = (percentage: number): string => {
   return 'bg-purple-500';
 };
 
+const syncMeetingCurrentAgendaId = (
+  state: AgendaTimerStore,
+  meetingId: string,
+  agendaId: string,
+) => {
+  const updatedMeetings = state.meetings.map((meeting) =>
+    meeting.id === meetingId ? { ...meeting, currentAgendaId: agendaId } : meeting,
+  );
+  const currentMeeting =
+    state.currentMeeting?.id === meetingId
+      ? { ...state.currentMeeting, currentAgendaId: agendaId }
+      : state.currentMeeting;
+
+  return {
+    meetings: updatedMeetings,
+    currentMeeting,
+  };
+};
+
 export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
   currentMeeting: null,
   meetings: [],
@@ -177,11 +196,19 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
         return meeting;
       });
 
+      const updatedMeeting = updatedMeetings.find((meeting) => meeting.id === meetingId);
+
       return {
         meetings: updatedMeetings,
         currentMeeting:
           state.currentMeeting?.id === meetingId
-            ? updatedMeetings.find((meeting) => meeting.id === meetingId) || state.currentMeeting
+            ? {
+                ...state.currentMeeting,
+                ...(updatedMeeting || {}),
+                currentAgendaId:
+                  updatedMeeting?.currentAgendaId ||
+                  state.currentMeeting.currentAgendaId,
+              }
             : state.currentMeeting,
       };
     });
@@ -248,6 +275,9 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
     if (!currentAgenda || !state.currentMeeting) return;
 
     const now = new Date();
+
+    set((prevState) => syncMeetingCurrentAgendaId(prevState, state.currentMeeting.id, currentAgenda.id));
+
     set({
       isRunning: true,
       meetingStartTime: state.meetingStartTime || now,
@@ -281,7 +311,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       );
     }
 
-    if ('Notification' in window && Notification.permission === 'default') {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   },
@@ -326,9 +356,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     if (nextAgenda) {
       set((prevState) => ({
-        currentMeeting: prevState.currentMeeting
-          ? { ...prevState.currentMeeting, currentAgendaId: nextAgenda.id }
-          : null,
+        ...syncMeetingCurrentAgendaId(prevState, state.currentMeeting!.id, nextAgenda.id),
         currentTime: 0,
       }));
 
@@ -358,9 +386,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
     if (prevAgenda) {
       set((prevState) => ({
-        currentMeeting: prevState.currentMeeting
-          ? { ...prevState.currentMeeting, currentAgendaId: prevAgenda.id }
-          : null,
+        ...syncMeetingCurrentAgendaId(prevState, state.currentMeeting!.id, prevAgenda.id),
         currentTime: 0,
       }));
     }
@@ -432,11 +458,9 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
         .sort((a, b) => a.order - b.order)[0];
 
       if (firstPending && state.currentMeeting) {
-        set((prevState) => ({
-          currentMeeting: prevState.currentMeeting
-            ? { ...prevState.currentMeeting, currentAgendaId: firstPending.id }
-            : null,
-        }));
+        set((prevState) =>
+          syncMeetingCurrentAgendaId(prevState, state.currentMeeting!.id, firstPending.id),
+        );
       }
 
       return firstPending || null;
