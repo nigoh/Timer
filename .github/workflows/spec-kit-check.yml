@@ -24,9 +24,15 @@ jobs:
       - name: Install specify-cli
         run: |
           uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-          specify check
 
-      - name: Show Spec Kit version and tools
+      - name: Run Spec Kit check
+        run: specify check
+
+      - name: Verify required spec artifacts
         run: |
-          specify --version || true
-          specify check || true
+          test -f .specify/constitution.md
+          test -n "$(find .specify/specs -mindepth 2 -maxdepth 2 -name spec.md -print -quit)"
+          test -n "$(find .specify/specs -mindepth 2 -maxdepth 2 -name tasks.md -print -quit)"
+
+      - name: Show Spec Kit version
+        run: specify --version
