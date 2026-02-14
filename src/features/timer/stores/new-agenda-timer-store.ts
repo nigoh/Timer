@@ -290,16 +290,21 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
 
       const updatedMeetings = state.meetings.map((meeting) => {
         if (meeting.id === meetingId) {
-          const updatedAgenda = meeting.agenda
-            .filter((item) => item.id !== agendaId)
-            .map((item, index) => ({ ...item, order: index }));
+          const remainingAgenda = meeting.agenda.filter(
+            (item) => item.id !== agendaId,
+          );
 
           const nextCandidate = shouldReselectCurrentAgenda
-            ? updatedAgenda
+            ? remainingAgenda
                 .filter((item) => item.order > (deletedAgenda?.order ?? -1))
                 .sort((a, b) => a.order - b.order)[0] ||
-              [...updatedAgenda].sort((a, b) => a.order - b.order)[0]
+              [...remainingAgenda].sort((a, b) => a.order - b.order)[0]
             : undefined;
+
+          const updatedAgenda = remainingAgenda.map((item, index) => ({
+            ...item,
+            order: index,
+          }));
 
           return {
             ...meeting,
@@ -357,6 +362,8 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
   },
 
   startTimer: () => {
+    // 一時停止からの再開/未開始からの開始を共通で扱う。
+    // currentTime を維持することで、pause 後は経過時間を引き継いで再開できる。
     const state = get();
     const currentAgenda = get().getCurrentAgenda();
     const currentMeeting = state.currentMeeting;
@@ -421,16 +428,32 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
   },
 
   pauseTimer: () => {
-    set({ isRunning: false });
-  },
-
-  stopTimer: () => {
+    // セッションの進行を止めるが、経過時間は保持して再開可能な状態にする。
     const state = get();
     const currentAgenda = get().getCurrentAgenda();
 
     if (currentAgenda && state.currentMeeting) {
       get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
         status: "paused",
+      });
+    }
+
+    set({ isRunning: false });
+  },
+
+  stopTimer: () => {
+    // セッション停止は「一時停止」ではなく初期化として扱う。
+    // 対象アジェンダの経過情報をリセットし、次回開始時は先頭状態から再開する。
+    const state = get();
+    const currentAgenda = get().getCurrentAgenda();
+
+    if (currentAgenda && state.currentMeeting) {
+      get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
+        status: "pending",
+        actualDuration: 0,
+        remainingTime: currentAgenda.plannedDuration,
+        startTime: undefined,
+        endTime: undefined,
       });
     }
 
@@ -455,7 +478,10 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
     }
 
     const nextAgenda = state.currentMeeting.agenda
-      .filter((agenda) => agenda.status === "pending")
+      .filter(
+        (agenda) =>
+          agenda.status === "pending" && agenda.id !== currentAgenda?.id,
+      )
       .sort((a, b) => a.order - b.order)[0];
 
     if (nextAgenda) {

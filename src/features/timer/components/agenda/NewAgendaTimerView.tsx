@@ -471,6 +471,9 @@ const TimerDisplay: React.FC = () => {
   const currentAgenda = getCurrentAgenda();
   const progress = getProgressPercentage();
   const progressDisplay = getProgressDisplay(progress);
+  const isPaused = currentAgenda?.status === "paused";
+  const canStopSession =
+    currentAgenda?.status === "running" || currentAgenda?.status === "paused";
 
   // バックグラウンド復帰時の時間同期
   useEffect(() => {
@@ -574,7 +577,7 @@ const TimerDisplay: React.FC = () => {
               className="px-12 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
             >
               <Play className="mr-3 h-6 w-6" />
-              開始
+              {isPaused ? "再開" : "開始"}
             </Button>
           ) : (
             <Button
@@ -589,6 +592,10 @@ const TimerDisplay: React.FC = () => {
           )}
         </div>
 
+        <p className="text-center text-sm text-muted-foreground">
+          一時停止は経過時間を保持して再開できます。セッション停止は進行中の計測を初期化します。
+        </p>
+
         {/* 制御ボタン */}
         <div className="flex justify-center gap-3">
           <Button onClick={previousAgenda} variant="outline" size="sm">
@@ -600,10 +607,10 @@ const TimerDisplay: React.FC = () => {
             onClick={stopTimer}
             variant="destructive"
             size="sm"
-            disabled={!isRunning}
+            disabled={!canStopSession}
           >
             <Square className="w-4 h-4 mr-1" />
-            停止
+            セッション停止
           </Button>
 
           <Button onClick={nextAgenda} variant="outline" size="sm">

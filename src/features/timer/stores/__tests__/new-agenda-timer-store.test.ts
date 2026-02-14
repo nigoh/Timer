@@ -302,6 +302,70 @@ describe("useAgendaTimerStore", () => {
     expect(updatedAgenda?.status).toBe("running");
   });
 
+
+  it("pause後に再開すると経過時間を保持したまま進行する", () => {
+    const nowSpy = vi.spyOn(Date, "now");
+    const meeting = setupMeetingWithAgendas();
+
+    useAgendaTimerStore.setState({ currentMeeting: meeting });
+
+    const store = useAgendaTimerStore.getState();
+    nowSpy.mockReturnValue(10_000);
+    store.startTimer();
+
+    useAgendaTimerStore.setState({ currentTime: 4, lastTickTime: 10_000 });
+    store.pauseTimer();
+
+    let pausedAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
+    expect(useAgendaTimerStore.getState().isRunning).toBe(false);
+    expect(useAgendaTimerStore.getState().currentTime).toBe(4);
+    expect(pausedAgenda?.status).toBe("paused");
+
+    nowSpy.mockReturnValue(12_000);
+    store.startTimer();
+    nowSpy.mockReturnValue(13_000);
+    store.tick();
+
+    pausedAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
+    expect(useAgendaTimerStore.getState().currentTime).toBe(5);
+    expect(pausedAgenda?.actualDuration).toBe(5);
+    expect(pausedAgenda?.status).toBe("running");
+
+    nowSpy.mockRestore();
+  });
+
+  it("stop後に再開すると計測を初期化して開始する", () => {
+    const meeting = setupMeetingWithAgendas();
+
+    useAgendaTimerStore.setState({ currentMeeting: meeting });
+
+    const store = useAgendaTimerStore.getState();
+    store.startTimer();
+    useAgendaTimerStore.setState({
+      currentTime: 7,
+      lastTickTime: Date.now() - 1000,
+    });
+
+    store.tick();
+    const agendaAfterTick = useAgendaTimerStore.getState().getCurrentAgenda();
+    expect(agendaAfterTick?.actualDuration).toBeGreaterThanOrEqual(8);
+
+    store.stopTimer();
+
+    let stoppedAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
+    expect(useAgendaTimerStore.getState().isRunning).toBe(false);
+    expect(useAgendaTimerStore.getState().currentTime).toBe(0);
+    expect(stoppedAgenda?.status).toBe("pending");
+    expect(stoppedAgenda?.actualDuration).toBe(0);
+    expect(stoppedAgenda?.remainingTime).toBe(stoppedAgenda?.plannedDuration);
+
+    store.startTimer();
+    stoppedAgenda = useAgendaTimerStore.getState().getCurrentAgenda();
+    expect(useAgendaTimerStore.getState().isRunning).toBe(true);
+    expect(useAgendaTimerStore.getState().currentTime).toBe(0);
+    expect(stoppedAgenda?.status).toBe("running");
+  });
+
   it("startTimer は bellSoundManager のモックを呼び出す", () => {
     const meeting = setupMeetingWithAgendas();
 
