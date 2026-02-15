@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { formatDuration } from "@/lib/utils";
 import {
   Card,
@@ -38,8 +39,6 @@ import {
   Settings,
   Timer,
   Clock,
-  CheckCircle,
-  Circle,
   PlayCircle,
   PauseCircle,
 } from "lucide-react";
