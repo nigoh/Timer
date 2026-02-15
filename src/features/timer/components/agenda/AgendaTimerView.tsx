@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -45,6 +45,7 @@ import {
   PanelRightOpen,
   FileText,
   X,
+  PieChart,
 } from "lucide-react";
 import { useAgendaTimerStore } from "@/features/timer/stores/new-agenda-timer-store";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
@@ -507,6 +508,148 @@ interface MinutesEditorProps {
   agenda: AgendaItem;
 }
 
+const CHART_COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
+interface MeetingOverviewChartProps {
+  meeting: Meeting;
+}
+
+const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
+  meeting,
+}) => {
+  const agendaSlices = useMemo(() => {
+    return [...meeting.agenda]
+      .sort((first, second) => first.order - second.order)
+      .map((agenda) => ({
+        id: agenda.id,
+        title: agenda.title,
+        plannedDuration: agenda.plannedDuration,
+      }))
+      .filter((agenda) => agenda.plannedDuration > 0);
+  }, [meeting.agenda]);
+
+  const totalPlannedDuration = useMemo(() => {
+    return agendaSlices.reduce(
+      (sum, agenda) => sum + agenda.plannedDuration,
+      0,
+    );
+  }, [agendaSlices]);
+
+  const totalActualDuration = useMemo(() => {
+    return meeting.agenda.reduce(
+      (sum, agenda) => sum + agenda.actualDuration,
+      0,
+    );
+  }, [meeting.agenda]);
+
+  const donutBackground = useMemo(() => {
+    if (agendaSlices.length === 0 || totalPlannedDuration <= 0) {
+      return "hsl(var(--muted))";
+    }
+
+    let cumulativeRatio = 0;
+    const stops = agendaSlices.map((agenda, index) => {
+      const start = cumulativeRatio * 100;
+      cumulativeRatio += agenda.plannedDuration / totalPlannedDuration;
+      const end = cumulativeRatio * 100;
+      const color = CHART_COLORS[index % CHART_COLORS.length];
+      return `${color} ${start}% ${end}%`;
+    });
+
+    return `conic-gradient(${stops.join(", ")})`;
+  }, [agendaSlices, totalPlannedDuration]);
+
+  return (
+    <div className="space-y-3 rounded-md border p-3">
+      <div className="flex items-center justify-between">
+        <h4 className="flex items-center gap-2 text-sm font-medium">
+          <PieChart className="h-4 w-4" />
+          会議時間配分
+        </h4>
+        <Badge variant="outline" className="text-[10px]">
+          {agendaSlices.length}件
+        </Badge>
+      </div>
+
+      {agendaSlices.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          アジェンダを追加すると時間配分を表示します
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+          <div
+            className="mx-auto h-32 w-32 rounded-full"
+            style={{ background: donutBackground }}
+          >
+            <div className="flex h-full w-full items-center justify-center p-4">
+              <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-background text-center">
+                <div className="text-[10px] text-muted-foreground">
+                  会議全体
+                </div>
+                <div className="text-xs font-semibold">
+                  {formatDuration(totalPlannedDuration)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-h-28 space-y-1 overflow-y-auto pr-1 text-xs">
+            {agendaSlices.map((agenda, index) => {
+              const ratio =
+                totalPlannedDuration > 0
+                  ? (agenda.plannedDuration / totalPlannedDuration) * 100
+                  : 0;
+              return (
+                <div
+                  key={agenda.id}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{
+                        backgroundColor:
+                          CHART_COLORS[index % CHART_COLORS.length],
+                      }}
+                    />
+                    <span className="truncate text-muted-foreground">
+                      {agenda.title}
+                    </span>
+                  </div>
+                  <div className="shrink-0 font-mono text-foreground">
+                    {Math.round(ratio)}%
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 border-t pt-2 text-xs">
+        <div>
+          <div className="text-muted-foreground">予定合計</div>
+          <div className="font-mono font-semibold">
+            {formatDuration(totalPlannedDuration)}
+          </div>
+        </div>
+        <div>
+          <div className="text-muted-foreground">実績合計</div>
+          <div className="font-mono font-semibold">
+            {formatDuration(totalActualDuration)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   const { updateAgendaMinutes } = useAgendaTimerStore();
   const quillModules = {
@@ -521,12 +664,12 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   };
 
   return (
-    <Card className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]">
+    <Card className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-base">議事録</CardTitle>
       </CardHeader>
-      <CardContent className="min-h-0 p-3 pt-0">
-        <div className="h-full min-h-0 min-w-0 overflow-hidden rounded-md border bg-background [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words">
+      <CardContent className="p-3 pt-0 lg:min-h-0">
+        <div className="min-h-[280px] min-w-0 overflow-hidden rounded-md border bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words">
           <ReactQuill
             key={agenda.id}
             theme="snow"
@@ -602,7 +745,12 @@ const TimerDisplay: React.FC = () => {
   }
 
   return (
-    <Card className={cn("", isRunning && "ring-2 ring-blue-200 shadow-lg")}>
+    <Card
+      className={cn(
+        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
+        isRunning && "ring-2 ring-ring shadow-lg",
+      )}
+    >
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -622,7 +770,7 @@ const TimerDisplay: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 lg:min-h-0 lg:overflow-y-auto">
         {/* アジェンダタイトル */}
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">{currentAgenda.title}</h2>
@@ -704,6 +852,8 @@ const TimerDisplay: React.FC = () => {
             セッション完了
           </Button>
         </div>
+
+        <MeetingOverviewChart meeting={currentMeeting} />
       </CardContent>
     </Card>
   );
@@ -746,12 +896,12 @@ const MeetingList: React.FC<MeetingListProps> = ({
   return (
     <Card
       className={cn(
-        "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]",
+        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
         className,
       )}
     >
       <CardHeader className="px-3 py-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-1.5 text-sm">
             <Users className="h-4 w-4" />
             会議一覧
@@ -759,7 +909,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
               {meetings.length}件
             </Badge>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:justify-start">
             <Button
               type="button"
               variant="outline"
@@ -778,11 +928,12 @@ const MeetingList: React.FC<MeetingListProps> = ({
               type="button"
               variant="secondary"
               size="sm"
-              className="h-7 px-2 text-xs"
+              className="h-7 w-7 p-0 sm:h-7 sm:w-auto sm:px-2 sm:text-xs"
               onClick={onCreateMeeting}
+              aria-label="新しい会議を作成"
             >
-              <Plus className="mr-1 h-3.5 w-3.5" />
-              新しい会議
+              <Plus className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">新しい会議</span>
             </Button>
             <Button
               type="button"
@@ -797,7 +948,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="min-h-0 overflow-y-auto px-3 pb-3 pt-0">
+      <CardContent className="px-3 pb-3 pt-0 lg:min-h-0 lg:overflow-y-auto">
         {meetings.length === 0 ? (
           <p className="text-xs text-muted-foreground">会議がありません</p>
         ) : (
@@ -872,7 +1023,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
   return (
     <Card
       className={cn(
-        "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]",
+        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
         className,
       )}
     >
@@ -899,8 +1050,8 @@ const AgendaList: React.FC<AgendaListProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="min-h-0 px-3 pb-3 pt-0">
-        <div className="h-full min-h-0 space-y-3 overflow-auto pr-1">
+      <CardContent className="px-3 pb-3 pt-0 lg:min-h-0">
+        <div className="space-y-3 overflow-auto pr-1 lg:h-full lg:min-h-0">
           {currentMeeting.agenda.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -1113,7 +1264,7 @@ export const AgendaTimerView: React.FC = () => {
       className={cn(
         "h-full min-h-0",
         isSidePanelOpen
-          ? "grid grid-rows-[minmax(140px,0.95fr)_minmax(220px,1.45fr)_minmax(180px,1.2fr)] gap-3 pr-1"
+          ? "space-y-3 lg:grid lg:grid-rows-[minmax(140px,0.95fr)_minmax(220px,1.45fr)_minmax(180px,1.2fr)] lg:gap-3 lg:pr-1"
           : "space-y-3",
       )}
     >
@@ -1183,7 +1334,7 @@ export const AgendaTimerView: React.FC = () => {
     <div className="w-full">
       <div
         className={cn(
-          "grid h-[calc(100dvh-160px)] min-h-[560px] gap-4",
+          "flex flex-col gap-4 lg:grid lg:h-[calc(100dvh-160px)] lg:min-h-[560px]",
           isSidePanelOpen
             ? "lg:grid-cols-12"
             : "lg:grid-cols-[minmax(0,56px)_minmax(0,3fr)_minmax(0,6fr)]",

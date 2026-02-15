@@ -41,7 +41,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
     <>
       <Card
         className={cn(
-          "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]",
+          "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
           className,
         )}
       >
@@ -57,13 +57,13 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
           </div>
         </CardHeader>
 
-        <CardContent className="min-h-0 px-3 pb-3 pt-0">
+        <CardContent className="px-3 pb-3 pt-0 lg:min-h-0">
           {reports.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               レポートはまだありません
             </p>
           ) : (
-            <div className="h-full min-h-0 space-y-2 overflow-auto pr-1">
+            <div className="space-y-2 overflow-auto pr-1 lg:h-full lg:min-h-0">
               {reports.map((report) => (
                 <div
                   key={report.id}
