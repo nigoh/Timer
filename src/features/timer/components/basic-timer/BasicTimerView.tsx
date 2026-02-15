@@ -94,7 +94,7 @@ export const BasicTimerView: React.FC<BasicTimerViewProps> = ({
           </div>
 
           <div className="text-center space-y-4">
-            <div className="text-6xl md:text-8xl font-mono font-bold tracking-wider">
+            <div className="timer-display-digit font-mono font-bold tracking-wider">
               {formatDuration(remainingTime)}
             </div>
 

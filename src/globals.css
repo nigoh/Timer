@@ -70,6 +70,11 @@
 
 /* スクロールバーのカスタマイズ */
 @layer utilities {
+  .timer-display-digit {
+    font-size: clamp(2.5rem, 9vw, 5.75rem);
+    line-height: 1;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));

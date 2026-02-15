@@ -70,14 +70,8 @@ interface TimerFormData {
 const TIMER_COLORS = [
   "bg-blue-500",
   "bg-green-500",
-  "bg-purple-500",
-  "bg-orange-500",
+  "bg-amber-500",
   "bg-red-500",
-  "bg-pink-500",
-  "bg-cyan-500",
-  "bg-yellow-500",
-  "bg-indigo-500",
-  "bg-teal-500",
 ];
 
 const AddTimerDialog: React.FC = () => {
@@ -292,7 +286,7 @@ const TimerCard: React.FC<{
 
   return (
     <Card
-      className={`${timer.isRunning ? "ring-2 ring-blue-200" : ""} ${timer.isCompleted ? "bg-green-50" : ""}`}
+      className={`${timer.isRunning ? "ring-2 ring-ring" : ""} ${timer.isCompleted ? TIMER_STATUS_CONFIG.completed.surfaceClass : ""}`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
@@ -393,7 +387,7 @@ const TimerCard: React.FC<{
           </Button>
           <Button
             size="sm"
-            variant="ghost"
+            variant="destructive"
             onClick={() => {
               const shouldDelete = window.confirm(
                 `「${timer.name}」を削除しますか？この操作は取り消せません。`,
@@ -402,7 +396,6 @@ const TimerCard: React.FC<{
                 deleteTimer(timer.id);
               }
             }}
-            className="text-red-600 hover:text-red-700"
           >
             <Trash2 className="w-4 h-4 mr-1" />
             削除

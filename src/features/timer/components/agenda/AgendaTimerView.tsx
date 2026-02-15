@@ -62,31 +62,31 @@ const formatMinutes = (seconds: number): string => {
 const getProgressDisplay = (percentage: number) => {
   if (percentage <= 70) {
     return {
-      color: "text-green-600",
-      bgColor: "bg-green-500",
+      color: TIMER_STATUS_CONFIG.completed.color,
+      bgColor: TIMER_STATUS_CONFIG.completed.bgColor,
       icon: <Clock className="w-4 h-4" />,
       label: "余裕",
     };
   }
   if (percentage <= 90) {
     return {
-      color: "text-orange-600",
-      bgColor: "bg-orange-500",
+      color: TIMER_STATUS_CONFIG.paused.color,
+      bgColor: TIMER_STATUS_CONFIG.paused.bgColor,
       icon: <AlertCircle className="w-4 h-4" />,
       label: "残り少",
     };
   }
   if (percentage <= 100) {
     return {
-      color: "text-red-600",
-      bgColor: "bg-red-500",
+      color: TIMER_STATUS_CONFIG.warning.color,
+      bgColor: TIMER_STATUS_CONFIG.warning.bgColor,
       icon: <Timer className="w-4 h-4" />,
       label: "終了間近",
     };
   }
   return {
-    color: "text-purple-600",
-    bgColor: "bg-purple-500",
+    color: TIMER_STATUS_CONFIG.overtime.color,
+    bgColor: TIMER_STATUS_CONFIG.overtime.bgColor,
     icon: <AlertCircle className="w-4 h-4" />,
     label: "超過中",
   };
@@ -636,7 +636,7 @@ const TimerDisplay: React.FC = () => {
         {/* 時間表示 */}
         <div className="text-center space-y-4">
           <div className="space-y-2">
-            <div className="text-5xl md:text-7xl font-mono font-bold">
+            <div className="timer-display-digit font-mono font-bold">
               {formatDuration(currentAgenda.remainingTime)}
             </div>
             <div className="text-sm text-muted-foreground">
@@ -711,6 +711,7 @@ const TimerDisplay: React.FC = () => {
 
 // アジェンダ一覧
 interface AgendaListProps {
+  className?: string;
   onAddAgenda: () => void;
   onEditAgenda: (agenda: AgendaItem) => void;
 }
@@ -718,26 +719,37 @@ interface AgendaListProps {
 interface MeetingListProps {
   meetings: Meeting[];
   currentMeetingId?: string;
+  isSidePanelOpen: boolean;
+  className?: string;
   onSelectMeeting: (meetingId: string) => void;
   onCreateMeeting: () => void;
   onEditMeeting: (meeting: Meeting) => void;
   onDeleteMeeting: (meeting: Meeting) => void;
   onSaveReport: (meeting: Meeting) => void;
   onOpenSettings: () => void;
+  onToggleSidePanel: () => void;
 }
 
 const MeetingList: React.FC<MeetingListProps> = ({
   meetings,
   currentMeetingId,
+  isSidePanelOpen,
+  className,
   onSelectMeeting,
   onCreateMeeting,
   onEditMeeting,
   onDeleteMeeting,
   onSaveReport,
   onOpenSettings,
+  onToggleSidePanel,
 }) => {
   return (
-    <Card>
+    <Card
+      className={cn(
+        "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]",
+        className,
+      )}
+    >
       <CardHeader className="px-3 py-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-1.5 text-sm">
@@ -748,6 +760,20 @@ const MeetingList: React.FC<MeetingListProps> = ({
             </Badge>
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={onToggleSidePanel}
+              aria-label={isSidePanelOpen ? "一覧を閉じる" : "一覧を開く"}
+            >
+              {isSidePanelOpen ? (
+                <PanelRightClose className="h-3.5 w-3.5" />
+              ) : (
+                <PanelRightOpen className="h-3.5 w-3.5" />
+              )}
+            </Button>
             <Button
               type="button"
               variant="secondary"
@@ -771,7 +797,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-3 pb-3 pt-0">
+      <CardContent className="min-h-0 overflow-y-auto px-3 pb-3 pt-0">
         {meetings.length === 0 ? (
           <p className="text-xs text-muted-foreground">会議がありません</p>
         ) : (
@@ -832,6 +858,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
 };
 
 const AgendaList: React.FC<AgendaListProps> = ({
+  className,
   onAddAgenda,
   onEditAgenda,
 }) => {
@@ -843,7 +870,12 @@ const AgendaList: React.FC<AgendaListProps> = ({
   if (!currentMeeting) return null;
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]",
+        className,
+      )}
+    >
       <CardHeader className="px-3 py-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-1.5 text-sm">
@@ -867,8 +899,8 @@ const AgendaList: React.FC<AgendaListProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="px-3 pb-3 pt-0">
-        <div className="max-h-[45vh] space-y-3 overflow-auto pr-1">
+      <CardContent className="min-h-0 px-3 pb-3 pt-0">
+        <div className="h-full min-h-0 space-y-3 overflow-auto pr-1">
           {currentMeeting.agenda.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -890,11 +922,12 @@ const AgendaList: React.FC<AgendaListProps> = ({
                     key={agenda.id}
                     className={cn(
                       "relative p-4 pb-11 rounded-lg border cursor-pointer",
-                      isActive && "border-blue-200 bg-blue-50 shadow-md",
+                      isActive &&
+                        `${TIMER_STATUS_CONFIG.running.surfaceClass} shadow-md`,
                       agenda.status === "completed" &&
-                        "bg-green-50 border-green-200",
+                        TIMER_STATUS_CONFIG.completed.surfaceClass,
                       agenda.status === "overtime" &&
-                        "bg-purple-50 border-purple-200",
+                        TIMER_STATUS_CONFIG.overtime.surfaceClass,
                     )}
                     onClick={() => selectAgenda(currentMeeting.id, agenda.id)}
                   >
@@ -902,7 +935,9 @@ const AgendaList: React.FC<AgendaListProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           {agenda.status === "completed" ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                            <CheckCircle2
+                              className={`w-3.5 h-3.5 ${TIMER_STATUS_CONFIG.completed.color}`}
+                            />
                           ) : isActive ? (
                             progressDisplay.icon
                           ) : (
@@ -912,7 +947,9 @@ const AgendaList: React.FC<AgendaListProps> = ({
                             {agenda.title}
                           </h4>
                           {isActive && (
-                            <ChevronRight className="w-3.5 h-3.5 text-blue-500" />
+                            <ChevronRight
+                              className={`w-3.5 h-3.5 ${TIMER_STATUS_CONFIG.running.color}`}
+                            />
                           )}
                           <Badge
                             variant={
@@ -987,7 +1024,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
                                 event.stopPropagation();
                                 deleteAgenda(currentMeeting.id, agenda.id);
                               }}
-                              className="text-red-600 hover:text-red-700"
+                              className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>
@@ -1032,7 +1069,7 @@ export const AgendaTimerView: React.FC = () => {
   const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
   const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<Meeting | null>(null);
   const [isDeleteMeetingDialogOpen, setIsDeleteMeetingDialogOpen] =
     useState(false);
@@ -1053,32 +1090,40 @@ export const AgendaTimerView: React.FC = () => {
     }
   }, [meetings.length, createMeeting]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const syncSidePanel = (isDesktop: boolean) => {
+      setIsSidePanelOpen(isDesktop);
+    };
+
+    syncSidePanel(mediaQuery.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      syncSidePanel(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
   const currentAgenda = getCurrentAgenda();
 
   const sidebarContent = (
-    <div className="h-full min-h-0 space-y-3 overflow-y-auto pr-1">
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7 touch-manipulation"
-          onClick={() => setIsSidePanelOpen((prev) => !prev)}
-          aria-label={isSidePanelOpen ? "一覧を閉じる" : "一覧を開く"}
-        >
-          {isSidePanelOpen ? (
-            <PanelRightClose className="h-3.5 w-3.5 pointer-events-none" />
-          ) : (
-            <PanelRightOpen className="h-3.5 w-3.5 pointer-events-none" />
-          )}
-        </Button>
-      </div>
-
+    <div
+      className={cn(
+        "h-full min-h-0",
+        isSidePanelOpen
+          ? "grid grid-rows-[minmax(140px,0.95fr)_minmax(220px,1.45fr)_minmax(180px,1.2fr)] gap-3 pr-1"
+          : "space-y-3",
+      )}
+    >
       {isSidePanelOpen && (
         <>
           <MeetingList
             meetings={meetings}
             currentMeetingId={currentMeeting?.id}
+            isSidePanelOpen={isSidePanelOpen}
+            className="min-h-0"
             onSelectMeeting={setCurrentMeeting}
             onCreateMeeting={() => {
               setEditingMeeting(null);
@@ -1098,8 +1143,10 @@ export const AgendaTimerView: React.FC = () => {
               setReportDialogOpen(true);
             }}
             onOpenSettings={() => setIsSettingsDialogOpen(true)}
+            onToggleSidePanel={() => setIsSidePanelOpen((prev) => !prev)}
           />
           <AgendaList
+            className="min-h-0"
             onAddAgenda={() => {
               setEditingAgenda(null);
               setIsAgendaDialogOpen(true);
@@ -1109,8 +1156,25 @@ export const AgendaTimerView: React.FC = () => {
               setIsAgendaDialogOpen(true);
             }}
           />
-          <MeetingReportHistory />
+          <MeetingReportHistory className="min-h-0" />
         </>
+      )}
+
+      {!isSidePanelOpen && (
+        <Card className="overflow-hidden">
+          <CardContent className="flex items-center justify-center p-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setIsSidePanelOpen(true)}
+              aria-label="一覧を開く"
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
@@ -1119,7 +1183,7 @@ export const AgendaTimerView: React.FC = () => {
     <div className="w-full">
       <div
         className={cn(
-          "grid min-h-[calc(100dvh-140px)] gap-4",
+          "grid h-[calc(100dvh-160px)] min-h-[560px] gap-4",
           isSidePanelOpen
             ? "lg:grid-cols-12"
             : "lg:grid-cols-[minmax(0,56px)_minmax(0,3fr)_minmax(0,6fr)]",

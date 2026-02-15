@@ -1,20 +1,27 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Card, CardContent } from './ui/card';
-import { ScrollArea } from './ui/scroll-area';
-import { 
-  History, 
-  CheckCircle2, 
-  XCircle, 
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Card, CardContent } from "./ui/card";
+import { ScrollArea } from "./ui/scroll-area";
+import {
+  History,
+  CheckCircle2,
+  XCircle,
   Clock,
   Trash2,
-  Calendar
-} from 'lucide-react';
-import { BasicTimerHistory } from '../types/timer';
-import { formatDistanceToNow } from 'date-fns';
-import { ja } from 'date-fns/locale';
+  Calendar,
+} from "lucide-react";
+import { BasicTimerHistory } from "../types/timer";
+import { formatDistanceToNow } from "date-fns";
+import { ja } from "date-fns/locale";
+import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
 
 interface TimerHistoryProps {
   history: BasicTimerHistory[];
@@ -28,17 +35,17 @@ const formatTime = (seconds: number): string => {
   const secs = seconds % 60;
 
   if (hrs > 0) {
-    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
 const formatDate = (date: Date): string => {
-  return new Intl.DateTimeFormat('ja-JP', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Intl.DateTimeFormat("ja-JP", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 };
 
@@ -48,9 +55,10 @@ interface HistoryEntryProps {
 }
 
 const HistoryEntry: React.FC<HistoryEntryProps> = ({ entry, onDelete }) => {
-  const efficiency = entry.duration > 0 ? (entry.actualDuration / entry.duration) * 100 : 0;
+  const efficiency =
+    entry.duration > 0 ? (entry.actualDuration / entry.duration) * 100 : 0;
   const isOvertime = entry.actualDuration > entry.duration;
-  
+
   return (
     <Card className="relative">
       <CardContent className="p-4">
@@ -59,20 +67,25 @@ const HistoryEntry: React.FC<HistoryEntryProps> = ({ entry, onDelete }) => {
             {/* ヘッダー */}
             <div className="flex items-center gap-2">
               {entry.completed ? (
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <CheckCircle2
+                  className={`w-4 h-4 ${TIMER_STATUS_CONFIG.completed.color}`}
+                />
               ) : (
-                <XCircle className="w-4 h-4 text-orange-600" />
+                <XCircle
+                  className={`w-4 h-4 ${TIMER_STATUS_CONFIG.paused.color}`}
+                />
               )}
-              
-              <span className="font-medium text-sm">
-                {entry.label}
-              </span>
-              
-              <Badge variant={entry.completed ? "secondary" : "outline"} className="text-xs">
-                {entry.completed ? '完了' : '中断'}
+
+              <span className="font-medium text-sm">{entry.label}</span>
+
+              <Badge
+                variant={entry.completed ? "secondary" : "outline"}
+                className="text-xs"
+              >
+                {entry.completed ? "完了" : "中断"}
               </Badge>
             </div>
-            
+
             {/* 時間情報 */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -81,37 +94,46 @@ const HistoryEntry: React.FC<HistoryEntryProps> = ({ entry, onDelete }) => {
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">実際の時間</div>
-                <div className={`font-mono ${isOvertime ? 'text-orange-600' : 'text-green-600'}`}>
+                <div
+                  className={`font-mono ${isOvertime ? TIMER_STATUS_CONFIG.warning.color : TIMER_STATUS_CONFIG.completed.color}`}
+                >
                   {formatTime(entry.actualDuration)}
                 </div>
               </div>
             </div>
-            
+
             {/* 効率性 */}
             <div className="flex items-center gap-2">
               <div className="text-xs text-muted-foreground">効率:</div>
-              <Badge 
+              <Badge
                 variant={efficiency <= 100 ? "secondary" : "outline"}
                 className="text-xs"
               >
                 {Math.round(efficiency)}%
               </Badge>
               {isOvertime && (
-                <span className="text-xs text-orange-600">
+                <span
+                  className={`text-xs ${TIMER_STATUS_CONFIG.warning.color}`}
+                >
                   (+{formatTime(entry.actualDuration - entry.duration)})
                 </span>
               )}
             </div>
-            
+
             {/* 日時 */}
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="w-3 h-3" />
               <span>{formatDate(entry.startTime)}</span>
               <span className="mx-1">•</span>
-              <span>{formatDistanceToNow(entry.startTime, { locale: ja, addSuffix: true })}</span>
+              <span>
+                {formatDistanceToNow(entry.startTime, {
+                  locale: ja,
+                  addSuffix: true,
+                })}
+              </span>
             </div>
           </div>
-          
+
           {/* 削除ボタン */}
           <Button
             variant="ghost"
@@ -133,13 +155,13 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
   onClearHistory,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  
+
   // 統計計算
   const totalSessions = history.length;
-  const completedSessions = history.filter(h => h.completed).length;
+  const completedSessions = history.filter((h) => h.completed).length;
   const totalTime = history.reduce((sum, h) => sum + h.actualDuration, 0);
   const averageTime = totalSessions > 0 ? totalTime / totalSessions : 0;
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -148,7 +170,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
           履歴 ({totalSessions})
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="sm:max-w-2xl max-h-[80vh]">
         <DialogHeader>
           <div className="flex items-center justify-between">
@@ -156,7 +178,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
               <History className="w-5 h-5" />
               タイマー履歴
             </DialogTitle>
-            
+
             {totalSessions > 0 && (
               <Button
                 variant="outline"
@@ -170,7 +192,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
             )}
           </div>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* 統計サマリー */}
           {totalSessions > 0 && (
@@ -188,12 +210,14 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
                 <div className="text-xs text-muted-foreground">合計時間</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold">{formatTime(Math.round(averageTime))}</div>
+                <div className="text-lg font-bold">
+                  {formatTime(Math.round(averageTime))}
+                </div>
                 <div className="text-xs text-muted-foreground">平均時間</div>
               </div>
             </div>
           )}
-          
+
           {/* 履歴リスト */}
           {totalSessions === 0 ? (
             <div className="text-center py-8">

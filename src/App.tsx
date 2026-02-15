@@ -51,12 +51,23 @@ function App() {
           onValueChange={handleTabChange}
           className="flex h-full w-full flex-col"
         >
-          <header className="mb-2 flex items-center gap-2">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card">
+          <header className="mb-2 flex flex-wrap items-center gap-2">
+            <div className="hidden h-10 w-10 items-center justify-center rounded-md border bg-card md:inline-flex">
               <Timer className="h-5 w-5" />
             </div>
 
-            <TabsList className="grid h-10 flex-1 grid-cols-4">
+            <LogViewer>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto order-1 md:order-none"
+              >
+                <Bug className="w-4 h-4 md:mr-2" />
+                <span className="inline">ログ</span>
+              </Button>
+            </LogViewer>
+
+            <TabsList className="order-2 grid h-10 w-full grid-cols-4 md:order-none md:flex-1">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <Timer className="w-4 h-4" />
                 <span className="inline text-xs md:hidden">基本</span>
@@ -78,13 +89,6 @@ function App() {
                 <span className="hidden md:inline">複数タイマー</span>
               </TabsTrigger>
             </TabsList>
-
-            <LogViewer>
-              <Button variant="outline" size="sm">
-                <Bug className="w-4 h-4 md:mr-2" />
-                <span className="inline">ログ</span>
-              </Button>
-            </LogViewer>
           </header>
 
           <main className="flex-1">

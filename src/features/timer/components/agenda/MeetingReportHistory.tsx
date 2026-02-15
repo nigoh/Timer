@@ -12,6 +12,7 @@ import {
 import { ClipboardCopy, Eye, FileText, Trash2 } from "lucide-react";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { MeetingReport } from "@/types/meetingReport";
+import { cn } from "@/lib/utils";
 
 const formatDateTime = (value: string) => {
   const date = new Date(value);
@@ -19,7 +20,13 @@ const formatDateTime = (value: string) => {
   return date.toLocaleString();
 };
 
-export const MeetingReportHistory: React.FC = () => {
+interface MeetingReportHistoryProps {
+  className?: string;
+}
+
+export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
+  className,
+}) => {
   const { reports, deleteReport } = useMeetingReportStore();
   const [selectedReport, setSelectedReport] = useState<MeetingReport | null>(
     null,
@@ -32,7 +39,12 @@ export const MeetingReportHistory: React.FC = () => {
 
   return (
     <>
-      <Card>
+      <Card
+        className={cn(
+          "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]",
+          className,
+        )}
+      >
         <CardHeader className="px-3 py-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-1.5 text-sm">
@@ -45,13 +57,13 @@ export const MeetingReportHistory: React.FC = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="px-3 pb-3 pt-0">
+        <CardContent className="min-h-0 px-3 pb-3 pt-0">
           {reports.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               レポートはまだありません
             </p>
           ) : (
-            <div className="max-h-[30vh] space-y-2 overflow-auto pr-1">
+            <div className="h-full min-h-0 space-y-2 overflow-auto pr-1">
               {reports.map((report) => (
                 <div
                   key={report.id}
@@ -65,32 +77,35 @@ export const MeetingReportHistory: React.FC = () => {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
                       onClick={() => setSelectedReport(report)}
                       aria-label="レポートを表示"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="mr-1 h-3.5 w-3.5" />
+                      表示
                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
                       onClick={() => handleCopy(report.markdown)}
                       aria-label="レポートをコピー"
                     >
-                      <ClipboardCopy className="h-3.5 w-3.5" />
+                      <ClipboardCopy className="mr-1 h-3.5 w-3.5" />
+                      コピー
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-600 hover:text-red-700"
+                      variant="destructive"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
                       onClick={() => deleteReport(report.id)}
                       aria-label="レポートを削除"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="mr-1 h-3.5 w-3.5" />
+                      削除
                     </Button>
                   </div>
                 </div>

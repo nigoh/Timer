@@ -403,7 +403,7 @@ export const EnhancedPomodoroTimerView = ({
           )}
 
           <div className="text-center space-y-4">
-            <div className="text-6xl md:text-8xl font-mono font-bold tracking-wider">
+            <div className="timer-display-digit font-mono font-bold tracking-wider">
               {formatDuration(timeRemaining)}
             </div>
 
@@ -476,7 +476,9 @@ export const EnhancedPomodoroTimerView = ({
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
+              <div
+                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.running.color}`}
+              >
                 {todayStats.completedPomodoros}
               </div>
               <div className="text-sm text-muted-foreground">
@@ -484,7 +486,9 @@ export const EnhancedPomodoroTimerView = ({
               </div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
+              <div
+                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.completed.color}`}
+              >
                 {todayStats.totalFocusTime}
               </div>
               <div className="text-sm text-muted-foreground">
@@ -492,7 +496,9 @@ export const EnhancedPomodoroTimerView = ({
               </div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
+              <div
+                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.overtime.color}`}
+              >
                 {todayStats.totalBreakTime}
               </div>
               <div className="text-sm text-muted-foreground">
@@ -500,7 +506,9 @@ export const EnhancedPomodoroTimerView = ({
               </div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">
+              <div
+                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.paused.color}`}
+              >
                 {todayStats.completedPomodoros > 0
                   ? Math.round(
                       (todayStats.totalFocusTime /
