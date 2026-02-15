@@ -36,3 +36,12 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 - 影響範囲
 - 検証手順
 - 未解決事項
+
+## Agent Skills 運用
+- プロジェクトスキルは `/.github/skills/` に配置する。
+- 各スキルは `SKILL.md`（YAML frontmatter 必須）を持つ。
+- このリポジトリの標準スキル:
+	- `timer-bug-triage`: バグ解析と根本修正
+	- `timer-spec-sync`: 実装と仕様ドキュメントの同期
+	- `radix-ui-layout-design`: Radix UI準拠のUI設計と配置
+- スキルの追加時は README の Agent Skills セクションも更新する。

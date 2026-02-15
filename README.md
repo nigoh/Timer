@@ -30,12 +30,22 @@ npm run test
 npm run lint
 ```
 
+## Agent Skills
+
+このリポジトリでは GitHub Copilot Agent Skills をプロジェクト内で管理しています。
+
+- 配置先: `./.github/skills/`
+- バグ解析: `./.github/skills/timer-bug-triage/SKILL.md`
+- 仕様同期: `./.github/skills/timer-spec-sync/SKILL.md`
+- Radix UIデザイン: `./.github/skills/radix-ui-layout-design/SKILL.md`
+
+利用時は、依頼文に対象スキルの目的（例: 「Radix UI準拠でレイアウト改善」）を明示すると、エージェントがスキルを選択しやすくなります。
+
 ## GitHub Pages 公開
 
 - このリポジトリには GitHub Pages 自動デプロイ用 Workflow を追加済みです: `.github/workflows/deploy-pages.yml`
 - `main` ブランチへ push すると、`npm run build:pages` でビルドして `dist` を Pages に公開します
 - 初回のみ GitHub リポジトリ設定で Pages の Build and deployment を `GitHub Actions` にしてください
-
 
 ## Codex MCP 設定
 
