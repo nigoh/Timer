@@ -38,6 +38,7 @@ npm run lint
 - バグ解析: `./.github/skills/timer-bug-triage/SKILL.md`
 - 仕様同期: `./.github/skills/timer-spec-sync/SKILL.md`
 - Radix UIデザイン: `./.github/skills/radix-ui-layout-design/SKILL.md`
+- 教科書的UIデザインガイド: `./.github/skills/ui-design-textbook-guideline/SKILL.md`
 
 利用時は、依頼文に対象スキルの目的（例: 「Radix UI準拠でレイアウト改善」）を明示すると、エージェントがスキルを選択しやすくなります。
 

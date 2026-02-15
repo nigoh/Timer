@@ -44,4 +44,5 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 	- `timer-bug-triage`: バグ解析と根本修正
 	- `timer-spec-sync`: 実装と仕様ドキュメントの同期
 	- `radix-ui-layout-design`: Radix UI準拠のUI設計と配置
+	- `ui-design-textbook-guideline`: 教科書的なUI設計原則の適用
 - スキルの追加時は README の Agent Skills セクションも更新する。
