@@ -736,35 +736,6 @@ const MeetingList: React.FC<MeetingListProps> = ({
   onSaveReport,
   onOpenSettings,
 }) => {
-  const handleMeetingButtonClick = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    meeting: Meeting,
-  ) => {
-    const target = event.target as HTMLElement;
-    if (target.closest('[data-meeting-edit="true"]')) {
-      event.preventDefault();
-      event.stopPropagation();
-      onEditMeeting(meeting);
-      return;
-    }
-
-    if (target.closest('[data-meeting-delete="true"]')) {
-      event.preventDefault();
-      event.stopPropagation();
-      onDeleteMeeting(meeting);
-      return;
-    }
-
-    if (target.closest('[data-meeting-report="true"]')) {
-      event.preventDefault();
-      event.stopPropagation();
-      onSaveReport(meeting);
-      return;
-    }
-
-    onSelectMeeting(meeting.id);
-  };
-
   return (
     <Card>
       <CardHeader className="px-3 py-2">
@@ -806,45 +777,52 @@ const MeetingList: React.FC<MeetingListProps> = ({
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {meetings.map((meeting) => (
-              <Button
-                key={meeting.id}
-                type="button"
-                variant={
-                  meeting.id === currentMeetingId ? "default" : "outline"
-                }
-                size="sm"
-                className="h-7 max-w-[260px] gap-1 px-2 text-xs"
-                onClick={(event) => handleMeetingButtonClick(event, meeting)}
-              >
-                <span className="truncate text-left">{meeting.title}</span>
-                <span className="shrink-0 text-[10px] opacity-80">
-                  {meeting.agenda.length}件
-                </span>
-                <span
-                  data-meeting-edit="true"
-                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-sm opacity-80 hover:opacity-100"
+              <div key={meeting.id} className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant={
+                    meeting.id === currentMeetingId ? "default" : "outline"
+                  }
+                  size="sm"
+                  className="h-7 max-w-[260px] gap-1 px-2 text-xs"
+                  onClick={() => onSelectMeeting(meeting.id)}
+                >
+                  <span className="truncate text-left">{meeting.title}</span>
+                  <span className="shrink-0 text-[10px] opacity-80">
+                    {meeting.agenda.length}件
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => onEditMeeting(meeting)}
                   aria-label="会議名を編集"
-                  role="button"
                 >
-                  <Edit className="h-3 w-3 pointer-events-none" />
-                </span>
-                <span
-                  data-meeting-report="true"
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-blue-600 opacity-80 hover:opacity-100"
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-blue-600 hover:text-blue-700"
+                  onClick={() => onSaveReport(meeting)}
                   aria-label="レポートを保存"
-                  role="button"
                 >
-                  <FileText className="h-3 w-3 pointer-events-none" />
-                </span>
-                <span
-                  data-meeting-delete="true"
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-red-500 opacity-80 hover:opacity-100"
+                  <FileText className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-red-500 hover:text-red-700"
+                  onClick={() => onDeleteMeeting(meeting)}
                   aria-label="会議を削除"
-                  role="button"
                 >
-                  <Trash2 className="h-3 w-3 pointer-events-none" />
-                </span>
-              </Button>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             ))}
           </div>
         )}

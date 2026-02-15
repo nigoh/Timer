@@ -59,18 +59,22 @@ function App() {
             <TabsList className="grid h-10 flex-1 grid-cols-4">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <Timer className="w-4 h-4" />
+                <span className="inline text-xs md:hidden">基本</span>
                 <span className="hidden md:inline">基本タイマー</span>
               </TabsTrigger>
               <TabsTrigger value="pomodoro" className="flex items-center gap-2">
                 <Target className="w-4 h-4" />
+                <span className="inline text-xs md:hidden">ポモ</span>
                 <span className="hidden md:inline">ポモドーロ</span>
               </TabsTrigger>
               <TabsTrigger value="agenda" className="flex items-center gap-2">
                 <List className="w-4 h-4" />
+                <span className="inline text-xs md:hidden">会議</span>
                 <span className="hidden md:inline">アジェンダ</span>
               </TabsTrigger>
               <TabsTrigger value="multi" className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
+                <span className="inline text-xs md:hidden">複数</span>
                 <span className="hidden md:inline">複数タイマー</span>
               </TabsTrigger>
             </TabsList>
@@ -78,7 +82,7 @@ function App() {
             <LogViewer>
               <Button variant="outline" size="sm">
                 <Bug className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">ログ</span>
+                <span className="inline">ログ</span>
               </Button>
             </LogViewer>
           </header>

@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { useMultiTimerStore } from "@/features/timer/stores/multi-timer-store";
 import { TIMER_STATUS_CONFIG, getTimerStatus } from "@/constants/timer-theme";
+import { notificationManager } from "@/utils/notification-manager";
 
 const parseDuration = (input: string): number => {
   // MM:SS または H:MM:SS 形式をパース
@@ -82,6 +83,7 @@ const TIMER_COLORS = [
 const AddTimerDialog: React.FC = () => {
   const { addTimer, categories, addCategory } = useMultiTimerStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [formData, setFormData] = useState<TimerFormData>({
     name: "",
     duration: "",
@@ -93,10 +95,28 @@ const AddTimerDialog: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.duration) return;
+    const trimmedName = formData.name.trim();
+    const trimmedDuration = formData.duration.trim();
 
-    const durationSeconds = parseDuration(formData.duration);
-    if (durationSeconds <= 0) return;
+    if (!trimmedName) {
+      setValidationError("タイマー名を入力してください。");
+      return;
+    }
+
+    if (!trimmedDuration) {
+      setValidationError("時間を入力してください。");
+      return;
+    }
+
+    const durationSeconds = parseDuration(trimmedDuration);
+    if (durationSeconds <= 0) {
+      setValidationError(
+        "時間の形式が正しくありません。MM:SS / H:MM:SS / 分数 で入力してください。",
+      );
+      return;
+    }
+
+    setValidationError(null);
 
     // 新しいカテゴリを追加（必要に応じて）
     if (formData.category && !categories.includes(formData.category)) {
@@ -104,7 +124,7 @@ const AddTimerDialog: React.FC = () => {
     }
 
     addTimer({
-      name: formData.name,
+      name: trimmedName,
       duration: durationSeconds,
       category: formData.category || undefined,
       description: formData.description || undefined,
@@ -123,7 +143,15 @@ const AddTimerDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+          setValidationError(null);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
@@ -143,9 +171,10 @@ const AddTimerDialog: React.FC = () => {
               id="timer-name"
               placeholder="例: 運動、勉強、料理"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={(e) => {
+                setValidationError(null);
+                setFormData({ ...formData, name: e.target.value });
+              }}
               required
             />
           </div>
@@ -156,11 +185,17 @@ const AddTimerDialog: React.FC = () => {
               id="timer-duration"
               placeholder="例: 25:00, 10:30, 45"
               value={formData.duration}
-              onChange={(e) =>
-                setFormData({ ...formData, duration: e.target.value })
-              }
+              onChange={(e) => {
+                setValidationError(null);
+                setFormData({ ...formData, duration: e.target.value });
+              }}
               required
             />
+            {validationError && (
+              <p className="mt-2 text-sm text-destructive" role="alert">
+                {validationError}
+              </p>
+            )}
           </div>
 
           <div>
@@ -359,7 +394,14 @@ const TimerCard: React.FC<{
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => deleteTimer(timer.id)}
+            onClick={() => {
+              const shouldDelete = window.confirm(
+                `「${timer.name}」を削除しますか？この操作は取り消せません。`,
+              );
+              if (shouldDelete) {
+                deleteTimer(timer.id);
+              }
+            }}
             className="text-red-600 hover:text-red-700"
           >
             <Trash2 className="w-4 h-4 mr-1" />
@@ -385,6 +427,13 @@ const GlobalControls: React.FC = () => {
 
   const hasTimers = timers.length > 0;
   const hasIncompleteTimers = timers.some((t) => !t.isCompleted);
+
+  const handleNotificationToggle = (checked: boolean) => {
+    if (checked) {
+      notificationManager.ensureInitialized().catch(console.warn);
+    }
+    updateGlobalSettings({ showNotifications: checked });
+  };
 
   return (
     <Card>
@@ -444,9 +493,7 @@ const GlobalControls: React.FC = () => {
             <Label className="text-sm">通知を表示</Label>
             <Switch
               checked={globalSettings.showNotifications}
-              onCheckedChange={(checked) =>
-                updateGlobalSettings({ showNotifications: checked })
-              }
+              onCheckedChange={handleNotificationToggle}
             />
           </div>
 
@@ -476,13 +523,6 @@ export const MultiTimerView: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [isAnyRunning, tick]);
-
-  // 通知権限をリクエスト
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
 
   const runningTimers = getRunningTimers();
   const completedTimers = getCompletedTimers();

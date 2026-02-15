@@ -134,6 +134,7 @@ export const BasicTimerView: React.FC<BasicTimerViewProps> = ({
               onClick={onStop}
               variant="destructive"
               size="lg"
+              disabled={!isRunning && !isPaused}
               className="px-4 sm:px-8"
             >
               <Square className="mr-2 h-5 w-5" />
