@@ -557,6 +557,8 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
           ? Math.round((now - state.lastTickTime) / 1000)
           : 1;
 
+        if (deltaTime <= 0) return;
+
         const newCurrentTime = state.currentTime + deltaTime;
         const newRemainingTime = currentAgenda.plannedDuration - newCurrentTime;
 
@@ -597,6 +599,15 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
         const firstPending = sortedPendingAgendas[0];
 
         if (!state.currentMeeting.currentAgendaId) {
+          if (firstPending) {
+            set((prevState) =>
+              syncMeetingCurrentAgendaId(
+                prevState,
+                state.currentMeeting!.id,
+                firstPending.id,
+              ),
+            );
+          }
           return firstPending || null;
         }
 
@@ -605,6 +616,15 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
         );
 
         if (!currentAgenda) {
+          if (firstPending) {
+            set((prevState) =>
+              syncMeetingCurrentAgendaId(
+                prevState,
+                state.currentMeeting!.id,
+                firstPending.id,
+              ),
+            );
+          }
           return firstPending || null;
         }
 

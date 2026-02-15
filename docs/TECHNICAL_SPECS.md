@@ -25,6 +25,7 @@
 
 - ドメイン状態は `src/features/timer/stores` に集約する。
 - ストアは State と Actions を interface で公開する。
+- ストア参照は `src/features/timer/stores` を正本とし、`src/stores` の互換レイヤーは使用しない。
 
 - UI ローカル状態のみコンポーネントの `useState` を許可する。
 
@@ -41,8 +42,19 @@
 - `src/utils/logger.ts` を唯一のログ経路とする。
 - ログは LocalStorage（`timer-app-logs`）に保存する。
 - グローバルエラーと Promise rejection を捕捉する。
+- ログの追加データは `unknown` として扱い、利用側で型を絞り込む。
+
+## アクセシビリティ仕様
+
+- フォーム入力は `Label` と `id/htmlFor` を必ず関連付ける。
+- 視覚的に不要なラベルは `sr-only` を使って支援技術向けに保持する。
 
 ## 永続化
 
 - 一部ストアは Zustand `persist` を利用し、LocalStorage に保存する。
 - 永続化対象はストアごとに `partialize` で制御する。
+
+## パフォーマンス仕様
+
+- tick 系処理は `isRunning/isAnyRunning` を先に判定し、不要な更新は早期 return する。
+- 秒未満の経過では state を更新せず、無駄な再レンダーを抑制する。

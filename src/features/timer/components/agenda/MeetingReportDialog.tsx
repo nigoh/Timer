@@ -28,6 +28,7 @@ export const MeetingReportDialog: React.FC = () => {
   if (!draft) return null;
 
   const participantsText = draft.participants.join(", ");
+  const formIdPrefix = `meeting-report-${draft.id}`;
 
   const handleCopyAndSave = async () => {
     if (draft.markdown.trim()) {
@@ -46,18 +47,29 @@ export const MeetingReportDialog: React.FC = () => {
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>会議名</Label>
-              <Input value={draft.meetingTitle} readOnly />
+              <Label htmlFor={`${formIdPrefix}-meeting-title`}>会議名</Label>
+              <Input
+                id={`${formIdPrefix}-meeting-title`}
+                value={draft.meetingTitle}
+                readOnly
+              />
             </div>
             <div className="space-y-2">
-              <Label>開催日時</Label>
-              <Input value={new Date(draft.heldAt).toLocaleString()} readOnly />
+              <Label htmlFor={`${formIdPrefix}-held-at`}>開催日時</Label>
+              <Input
+                id={`${formIdPrefix}-held-at`}
+                value={new Date(draft.heldAt).toLocaleString()}
+                readOnly
+              />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>参加者（カンマ区切り）</Label>
+            <Label htmlFor={`${formIdPrefix}-participants`}>
+              参加者（カンマ区切り）
+            </Label>
             <Input
+              id={`${formIdPrefix}-participants`}
               value={participantsText}
               onChange={(event) =>
                 setDraftParticipantsFromText(event.target.value)
@@ -67,8 +79,9 @@ export const MeetingReportDialog: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>サマリー</Label>
+            <Label htmlFor={`${formIdPrefix}-summary`}>サマリー</Label>
             <Textarea
+              id={`${formIdPrefix}-summary`}
               rows={3}
               value={draft.summary}
               onChange={(event) =>
@@ -108,8 +121,9 @@ export const MeetingReportDialog: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>決定事項</Label>
+            <Label htmlFor={`${formIdPrefix}-decisions`}>決定事項</Label>
             <Textarea
+              id={`${formIdPrefix}-decisions`}
               rows={4}
               value={draft.decisions}
               onChange={(event) =>
@@ -140,7 +154,14 @@ export const MeetingReportDialog: React.FC = () => {
               )}
               {draft.todos.map((todo) => (
                 <div key={todo.id} className="flex items-center gap-2">
+                  <Label
+                    htmlFor={`${formIdPrefix}-todo-${todo.id}`}
+                    className="sr-only"
+                  >
+                    ToDo内容
+                  </Label>
                   <Input
+                    id={`${formIdPrefix}-todo-${todo.id}`}
                     value={todo.text}
                     onChange={(event) =>
                       updateDraftTodo(todo.id, { text: event.target.value })
@@ -162,8 +183,11 @@ export const MeetingReportDialog: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>次回アクション</Label>
+            <Label htmlFor={`${formIdPrefix}-next-actions`}>
+              次回アクション
+            </Label>
             <Textarea
+              id={`${formIdPrefix}-next-actions`}
               rows={3}
               value={draft.nextActions}
               onChange={(event) =>
@@ -173,8 +197,15 @@ export const MeetingReportDialog: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>Markdownプレビュー</Label>
-            <Textarea value={draft.markdown} rows={10} readOnly />
+            <Label htmlFor={`${formIdPrefix}-markdown-preview`}>
+              Markdownプレビュー
+            </Label>
+            <Textarea
+              id={`${formIdPrefix}-markdown-preview`}
+              value={draft.markdown}
+              rows={10}
+              readOnly
+            />
           </div>
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">

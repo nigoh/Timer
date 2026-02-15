@@ -64,6 +64,48 @@ npm run lint
 
 詳細ルールは `docs/AI_COLLABORATION_GUIDE.md` を参照してください。
 
+### 新規機能実装チェックリスト（コピペ用）
+
+```md
+## 実装チェックリスト
+- [ ] 変更の目的と仕様影響を明確化した
+- [ ] 影響範囲（components / containers / stores / types / utils）を整理した
+- [ ] ドメイン状態を store に集約した（UIローカル状態の過剰保持なし）
+- [ ] 通知/ログを既存 utility 経由で実装した
+- [ ] 変更に対応する Skill を選定した
+- [ ] npm run type-check を実行して成功した
+- [ ] 必要に応じて npm run test / npm run build を実行した
+- [ ] 仕様変更がある場合 docs を同一変更で更新した
+- [ ] PR本文に「背景 / 変更点 / 影響範囲 / 検証手順 / 未解決事項」を記載した
+```
+
+### 実装開始テンプレート（Issue/PR用）
+
+```md
+## 背景
+
+## 目的
+
+## 対象範囲
+- 対象ファイル:
+- 非対象:
+
+## 採用Skill
+- 主Skill:
+- 補助Skill:
+
+## 検証計画
+- [ ] npm run type-check
+- [ ] npm run test（必要時）
+- [ ] npm run build（必要時）
+
+## docs更新
+- [ ] REQUIREMENTS
+- [ ] TECHNICAL_SPECS
+- [ ] UX_DESIGN_SPEC
+- [ ] 仕様影響なし（理由: ）
+```
+
 ## Agent Skills
 
 このリポジトリでは GitHub Copilot Agent Skills をプロジェクト内で管理しています。

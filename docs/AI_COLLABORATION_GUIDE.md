@@ -19,6 +19,7 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 3. 通知・ログは必ず既存ユーティリティ経由にする。
 4. 既存機能と同名責務の重複ストア/重複コンポーネントを作らない。
 5. 未使用 import / 未使用 state / 未参照ファイルを残さない。
+6. ストア参照は `src/features/timer/stores` を使用し、`src/stores` を参照しない。
 
 ## AI 向け実装手順（推奨）
 
@@ -91,3 +92,47 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 - 性能改善: `performance-and-render-budget` + `timer-testing-strategy`
 - 障害対応: `incident-runbook-observability` + `timer-bug-triage`
 - リリース前最終確認: `release-regression-gate` + `timer-spec-sync`
+
+## 標準運用テンプレート
+
+### 新規機能実装チェックリスト（コピペ用）
+
+```md
+## 実装チェックリスト
+- [ ] 変更の目的と仕様影響を明確化した
+- [ ] 影響範囲（components / containers / stores / types / utils）を整理した
+- [ ] ドメイン状態を store に集約した（UIローカル状態の過剰保持なし）
+- [ ] 通知/ログを既存 utility 経由で実装した
+- [ ] 変更に対応する Skill を選定した
+- [ ] npm run type-check を実行して成功した
+- [ ] 必要に応じて npm run test / npm run build を実行した
+- [ ] 仕様変更がある場合 docs を同一変更で更新した
+- [ ] PR本文に「背景 / 変更点 / 影響範囲 / 検証手順 / 未解決事項」を記載した
+```
+
+### 実装開始テンプレート（Issue/PR用）
+
+```md
+## 背景
+
+## 目的
+
+## 対象範囲
+- 対象ファイル:
+- 非対象:
+
+## 採用Skill
+- 主Skill:
+- 補助Skill:
+
+## 検証計画
+- [ ] npm run type-check
+- [ ] npm run test（必要時）
+- [ ] npm run build（必要時）
+
+## docs更新
+- [ ] REQUIREMENTS
+- [ ] TECHNICAL_SPECS
+- [ ] UX_DESIGN_SPEC
+- [ ] 仕様影響なし（理由: ）
+```

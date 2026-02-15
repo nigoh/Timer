@@ -33,6 +33,9 @@ class NotificationManager {
     try {
       if (!this.audioContext) {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (typeof AudioContextClass !== 'function') {
+          return;
+        }
         this.audioContext = new AudioContextClass();
       }
 
@@ -175,7 +178,7 @@ class NotificationManager {
 
   public stopSound() {
     if (this.currentSource) {
-      try { this.currentSource.stop(); } catch {}
+      try { this.currentSource.stop(); } catch { return; }
       this.currentSource = null;
     }
   }

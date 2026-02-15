@@ -17,7 +17,7 @@ export interface LogEntry {
   level: LogLevel;
   category: string;
   message: string;
-  data?: any;
+  data?: unknown;
   stackTrace?: string;
   userAgent?: string;
   url?: string;
@@ -120,7 +120,7 @@ class Logger {
   private createLogEntry(
     level: LogLevel,
     message: string,
-    data?: any,
+    data?: unknown,
     category: string = 'general'
   ): LogEntry {
     const entry: LogEntry = {
@@ -188,7 +188,7 @@ class Logger {
     }
   }
 
-  private log(level: LogLevel, message: string, data?: any, category: string = 'general'): void {
+  private log(level: LogLevel, message: string, data?: unknown, category: string = 'general'): void {
     if (!this.shouldLog(level)) return;
 
     const entry = this.createLogEntry(level, message, data, category);
@@ -198,23 +198,23 @@ class Logger {
   }
 
   // パブリックAPI
-  error(message: string, data?: any, category: string = 'error'): void {
+  error(message: string, data?: unknown, category: string = 'error'): void {
     this.log(LogLevel.ERROR, message, data, category);
   }
 
-  warn(message: string, data?: any, category: string = 'general'): void {
+  warn(message: string, data?: unknown, category: string = 'general'): void {
     this.log(LogLevel.WARN, message, data, category);
   }
 
-  info(message: string, data?: any, category: string = 'general'): void {
+  info(message: string, data?: unknown, category: string = 'general'): void {
     this.log(LogLevel.INFO, message, data, category);
   }
 
-  debug(message: string, data?: any, category: string = 'debug'): void {
+  debug(message: string, data?: unknown, category: string = 'debug'): void {
     this.log(LogLevel.DEBUG, message, data, category);
   }
 
-  trace(message: string, data?: any, category: string = 'trace'): void {
+  trace(message: string, data?: unknown, category: string = 'trace'): void {
     this.log(LogLevel.TRACE, message, data, category);
   }
 
@@ -246,7 +246,7 @@ class Logger {
     }, 'timer');
   }
 
-  userAction(action: string, context?: any): void {
+  userAction(action: string, context?: unknown): void {
     this.info('User action', {
       action,
       context,
@@ -254,7 +254,7 @@ class Logger {
     }, 'ui');
   }
 
-  stateChange(store: string, previousState?: any, newState?: any): void {
+  stateChange(store: string, previousState?: unknown, newState?: unknown): void {
     this.debug('State change', {
       store,
       previousState,
@@ -272,7 +272,7 @@ class Logger {
     }, 'notification');
   }
 
-  performance(operation: string, duration: number, details?: any): void {
+  performance(operation: string, duration: number, details?: unknown): void {
     this.info('Performance metric', {
       operation,
       duration,
@@ -375,10 +375,17 @@ export const logger = new Logger({
   enableStackTrace: true
 });
 
+declare global {
+  interface Window {
+    logger: Logger;
+    LogLevel: typeof LogLevel;
+  }
+}
+
 // 開発環境での便利関数
 if (process.env.NODE_ENV === 'development') {
-  (window as any).logger = logger;
-  (window as any).LogLevel = LogLevel;
+  window.logger = logger;
+  window.LogLevel = LogLevel;
 }
 
 export default logger;

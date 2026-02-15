@@ -218,12 +218,13 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
 
   tick: () => {
     const state = get();
-    // Optimization: If no timers are running, don't do anything (though hook handles this)
-    // Actually the hook usually calls tick() regularly.
-    // If we want to be safe:
-    // if (!state.timers.some(t => t.isRunning)) return; 
-    
-    // However, store relies on external tick trigger usually.
+    if (!state.isAnyRunning) return;
+
+    const hasRunningTimers = state.timers.some((timer) => timer.isRunning);
+    if (!hasRunningTimers) {
+      set({ isAnyRunning: false });
+      return;
+    }
     
     const updatedTimers = state.timers.map((timer) => {
       if (!timer.isRunning || timer.isCompleted) return timer;
@@ -258,9 +259,11 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
       };
     });
 
+    const nextIsAnyRunning = updatedTimers.some((timer) => timer.isRunning);
+
     set({
       timers: updatedTimers,
-      isAnyRunning: updatedTimers.some((timer) => timer.isRunning),
+      isAnyRunning: nextIsAnyRunning,
     });
   },
 
