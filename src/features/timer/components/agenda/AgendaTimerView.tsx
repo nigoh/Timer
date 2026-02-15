@@ -903,27 +903,13 @@ const MeetingList: React.FC<MeetingListProps> = ({
       <CardHeader className="px-3 py-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-1.5 text-sm">
-            <Users className="h-4 w-4" />
+            <Users className="h-3.5 w-3.5" />
             会議一覧
             <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
               {meetings.length}件
             </Badge>
           </CardTitle>
           <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:justify-start">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={onToggleSidePanel}
-              aria-label={isSidePanelOpen ? "一覧を閉じる" : "一覧を開く"}
-            >
-              {isSidePanelOpen ? (
-                <PanelRightClose className="h-3.5 w-3.5" />
-              ) : (
-                <PanelRightOpen className="h-3.5 w-3.5" />
-              )}
-            </Button>
             <Button
               type="button"
               variant="secondary"
@@ -944,6 +930,20 @@ const MeetingList: React.FC<MeetingListProps> = ({
               disabled={!currentMeetingId}
             >
               <Settings className="mr-1 h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={onToggleSidePanel}
+              aria-label={isSidePanelOpen ? "一覧を閉じる" : "一覧を開く"}
+            >
+              {isSidePanelOpen ? (
+                <PanelRightClose className="h-3.5 w-3.5" />
+              ) : (
+                <PanelRightOpen className="h-3.5 w-3.5" />
+              )}
             </Button>
           </div>
         </div>
@@ -974,7 +974,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                     onClick={() => onEditMeeting(meeting)}
                     aria-label="会議名を編集"
                   >
@@ -984,7 +984,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                    className="h-7 w-7 text-blue-600 hover:text-blue-700"
                     onClick={() => onSaveReport(meeting)}
                     aria-label="レポートを保存"
                   >
@@ -994,7 +994,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-700"
+                    className="h-7 w-7 text-red-500 hover:text-red-700"
                     onClick={() => onDeleteMeeting(meeting)}
                     aria-label="会議を削除"
                   >
@@ -1032,7 +1032,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
       <CardHeader className="px-3 py-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-1.5 text-sm">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-3.5 w-3.5" />
             アジェンダ一覧
             <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
               {currentMeeting.agenda.length}件
@@ -1042,12 +1042,12 @@ const AgendaList: React.FC<AgendaListProps> = ({
             onClick={() => {
               onAddAgenda();
             }}
-            variant="default"
+            variant="secondary"
             size="sm"
             className="h-7 w-7 p-0"
             aria-label="アジェンダを追加"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
       </CardHeader>
@@ -1162,24 +1162,24 @@ const AgendaList: React.FC<AgendaListProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2"
+                              className="h-7 w-7 p-0"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 onEditAgenda(agenda);
                               }}
                             >
-                              <Edit className="w-3 h-3" />
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2 text-destructive hover:text-destructive"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 deleteAgenda(currentMeeting.id, agenda.id);
                               }}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
@@ -1220,7 +1220,12 @@ export const AgendaTimerView: React.FC = () => {
   const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
   const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
   const [meetingToDelete, setMeetingToDelete] = useState<Meeting | null>(null);
   const [isDeleteMeetingDialogOpen, setIsDeleteMeetingDialogOpen] =
     useState(false);
@@ -1247,8 +1252,6 @@ export const AgendaTimerView: React.FC = () => {
       setIsSidePanelOpen(isDesktop);
     };
 
-    syncSidePanel(mediaQuery.matches);
-
     const handleChange = (event: MediaQueryListEvent) => {
       syncSidePanel(event.matches);
     };
@@ -1264,8 +1267,8 @@ export const AgendaTimerView: React.FC = () => {
       className={cn(
         "h-full min-h-0",
         isSidePanelOpen
-          ? "space-y-3 lg:grid lg:grid-rows-[minmax(140px,0.95fr)_minmax(220px,1.45fr)_minmax(180px,1.2fr)] lg:gap-3 lg:pr-1"
-          : "space-y-3",
+          ? "space-y-2 lg:space-y-0 lg:grid lg:grid-rows-[repeat(3,minmax(0,1fr))] lg:gap-2 lg:pr-1"
+          : "flex items-start justify-center",
       )}
     >
       {isSidePanelOpen && (
@@ -1312,20 +1315,16 @@ export const AgendaTimerView: React.FC = () => {
       )}
 
       {!isSidePanelOpen && (
-        <Card className="overflow-hidden">
-          <CardContent className="flex items-center justify-center p-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setIsSidePanelOpen(true)}
-              aria-label="一覧を開く"
-            >
-              <PanelRightOpen className="h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setIsSidePanelOpen(true)}
+          aria-label="一覧を開く"
+        >
+          <PanelRightOpen className="h-3.5 w-3.5" />
+        </Button>
       )}
     </div>
   );
@@ -1337,7 +1336,7 @@ export const AgendaTimerView: React.FC = () => {
           "flex flex-col gap-4 lg:grid lg:h-[calc(100dvh-160px)] lg:min-h-[560px]",
           isSidePanelOpen
             ? "lg:grid-cols-12"
-            : "lg:grid-cols-[minmax(0,56px)_minmax(0,3fr)_minmax(0,6fr)]",
+            : "lg:grid-cols-[minmax(0,44px)_minmax(0,3fr)_minmax(0,6fr)]",
         )}
       >
         <div

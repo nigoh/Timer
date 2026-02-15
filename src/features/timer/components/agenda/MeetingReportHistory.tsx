@@ -48,7 +48,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
         <CardHeader className="px-3 py-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-1.5 text-sm">
-              <FileText className="h-4 w-4" />
+              <FileText className="h-3.5 w-3.5" />
               レポート履歴
               <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                 {reports.length}件
@@ -80,7 +80,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                         onClick={() => setSelectedReport(report)}
                         aria-label="レポートを表示"
                       >
@@ -90,7 +90,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                         onClick={() => handleCopy(report.markdown)}
                         aria-label="レポートをコピー"
                       >
@@ -98,9 +98,9 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                       </Button>
                       <Button
                         type="button"
-                        variant="destructive"
+                        variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
                         onClick={() => deleteReport(report.id)}
                         aria-label="レポートを削除"
                       >
