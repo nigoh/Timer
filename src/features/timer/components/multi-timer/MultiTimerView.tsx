@@ -1,14 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { formatDuration } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Plus,
   Play,
@@ -24,23 +42,13 @@ import {
   Circle,
   PlayCircle,
   PauseCircle,
-} from 'lucide-react';
-import { useMultiTimerStore } from '@/features/timer/stores/multi-timer-store';
-
-const formatTime = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  
-  if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-};
+} from "lucide-react";
+import { useMultiTimerStore } from "@/features/timer/stores/multi-timer-store";
+import { TIMER_STATUS_CONFIG, getTimerStatus } from "@/constants/timer-theme";
 
 const parseDuration = (input: string): number => {
   // MM:SS または H:MM:SS 形式をパース
-  const parts = input.split(':').map(Number);
+  const parts = input.split(":").map(Number);
   if (parts.length === 2) {
     return parts[0] * 60 + parts[1]; // MM:SS
   } else if (parts.length === 3) {
@@ -60,34 +68,34 @@ interface TimerFormData {
 }
 
 const TIMER_COLORS = [
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-purple-500',
-  'bg-orange-500',
-  'bg-red-500',
-  'bg-pink-500',
-  'bg-cyan-500',
-  'bg-yellow-500',
-  'bg-indigo-500',
-  'bg-teal-500',
+  "bg-blue-500",
+  "bg-green-500",
+  "bg-purple-500",
+  "bg-orange-500",
+  "bg-red-500",
+  "bg-pink-500",
+  "bg-cyan-500",
+  "bg-yellow-500",
+  "bg-indigo-500",
+  "bg-teal-500",
 ];
 
 const AddTimerDialog: React.FC = () => {
   const { addTimer, categories, addCategory } = useMultiTimerStore();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<TimerFormData>({
-    name: '',
-    duration: '',
-    category: '',
-    description: '',
+    name: "",
+    duration: "",
+    category: "",
+    description: "",
     color: TIMER_COLORS[0],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.duration) return;
-    
+
     const durationSeconds = parseDuration(formData.duration);
     if (durationSeconds <= 0) return;
 
@@ -106,10 +114,10 @@ const AddTimerDialog: React.FC = () => {
 
     // フォームリセット
     setFormData({
-      name: '',
-      duration: '',
-      category: '',
-      description: '',
+      name: "",
+      duration: "",
+      category: "",
+      description: "",
       color: TIMER_COLORS[0],
     });
     setIsOpen(false);
@@ -123,12 +131,12 @@ const AddTimerDialog: React.FC = () => {
           タイマーを追加
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>新しいタイマーを作成</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="timer-name">タイマー名</Label>
@@ -136,29 +144,33 @@ const AddTimerDialog: React.FC = () => {
               id="timer-name"
               placeholder="例: 運動、勉強、料理"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               required
             />
           </div>
-          
+
           <div>
-            <Label htmlFor="timer-duration">
-              時間（MM:SS または 分数）
-            </Label>
+            <Label htmlFor="timer-duration">時間（MM:SS または 分数）</Label>
             <Input
               id="timer-duration"
               placeholder="例: 25:00, 10:30, 45"
               value={formData.duration}
-              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, duration: e.target.value })
+              }
               required
             />
           </div>
-          
+
           <div>
             <Label htmlFor="timer-category">カテゴリ（任意）</Label>
             <Select
               value={formData.category}
-              onValueChange={(value: string) => setFormData({ ...formData, category: value })}
+              onValueChange={(value: string) =>
+                setFormData({ ...formData, category: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="カテゴリを選択" />
@@ -172,18 +184,20 @@ const AddTimerDialog: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label htmlFor="timer-description">説明（任意）</Label>
             <Textarea
               id="timer-description"
               placeholder="タイマーの詳細説明"
               value={formData.description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               rows={2}
             />
           </div>
-          
+
           <div>
             <Label>色</Label>
             <div className="flex gap-2 mt-2">
@@ -192,16 +206,22 @@ const AddTimerDialog: React.FC = () => {
                   key={color}
                   type="button"
                   className={`w-8 h-8 rounded-full ${color} ${
-                    formData.color === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''
+                    formData.color === color
+                      ? "ring-2 ring-offset-2 ring-gray-400"
+                      : ""
                   }`}
                   onClick={() => setFormData({ ...formData, color })}
                 />
               ))}
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
               キャンセル
             </Button>
             <Button type="submit">作成</Button>
@@ -212,7 +232,9 @@ const AddTimerDialog: React.FC = () => {
   );
 };
 
-const TimerCard: React.FC<{ timer: import('@/types/multi-timer').MultiTimer }> = ({ timer }) => {
+const TimerCard: React.FC<{
+  timer: import("@/types/multi-timer").MultiTimer;
+}> = ({ timer }) => {
   const {
     startTimer,
     pauseTimer,
@@ -222,35 +244,33 @@ const TimerCard: React.FC<{ timer: import('@/types/multi-timer').MultiTimer }> =
     duplicateTimer,
   } = useMultiTimerStore();
 
-  const progress = timer.duration > 0 
-    ? ((timer.duration - timer.remainingTime) / timer.duration) * 100 
-    : 0;
+  const progress =
+    timer.duration > 0
+      ? ((timer.duration - timer.remainingTime) / timer.duration) * 100
+      : 0;
 
-  const getStatusIcon = () => {
-    if (timer.isCompleted) return <CheckCircle className="w-5 h-5 text-green-500" />;
-    if (timer.isRunning) return <PlayCircle className="w-5 h-5 text-blue-500" />;
-    if (timer.isPaused) return <PauseCircle className="w-5 h-5 text-orange-500" />;
-    return <Circle className="w-5 h-5 text-gray-400" />;
-  };
-
-  const getStatusText = () => {
-    if (timer.isCompleted) return '完了';
-    if (timer.isRunning) return '実行中';
-    if (timer.isPaused) return '一時停止';
-    return '待機';
-  };
+  const timerStatus = getTimerStatus(
+    timer.isRunning,
+    timer.isPaused,
+    timer.isCompleted,
+  );
+  const statusConfig = TIMER_STATUS_CONFIG[timerStatus];
 
   return (
-    <Card className={`${timer.isRunning ? 'ring-2 ring-blue-200' : ''} ${timer.isCompleted ? 'bg-green-50' : ''}`}>
+    <Card
+      className={`${timer.isRunning ? "ring-2 ring-blue-200" : ""} ${timer.isCompleted ? "bg-green-50" : ""}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg truncate">{timer.name}</CardTitle>
-            <div className="flex items-center gap-2 mt-1">
-              {getStatusIcon()}
-              <span className="text-sm text-muted-foreground">{getStatusText()}</span>
+            <div
+              className={`flex items-center gap-2 mt-1 ${statusConfig.color}`}
+            >
+              {statusConfig.icon}
+              <span className="text-sm font-medium">{statusConfig.label}</span>
               {timer.category && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs text-foreground">
                   {timer.category}
                 </Badge>
               )}
@@ -259,32 +279,32 @@ const TimerCard: React.FC<{ timer: import('@/types/multi-timer').MultiTimer }> =
           <div className={`w-4 h-4 rounded-full ${timer.color}`} />
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* 時間表示 */}
         <div className="text-center">
           <div className="text-3xl font-mono font-bold">
-            {formatTime(timer.remainingTime)}
+            {formatDuration(timer.remainingTime)}
           </div>
           <div className="text-sm text-muted-foreground">
-            / {formatTime(timer.duration)}
+            / {formatDuration(timer.duration)}
           </div>
         </div>
-        
+
         {/* 進捗バー */}
-        <Progress 
-          value={progress} 
+        <Progress
+          value={progress}
           className="h-2"
           indicatorClassName={timer.color}
         />
-        
+
         {/* 説明 */}
         {timer.description && (
           <p className="text-sm text-muted-foreground line-clamp-2">
             {timer.description}
           </p>
         )}
-        
+
         {/* コントロールボタン */}
         <div className="flex justify-center gap-2">
           {!timer.isRunning && !timer.isCompleted ? (
@@ -306,7 +326,7 @@ const TimerCard: React.FC<{ timer: import('@/types/multi-timer').MultiTimer }> =
               一時停止
             </Button>
           ) : null}
-          
+
           <Button
             size="sm"
             variant="outline"
@@ -316,7 +336,7 @@ const TimerCard: React.FC<{ timer: import('@/types/multi-timer').MultiTimer }> =
             <Square className="w-4 h-4 mr-1" />
             停止
           </Button>
-          
+
           <Button
             size="sm"
             variant="outline"
@@ -326,7 +346,7 @@ const TimerCard: React.FC<{ timer: import('@/types/multi-timer').MultiTimer }> =
             リセット
           </Button>
         </div>
-        
+
         {/* アクションボタン */}
         <div className="flex justify-center gap-2 pt-2 border-t">
           <Button
@@ -365,7 +385,7 @@ const GlobalControls: React.FC = () => {
   } = useMultiTimerStore();
 
   const hasTimers = timers.length > 0;
-  const hasIncompleteTimers = timers.some(t => !t.isCompleted);
+  const hasIncompleteTimers = timers.some((t) => !t.isCompleted);
 
   return (
     <Card>
@@ -375,7 +395,7 @@ const GlobalControls: React.FC = () => {
           グローバル制御
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* 一括制御ボタン */}
         <div className="flex gap-2 flex-wrap">
@@ -387,7 +407,7 @@ const GlobalControls: React.FC = () => {
             <PlayCircle className="w-4 h-4 mr-1" />
             すべて開始
           </Button>
-          
+
           <Button
             onClick={pauseAllTimers}
             variant="outline"
@@ -397,7 +417,7 @@ const GlobalControls: React.FC = () => {
             <PauseCircle className="w-4 h-4 mr-1" />
             すべて一時停止
           </Button>
-          
+
           <Button
             onClick={stopAllTimers}
             variant="outline"
@@ -407,7 +427,7 @@ const GlobalControls: React.FC = () => {
             <Square className="w-4 h-4 mr-1" />
             すべて停止
           </Button>
-          
+
           <Button
             onClick={resetAllTimers}
             variant="outline"
@@ -418,7 +438,7 @@ const GlobalControls: React.FC = () => {
             すべてリセット
           </Button>
         </div>
-        
+
         {/* 設定 */}
         <div className="space-y-3 pt-4 border-t">
           <div className="flex items-center justify-between">
@@ -430,7 +450,7 @@ const GlobalControls: React.FC = () => {
               }
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <Label className="text-sm">完了音を再生</Label>
             <Switch
@@ -447,7 +467,8 @@ const GlobalControls: React.FC = () => {
 };
 
 export const MultiTimerView: React.FC = () => {
-  const { timers, isAnyRunning, tick, getRunningTimers, getCompletedTimers } = useMultiTimerStore();
+  const { timers, isAnyRunning, tick, getRunningTimers, getCompletedTimers } =
+    useMultiTimerStore();
 
   // タイマーのtick処理
   useEffect(() => {
@@ -459,54 +480,69 @@ export const MultiTimerView: React.FC = () => {
 
   // 通知権限をリクエスト
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
+    if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
 
   const runningTimers = getRunningTimers();
   const completedTimers = getCompletedTimers();
-  const waitingTimers = timers.filter(t => !t.isRunning && !t.isCompleted);
+  const waitingTimers = timers.filter((t) => !t.isRunning && !t.isCompleted);
 
   return (
     <div className="w-full space-y-6">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Timer className="h-6 w-6" />
-            複数タイマー
-          </h2>
-          <p className="text-muted-foreground">
-            複数のタイマーを同時に管理できます
-          </p>
-        </div>
-        <AddTimerDialog />
-      </div>
-      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+              <Timer className="h-6 w-6" />
+              複数タイマー
+            </CardTitle>
+            <CardDescription>
+              複数のタイマーを同時に管理できます
+            </CardDescription>
+          </div>
+          <AddTimerDialog />
+        </CardHeader>
+      </Card>
+
       {/* 統計サマリー */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="text-center p-4">
-          <div className="text-2xl font-bold text-blue-600">{runningTimers.length}</div>
+          <div
+            className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.running.color}`}
+          >
+            {runningTimers.length}
+          </div>
           <div className="text-sm text-muted-foreground">実行中</div>
         </Card>
         <Card className="text-center p-4">
-          <div className="text-2xl font-bold text-orange-600">{waitingTimers.length}</div>
+          <div
+            className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.idle.color}`}
+          >
+            {waitingTimers.length}
+          </div>
           <div className="text-sm text-muted-foreground">待機中</div>
         </Card>
         <Card className="text-center p-4">
-          <div className="text-2xl font-bold text-green-600">{completedTimers.length}</div>
+          <div
+            className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.completed.color}`}
+          >
+            {completedTimers.length}
+          </div>
           <div className="text-sm text-muted-foreground">完了</div>
         </Card>
         <Card className="text-center p-4">
-          <div className="text-2xl font-bold text-purple-600">{timers.length}</div>
+          <div className="text-2xl font-bold text-foreground">
+            {timers.length}
+          </div>
           <div className="text-sm text-muted-foreground">総数</div>
         </Card>
       </div>
-      
+
       {/* グローバル制御 */}
       <GlobalControls />
-      
+
       {/* タイマー一覧 */}
       {timers.length === 0 ? (
         <Card className="text-center py-12">

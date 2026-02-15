@@ -1,9 +1,10 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAgendaTimerStore } from "../new-agenda-timer-store";
 
-vi.mock("@/utils/bellSoundManager", () => ({
-  bellSoundManager: {
-    notifyWithBell: vi.fn(),
+vi.mock("@/utils/notification-manager", () => ({
+  notificationManager: {
+    notify: vi.fn(),
+    ensureInitialized: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -14,7 +15,7 @@ vi.mock("@/utils/logger", () => ({
   },
 }));
 
-import { bellSoundManager } from "@/utils/bellSoundManager";
+import { notificationManager } from "@/utils/notification-manager";
 
 const resetAgendaTimerStore = () => {
   useAgendaTimerStore.setState({
@@ -522,7 +523,7 @@ describe("useAgendaTimerStore", () => {
     expect(stoppedAgenda?.status).toBe("running");
   });
 
-  it("startTimer は bellSoundManager のモックを呼び出す", () => {
+  it("startTimer は notificationManager のモックを呼び出す", () => {
     const meeting = setupMeetingWithAgendas();
 
     useAgendaTimerStore.setState({
@@ -533,6 +534,6 @@ describe("useAgendaTimerStore", () => {
     store.getCurrentAgenda();
     store.startTimer();
 
-    expect(bellSoundManager.notifyWithBell).toHaveBeenCalledTimes(1);
+    expect(notificationManager.notify).toHaveBeenCalledTimes(1);
   });
 });

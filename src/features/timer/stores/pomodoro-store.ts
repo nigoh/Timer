@@ -5,6 +5,7 @@ import {
   PomodoroSettings,
   PomodoroSession,
 } from '@/types/pomodoro';
+import { notificationManager } from '@/utils/notification-manager';
 
 interface PomodoroStore extends PomodoroState {
   start: () => void;
@@ -41,22 +42,6 @@ const getInitialTimeRemaining = (phase: PomodoroPhase, settings: PomodoroSetting
   }
 };
 
-const playNotificationSound = () => {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('ポモドーロタイマー', {
-      body: 'タイマーが終了しました',
-      icon: '/timer-icon.png',
-    });
-  }
-
-  try {
-    const audio = new Audio('/notification.mp3');
-    void audio.play().catch(() => undefined);
-  } catch {
-    // ignore play errors
-  }
-};
-
 export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
   currentPhase: 'work',
   timeRemaining: DEFAULT_SETTINGS.workDuration * 60,
@@ -80,9 +65,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       isPaused: false,
     });
 
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    notificationManager.ensureInitialized().catch(console.warn);
   },
 
   pause: () => {
@@ -131,7 +114,11 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       });
 
       get().completeSession();
-      playNotificationSound();
+      
+      notificationManager.notify('ポモドーロタイマー', {
+        body: `${state.currentPhase === 'work' ? '作業' : '休憩'}が終了しました`,
+        sound: 'complete',
+      });
 
       const shouldAutoStart =
         (state.currentPhase === 'work' && state.settings.autoStartBreaks) ||

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { BasicTimerHistory } from '@/types/timer';
+import { notificationManager } from '@/utils/notification-manager';
 
 interface BasicTimerState {
   duration: number;
@@ -55,6 +56,8 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
     const state = get();
     const now = new Date();
 
+    notificationManager.ensureInitialized().catch(console.warn);
+
     set({
       isRunning: true,
       isPaused: false,
@@ -76,6 +79,7 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
     if (state.sessionStartTime) {
       const now = new Date();
       const actualDuration = Math.floor((now.getTime() - state.sessionStartTime.getTime()) / 1000);
+      const label = state.sessionLabel || `${Math.ceil(state.duration / 60)}分タイマー`;
 
       get().addToHistory({
         duration: state.duration,
@@ -83,7 +87,7 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
         startTime: state.sessionStartTime,
         endTime: now,
         completed: false,
-        label: state.sessionLabel || `${Math.ceil(state.duration / 60)}分タイマー`,
+        label,
       });
     }
 
@@ -120,13 +124,20 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
       const now = new Date();
       const actualDuration = Math.floor((now.getTime() - state.sessionStartTime.getTime()) / 1000);
 
+      const label = state.sessionLabel || `${Math.ceil(state.duration / 60)}分タイマー`;
+
       get().addToHistory({
         duration: state.duration,
         actualDuration,
         startTime: state.sessionStartTime,
         endTime: now,
         completed: true,
-        label: state.sessionLabel || `${Math.ceil(state.duration / 60)}分タイマー`,
+        label,
+      });
+
+      notificationManager.notify('タイマー終了', {
+        body: `${label}が終了しました`,
+        sound: 'complete'
       });
     }
 

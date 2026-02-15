@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { MultiTimerState, MultiTimer } from '@/types/multi-timer';
+import { notificationManager } from '@/utils/notification-manager';
 
 export interface MultiTimerStore extends MultiTimerState {
   addTimer: (
@@ -31,15 +32,6 @@ export interface MultiTimerStore extends MultiTimerState {
 const DEFAULT_CATEGORIES = ['仕事', '勉強', '運動', '休憩', 'その他'];
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
-
-const playCompletionSound = () => {
-  try {
-    const audio = new Audio('/timer-complete.mp3');
-    void audio.play().catch(() => undefined);
-  } catch {
-    // ignore playback errors
-  }
-};
 
 export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
   timers: [],
@@ -105,6 +97,8 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
     const timer = state.timers.find((item) => item.id === id);
     if (!timer || timer.isRunning || timer.isCompleted) return;
 
+    notificationManager.ensureInitialized().catch(console.warn);
+
     const now = Date.now();
     set({
       timers: state.timers.map((item) =>
@@ -167,6 +161,9 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
 
   startAllTimers: () => {
     const state = get();
+    
+    notificationManager.ensureInitialized().catch(console.warn);
+
     const now = new Date();
     set({
       timers: state.timers.map((timer) =>
@@ -221,8 +218,13 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
 
   tick: () => {
     const state = get();
-    if (!state.isAnyRunning) return;
-
+    // Optimization: If no timers are running, don't do anything (though hook handles this)
+    // Actually the hook usually calls tick() regularly.
+    // If we want to be safe:
+    // if (!state.timers.some(t => t.isRunning)) return; 
+    
+    // However, store relies on external tick trigger usually.
+    
     const updatedTimers = state.timers.map((timer) => {
       if (!timer.isRunning || timer.isCompleted) return timer;
 
@@ -230,8 +232,17 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
 
       if (newRemainingTime === 0) {
         if (state.globalSettings.soundEnabled) {
-          playCompletionSound();
+          notificationManager.notify('タイマー終了', {
+            body: `「${timer.name}」が終了しました`,
+            sound: 'complete'
+          });
+        } else if (state.globalSettings.showNotifications) {
+            notificationManager.notify('タイマー終了', {
+                body: `「${timer.name}」が終了しました`,
+                silent: true
+            });
         }
+
         return {
           ...timer,
           remainingTime: 0,

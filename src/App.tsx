@@ -8,6 +8,7 @@ import { EnhancedPomodoroTimer } from "./features/timer/containers/EnhancedPomod
 import { MultiTimer } from "./features/timer/containers/MultiTimer";
 import LogViewer from "./components/LogViewer";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Footer from "./components/Footer";
 import { logger } from "./utils/logger";
 import "./globals.css";
 
@@ -43,9 +44,13 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="w-full px-2 md:px-3">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="w-full flex-1 px-2 md:px-3">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="flex h-full w-full flex-col"
+        >
           <header className="mb-2 flex items-center gap-2">
             <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card">
               <Timer className="h-5 w-5" />
@@ -54,31 +59,31 @@ function App() {
             <TabsList className="grid h-10 flex-1 grid-cols-4">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <Timer className="w-4 h-4" />
-                基本タイマー
+                <span className="hidden md:inline">基本タイマー</span>
               </TabsTrigger>
               <TabsTrigger value="pomodoro" className="flex items-center gap-2">
                 <Target className="w-4 h-4" />
-                ポモドーロ
+                <span className="hidden md:inline">ポモドーロ</span>
               </TabsTrigger>
               <TabsTrigger value="agenda" className="flex items-center gap-2">
                 <List className="w-4 h-4" />
-                アジェンダ
+                <span className="hidden md:inline">アジェンダ</span>
               </TabsTrigger>
               <TabsTrigger value="multi" className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                複数タイマー
+                <span className="hidden md:inline">複数タイマー</span>
               </TabsTrigger>
             </TabsList>
 
             <LogViewer>
               <Button variant="outline" size="sm">
-                <Bug className="w-4 h-4 mr-2" />
-                ログ
+                <Bug className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">ログ</span>
               </Button>
             </LogViewer>
           </header>
 
-          <main>
+          <main className="flex-1">
             <TabsContent value="basic">
               <ErrorBoundary componentName="BasicTimer">
                 <BasicTimer />
@@ -105,6 +110,7 @@ function App() {
           </main>
         </Tabs>
       </div>
+      <Footer />
     </div>
   );
 }

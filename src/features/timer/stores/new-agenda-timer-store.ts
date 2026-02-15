@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { AgendaTimerState, Meeting, AgendaItem } from "@/types/agenda";
-import { bellSoundManager } from "@/utils/bellSoundManager";
+import { notificationManager, SoundType } from "@/utils/notification-manager";
 import { logger } from "@/utils/logger";
 
 export interface AgendaTimerStore extends AgendaTimerState {
@@ -59,8 +59,6 @@ const syncMeetingCurrentAgendaId = (
   meetingId: string,
   agendaId?: string,
 ) => {
-  // 不変条件: meetingId が currentMeeting と一致する場合、
-  // meetings 配列側と currentMeeting 側の currentAgendaId を必ず同じ値に保つ。
   const updatedMeetings = state.meetings.map((meeting) =>
     meeting.id === meetingId
       ? { ...meeting, currentAgendaId: agendaId }
@@ -77,603 +75,586 @@ const syncMeetingCurrentAgendaId = (
   };
 };
 
+const notifyAgenda = (
+    type: 'start' | 'warning' | 'end' | 'overtime',
+    meetingSettings: Meeting['settings'],
+    message: string
+) => {
+    let shouldPlay = false;
+    const bs = meetingSettings.bellSettings;
+    
+    switch (type) {
+        case 'start': shouldPlay = bs.start; break;
+        case 'warning': shouldPlay = bs.fiveMinWarning; break;
+        case 'end': shouldPlay = bs.end; break;
+        case 'overtime': shouldPlay = bs.overtime; break;
+    }
+
+    const sound = shouldPlay ? (bs.soundType as SoundType) : undefined;
+
+    notificationManager.notify('アジェンダタイマー', {
+        body: message,
+        sound: sound,
+        silent: meetingSettings.silentMode
+    });
+};
+
 export const useAgendaTimerStore = create<AgendaTimerStore>()(
   persist(
     (set, get) => ({
-  currentMeeting: null,
-  meetings: [],
-  isRunning: false,
-  currentTime: 0,
-  meetingStartTime: undefined,
-  lastTickTime: undefined,
+      currentMeeting: null,
+      meetings: [],
+      isRunning: false,
+      currentTime: 0,
+      meetingStartTime: undefined,
+      lastTickTime: undefined,
 
-  createMeeting: (title: string) => {
-    const newMeeting: Meeting = {
-      id: generateId(),
-      title,
-      agenda: [],
-      totalPlannedDuration: 0,
-      totalActualDuration: 0,
-      status: "not-started",
-      settings: {
-        autoTransition: false,
-        silentMode: false,
-        bellSettings: {
-          start: true,
-          fiveMinWarning: true,
-          end: true,
-          overtime: true,
-          soundType: "single",
-        },
+      createMeeting: (title: string) => {
+        const newMeeting: Meeting = {
+          id: generateId(),
+          title,
+          agenda: [],
+          totalPlannedDuration: 0,
+          totalActualDuration: 0,
+          status: "not-started",
+          settings: {
+            autoTransition: false,
+            silentMode: false,
+            bellSettings: {
+              start: true,
+              fiveMinWarning: true,
+              end: true,
+              overtime: true,
+              soundType: "single",
+            },
+          },
+        };
+
+        set((state) => ({
+          meetings: [...state.meetings, newMeeting],
+          currentMeeting: newMeeting,
+        }));
+
+        logger.info(
+          "Meeting created",
+          {
+            meetingId: newMeeting.id,
+            title: newMeeting.title,
+          },
+          "agenda",
+        );
       },
-    };
 
-    set((state) => ({
-      meetings: [...state.meetings, newMeeting],
-      currentMeeting: newMeeting,
-    }));
+      updateMeetingTitle: (id: string, title: string) => {
+        set((state) => ({
+          meetings: state.meetings.map((meeting) =>
+            meeting.id === id ? { ...meeting, title } : meeting,
+          ),
+          currentMeeting:
+            state.currentMeeting?.id === id
+              ? { ...state.currentMeeting, title }
+              : state.currentMeeting,
+        }));
 
-    logger.info(
-      "Meeting created",
-      {
-        meetingId: newMeeting.id,
-        title: newMeeting.title,
+        logger.info(
+          "Meeting title updated",
+          {
+            meetingId: id,
+            title,
+          },
+          "agenda",
+        );
       },
-      "agenda",
-    );
-  },
 
-  updateMeetingTitle: (id: string, title: string) => {
-    set((state) => ({
-      meetings: state.meetings.map((meeting) =>
-        meeting.id === id ? { ...meeting, title } : meeting,
-      ),
-      currentMeeting:
-        state.currentMeeting?.id === id
-          ? { ...state.currentMeeting, title }
-          : state.currentMeeting,
-    }));
+      deleteMeeting: (id: string) => {
+        const state = get();
+        const meetingToDelete = state.meetings.find((meeting) => meeting.id === id);
 
-    logger.info(
-      "Meeting title updated",
-      {
-        meetingId: id,
-        title,
+        set((prevState) => ({
+          meetings: prevState.meetings.filter((meeting) => meeting.id !== id),
+          currentMeeting:
+            prevState.currentMeeting?.id === id ? null : prevState.currentMeeting,
+        }));
+
+        logger.info(
+          "Meeting deleted",
+          {
+            meetingId: id,
+            title: meetingToDelete?.title,
+          },
+          "agenda",
+        );
       },
-      "agenda",
-    );
-  },
 
-  deleteMeeting: (id: string) => {
-    const state = get();
-    const meetingToDelete = state.meetings.find((meeting) => meeting.id === id);
-
-    set((prevState) => ({
-      meetings: prevState.meetings.filter((meeting) => meeting.id !== id),
-      currentMeeting:
-        prevState.currentMeeting?.id === id ? null : prevState.currentMeeting,
-    }));
-
-    logger.info(
-      "Meeting deleted",
-      {
-        meetingId: id,
-        title: meetingToDelete?.title,
-      },
-      "agenda",
-    );
-  },
-
-  setCurrentMeeting: (id: string) => {
-    const meeting = get().meetings.find((item) => item.id === id);
-    if (meeting) {
-      set({ currentMeeting: meeting });
-    }
-  },
-
-  updateMeetingSettings: (id: string, settings) => {
-    set((state) => ({
-      meetings: state.meetings.map((meeting) =>
-        meeting.id === id
-          ? { ...meeting, settings: { ...meeting.settings, ...settings } }
-          : meeting,
-      ),
-      currentMeeting:
-        state.currentMeeting?.id === id
-          ? {
-              ...state.currentMeeting,
-              settings: { ...state.currentMeeting.settings, ...settings },
-            }
-          : state.currentMeeting,
-    }));
-  },
-
-  addAgenda: (
-    meetingId: string,
-    title: string,
-    plannedDuration: number,
-    memo?: string,
-  ) => {
-    const newAgenda: AgendaItem = {
-      id: generateId(),
-      title,
-      plannedDuration,
-      memo,
-      order: 0,
-      actualDuration: 0,
-      remainingTime: plannedDuration,
-      status: "pending",
-      minutesContent: "",
-      minutesFormat: "markdown",
-    };
-
-    set((state) => {
-      const updatedMeetings = state.meetings.map((meeting) => {
-        if (meeting.id === meetingId) {
-          const agendaWithOrder = meeting.agenda.map((agenda, index) => ({
-            ...agenda,
-            order: index,
-          }));
-          return {
-            ...meeting,
-            agenda: [
-              ...agendaWithOrder,
-              { ...newAgenda, order: agendaWithOrder.length },
-            ],
-            totalPlannedDuration:
-              meeting.totalPlannedDuration + plannedDuration,
-          };
+      setCurrentMeeting: (id: string) => {
+        const meeting = get().meetings.find((item) => item.id === id);
+        if (meeting) {
+          set({ currentMeeting: meeting });
         }
-        return meeting;
-      });
-
-      return {
-        meetings: updatedMeetings,
-        currentMeeting:
-          state.currentMeeting?.id === meetingId
-            ? updatedMeetings.find((meeting) => meeting.id === meetingId) ||
-              state.currentMeeting
-            : state.currentMeeting,
-      };
-    });
-  },
-
-  updateAgenda: (
-    meetingId: string,
-    agendaId: string,
-    updates: Partial<AgendaItem>,
-  ) => {
-    set((state) => {
-      const updatedMeetings = state.meetings.map((meeting) => {
-        if (meeting.id === meetingId) {
-          const updatedAgenda = meeting.agenda.map((agenda) =>
-            agenda.id === agendaId ? { ...agenda, ...updates } : agenda,
-          );
-          const totalPlannedDuration = updatedAgenda.reduce(
-            (sum, agenda) => sum + agenda.plannedDuration,
-            0,
-          );
-          const totalActualDuration = updatedAgenda.reduce(
-            (sum, agenda) => sum + agenda.actualDuration,
-            0,
-          );
-
-          return {
-            ...meeting,
-            agenda: updatedAgenda,
-            totalPlannedDuration,
-            totalActualDuration,
-          };
-        }
-        return meeting;
-      });
-
-      const updatedMeeting = updatedMeetings.find(
-        (meeting) => meeting.id === meetingId,
-      );
-
-      return {
-        meetings: updatedMeetings,
-        currentMeeting:
-          state.currentMeeting?.id === meetingId
-            ? {
-                ...state.currentMeeting,
-                ...(updatedMeeting || {}),
-                currentAgendaId:
-                  updatedMeeting?.currentAgendaId ||
-                  state.currentMeeting.currentAgendaId,
-              }
-            : state.currentMeeting,
-      };
-    });
-  },
-
-  updateAgendaMinutes: (meetingId: string, agendaId: string, updates) => {
-    get().updateAgenda(meetingId, agendaId, updates);
-  },
-
-  deleteAgenda: (meetingId: string, agendaId: string) => {
-    set((state) => {
-      // 不変条件: 対象会議が currentMeeting のとき、
-      // currentAgendaId は meetings/currentMeeting の双方で一致させる。
-      const targetMeeting = state.meetings.find(
-        (meeting) => meeting.id === meetingId,
-      );
-      const deletedAgenda = targetMeeting?.agenda.find(
-        (item) => item.id === agendaId,
-      );
-      const shouldReselectCurrentAgenda =
-        targetMeeting?.currentAgendaId !== undefined &&
-        targetMeeting.currentAgendaId === agendaId;
-
-      const updatedMeetings = state.meetings.map((meeting) => {
-        if (meeting.id === meetingId) {
-          const remainingAgenda = meeting.agenda.filter(
-            (item) => item.id !== agendaId,
-          );
-
-          const nextCandidate = shouldReselectCurrentAgenda
-            ? remainingAgenda
-                .filter((item) => item.order > (deletedAgenda?.order ?? -1))
-                .sort((a, b) => a.order - b.order)[0] ||
-              [...remainingAgenda].sort((a, b) => a.order - b.order)[0]
-            : undefined;
-
-          const updatedAgenda = remainingAgenda.map((item, index) => ({
-            ...item,
-            order: index,
-          }));
-
-          return {
-            ...meeting,
-            agenda: updatedAgenda,
-            totalPlannedDuration:
-              meeting.totalPlannedDuration -
-              (deletedAgenda?.plannedDuration || 0),
-            currentAgendaId: shouldReselectCurrentAgenda
-              ? nextCandidate?.id
-              : meeting.currentAgendaId,
-          };
-        }
-        return meeting;
-      });
-
-      const updatedMeeting = updatedMeetings.find(
-        (meeting) => meeting.id === meetingId,
-      );
-
-      return {
-        meetings: updatedMeetings,
-        currentMeeting:
-          state.currentMeeting?.id === meetingId
-            ? updatedMeeting || state.currentMeeting
-            : state.currentMeeting,
-      };
-    });
-  },
-
-  selectAgenda: (meetingId: string, agendaId: string) => {
-    set((state) => syncMeetingCurrentAgendaId(state, meetingId, agendaId));
-  },
-
-  reorderAgendas: (meetingId: string, agendaIds: string[]) => {
-    set((state) => {
-      const updatedMeetings = state.meetings.map((meeting) => {
-        if (meeting.id === meetingId) {
-          const reorderedAgenda = agendaIds
-            .map((id, index) => {
-              const agenda = meeting.agenda.find((item) => item.id === id);
-              return agenda ? { ...agenda, order: index } : null;
-            })
-            .filter(Boolean) as AgendaItem[];
-
-          return { ...meeting, agenda: reorderedAgenda };
-        }
-        return meeting;
-      });
-
-      return {
-        meetings: updatedMeetings,
-        currentMeeting:
-          state.currentMeeting?.id === meetingId
-            ? updatedMeetings.find((meeting) => meeting.id === meetingId) ||
-              state.currentMeeting
-            : state.currentMeeting,
-      };
-    });
-  },
-
-  startTimer: () => {
-    // 一時停止からの再開/未開始からの開始を共通で扱う。
-    // currentTime を維持することで、pause 後は経過時間を引き継いで再開できる。
-    const state = get();
-    const currentAgenda = get().getCurrentAgenda();
-    const currentMeeting = state.currentMeeting;
-
-    if (!currentAgenda || !currentMeeting) return;
-
-    const nowTimestamp = Date.now();
-    const now = new Date(nowTimestamp);
-
-    set((prevState) =>
-      syncMeetingCurrentAgendaId(
-        prevState,
-        currentMeeting.id,
-        currentAgenda.id,
-      ),
-    );
-
-    set({
-      isRunning: true,
-      meetingStartTime: state.meetingStartTime || now,
-      lastTickTime: nowTimestamp,
-    });
-
-    logger.timerStart(
-      currentAgenda.id,
-      "agenda",
-      currentAgenda.plannedDuration * 60,
-    );
-
-    logger.info(
-      "Agenda timer started",
-      {
-        meetingId: currentMeeting.id,
-        meetingTitle: currentMeeting.title,
-        agendaId: currentAgenda.id,
-        agendaTitle: currentAgenda.title,
-        plannedDuration: currentAgenda.plannedDuration,
       },
-      "agenda",
-    );
 
-    get().updateAgenda(currentMeeting.id, currentAgenda.id, {
-      status: "running",
-      startTime: currentAgenda.startTime || now,
-    });
+      updateMeetingSettings: (id: string, settings) => {
+        set((state) => ({
+          meetings: state.meetings.map((meeting) =>
+            meeting.id === id
+              ? { ...meeting, settings: { ...meeting.settings, ...settings } }
+              : meeting,
+          ),
+          currentMeeting:
+            state.currentMeeting?.id === id
+              ? {
+                  ...state.currentMeeting,
+                  settings: { ...state.currentMeeting.settings, ...settings },
+                }
+              : state.currentMeeting,
+        }));
+      },
 
-    if (currentMeeting.settings.bellSettings.start) {
-      bellSoundManager.notifyWithBell(
-        "start",
-        currentMeeting.settings.bellSettings,
-        `アジェンダ「${currentAgenda.title}」を開始しました`,
-      );
-    }
+      addAgenda: (
+        meetingId: string,
+        title: string,
+        plannedDuration: number,
+        memo?: string,
+      ) => {
+        const newAgenda: AgendaItem = {
+          id: generateId(),
+          title,
+          plannedDuration,
+          memo,
+          order: 0,
+          actualDuration: 0,
+          remainingTime: plannedDuration,
+          status: "pending",
+          minutesContent: "",
+          minutesFormat: "markdown",
+        };
 
-    if (
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "default"
-    ) {
-      Notification.requestPermission();
-    }
-  },
-
-  pauseTimer: () => {
-    // セッションの進行を止めるが、経過時間は保持して再開可能な状態にする。
-    const state = get();
-    const currentAgenda = get().getCurrentAgenda();
-
-    if (currentAgenda && state.currentMeeting) {
-      get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
-        status: "paused",
-      });
-    }
-
-    set({ isRunning: false });
-  },
-
-  stopTimer: () => {
-    // セッション完了として扱い、現在議題を完了させて次の議題へ遷移する。
-    // 実行中であれば自動で一時停止状態にしてから遷移判定を行う。
-    if (get().isRunning) {
-      set({
-        isRunning: false,
-        lastTickTime: undefined,
-      });
-    }
-
-    get().nextAgenda();
-  },
-
-  nextAgenda: () => {
-    const state = get();
-    if (!state.currentMeeting || state.isRunning) return;
-
-    const currentAgenda = get().getCurrentAgenda();
-    if (!currentAgenda) return;
-
-    const canAdvance =
-      currentAgenda.status === "running" ||
-      currentAgenda.status === "paused" ||
-      currentAgenda.status === "overtime";
-
-    if (!canAdvance) return;
-
-    get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
-      status: "completed",
-      endTime: new Date(),
-    });
-
-    const nextAgenda = state.currentMeeting.agenda
-      .filter(
-        (agenda) =>
-          agenda.status === "pending" && agenda.id !== currentAgenda?.id,
-      )
-      .sort((a, b) => a.order - b.order)[0];
-
-    if (nextAgenda) {
-      // 不変条件: 議題遷移時は meetings/currentMeeting で currentAgendaId を同値に維持する。
-      set((prevState) => ({
-        ...syncMeetingCurrentAgendaId(
-          prevState,
-          state.currentMeeting!.id,
-          nextAgenda.id,
-        ),
-        currentTime: 0,
-      }));
-
-      if (state.currentMeeting.settings.autoTransition && state.isRunning) {
-        setTimeout(() => get().startTimer(), 1000);
-      }
-    } else {
-      const completedAt = new Date();
-      set((prevState) => ({
-        meetings: prevState.meetings.map((meeting) =>
-          meeting.id === prevState.currentMeeting?.id
-            ? {
+        set((state) => {
+          const updatedMeetings = state.meetings.map((meeting) => {
+            if (meeting.id === meetingId) {
+              const agendaWithOrder = meeting.agenda.map((agenda, index) => ({
+                ...agenda,
+                order: index,
+              }));
+              return {
                 ...meeting,
-                status: "completed",
-                endTime: completedAt,
-              }
-            : meeting,
-        ),
-        currentMeeting: prevState.currentMeeting
-          ? {
-              ...prevState.currentMeeting,
-              status: "completed",
-              endTime: completedAt,
+                agenda: [
+                  ...agendaWithOrder,
+                  { ...newAgenda, order: agendaWithOrder.length },
+                ],
+                totalPlannedDuration:
+                  meeting.totalPlannedDuration + plannedDuration,
+              };
             }
-          : null,
-        isRunning: false,
-        currentTime: 0,
-        meetingStartTime: undefined,
-        lastTickTime: undefined,
-      }));
-    }
-  },
+            return meeting;
+          });
 
-  tick: () => {
-    const state = get();
-    if (!state.isRunning || !state.currentMeeting) return;
+          return {
+            meetings: updatedMeetings,
+            currentMeeting:
+              state.currentMeeting?.id === meetingId
+                ? updatedMeetings.find((meeting) => meeting.id === meetingId) ||
+                  state.currentMeeting
+                : state.currentMeeting,
+          };
+        });
+      },
 
-    const currentAgenda = get().getCurrentAgenda();
-    if (!currentAgenda) return;
+      updateAgenda: (
+        meetingId: string,
+        agendaId: string,
+        updates: Partial<AgendaItem>,
+      ) => {
+        set((state) => {
+          const updatedMeetings = state.meetings.map((meeting) => {
+            if (meeting.id === meetingId) {
+              const updatedAgenda = meeting.agenda.map((agenda) =>
+                agenda.id === agendaId ? { ...agenda, ...updates } : agenda,
+              );
+              const totalPlannedDuration = updatedAgenda.reduce(
+                (sum, agenda) => sum + agenda.plannedDuration,
+                0,
+              );
+              const totalActualDuration = updatedAgenda.reduce(
+                (sum, agenda) => sum + agenda.actualDuration,
+                0,
+              );
 
-    const now = Date.now();
-    const deltaTime = state.lastTickTime
-      ? Math.round((now - state.lastTickTime) / 1000)
-      : 1;
+              return {
+                ...meeting,
+                agenda: updatedAgenda,
+                totalPlannedDuration,
+                totalActualDuration,
+              };
+            }
+            return meeting;
+          });
 
-    const newCurrentTime = state.currentTime + deltaTime;
-    const newRemainingTime = currentAgenda.plannedDuration - newCurrentTime;
+          const updatedMeeting = updatedMeetings.find(
+            (meeting) => meeting.id === meetingId,
+          );
 
-    set({
-      currentTime: newCurrentTime,
-      lastTickTime: now,
-    });
+          return {
+            meetings: updatedMeetings,
+            currentMeeting:
+              state.currentMeeting?.id === meetingId
+                ? {
+                    ...state.currentMeeting,
+                    ...(updatedMeeting || {}),
+                    currentAgendaId:
+                      updatedMeeting?.currentAgendaId ||
+                      state.currentMeeting.currentAgendaId,
+                  }
+                : state.currentMeeting,
+          };
+        });
+      },
 
-    get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
-      remainingTime: newRemainingTime,
-      actualDuration: newCurrentTime,
-      status: newRemainingTime <= 0 ? "overtime" : "running",
-    });
+      updateAgendaMinutes: (meetingId: string, agendaId: string, updates) => {
+        get().updateAgenda(meetingId, agendaId, updates);
+      },
 
-    if (
-      newRemainingTime === 300 &&
-      state.currentMeeting.settings.bellSettings.fiveMinWarning
-    ) {
-      bellSoundManager.notifyWithBell(
-        "warning",
-        state.currentMeeting.settings.bellSettings,
-        `アジェンダ「${currentAgenda.title}」の残り時間は5分です`,
-      );
-    }
+      deleteAgenda: (meetingId: string, agendaId: string) => {
+        set((state) => {
+          const targetMeeting = state.meetings.find(
+            (meeting) => meeting.id === meetingId,
+          );
+          const deletedAgenda = targetMeeting?.agenda.find(
+            (item) => item.id === agendaId,
+          );
+          const shouldReselectCurrentAgenda =
+            targetMeeting?.currentAgendaId !== undefined &&
+            targetMeeting.currentAgendaId === agendaId;
 
-    if (
-      newRemainingTime === 0 &&
-      state.currentMeeting.settings.bellSettings.end
-    ) {
-      bellSoundManager.notifyWithBell(
-        "end",
-        state.currentMeeting.settings.bellSettings,
-        `アジェンダ「${currentAgenda.title}」の予定時間が終了しました`,
-      );
-    }
+          const updatedMeetings = state.meetings.map((meeting) => {
+            if (meeting.id === meetingId) {
+              const remainingAgenda = meeting.agenda.filter(
+                (item) => item.id !== agendaId,
+              );
 
-    if (
-      newRemainingTime < 0 &&
-      Math.abs(newRemainingTime) % 60 === 0 &&
-      state.currentMeeting.settings.bellSettings.overtime
-    ) {
-      bellSoundManager.notifyWithBell(
-        "overtime",
-        state.currentMeeting.settings.bellSettings,
-        `アジェンダ「${currentAgenda.title}」が${Math.abs(
-          Math.floor(newRemainingTime / 60),
-        )}分超過しています`,
-      );
-    }
-  },
+              const nextCandidate = shouldReselectCurrentAgenda
+                ? remainingAgenda
+                    .filter((item) => item.order > (deletedAgenda?.order ?? -1))
+                    .sort((a, b) => a.order - b.order)[0] ||
+                  [...remainingAgenda].sort((a, b) => a.order - b.order)[0]
+                : undefined;
 
-  getCurrentAgenda: () => {
-    const state = get();
-    if (!state.currentMeeting) return null;
+              const updatedAgenda = remainingAgenda.map((item, index) => ({
+                ...item,
+                order: index,
+              }));
 
-    const sortedPendingAgendas = [...state.currentMeeting.agenda]
-      .filter((agenda) => agenda.status === "pending")
-      .sort((a, b) => a.order - b.order);
-    const firstPending = sortedPendingAgendas[0];
+              return {
+                ...meeting,
+                agenda: updatedAgenda,
+                totalPlannedDuration:
+                  meeting.totalPlannedDuration -
+                  (deletedAgenda?.plannedDuration || 0),
+                currentAgendaId: shouldReselectCurrentAgenda
+                  ? nextCandidate?.id
+                  : meeting.currentAgendaId,
+              };
+            }
+            return meeting;
+          });
 
-    if (!state.currentMeeting.currentAgendaId) {
-      return firstPending || null;
-    }
+          const updatedMeeting = updatedMeetings.find(
+            (meeting) => meeting.id === meetingId,
+          );
 
-    const currentAgenda = state.currentMeeting.agenda.find(
-      (agenda) => agenda.id === state.currentMeeting!.currentAgendaId,
-    );
+          return {
+            meetings: updatedMeetings,
+            currentMeeting:
+              state.currentMeeting?.id === meetingId
+                ? updatedMeeting || state.currentMeeting
+                : state.currentMeeting,
+          };
+        });
+      },
 
-    if (!currentAgenda) {
-      return firstPending || null;
-    }
+      selectAgenda: (meetingId: string, agendaId: string) => {
+        set((state) => syncMeetingCurrentAgendaId(state, meetingId, agendaId));
+      },
 
-    return currentAgenda;
-  },
+      reorderAgendas: (meetingId: string, agendaIds: string[]) => {
+        set((state) => {
+          const updatedMeetings = state.meetings.map((meeting) => {
+            if (meeting.id === meetingId) {
+              const reorderedAgenda = agendaIds
+                .map((id, index) => {
+                  const agenda = meeting.agenda.find((item) => item.id === id);
+                  return agenda ? { ...agenda, order: index } : null;
+                })
+                .filter(Boolean) as AgendaItem[];
 
-  getProgressPercentage: () => {
-    const currentAgenda = get().getCurrentAgenda();
-    if (!currentAgenda) return 0;
+              return { ...meeting, agenda: reorderedAgenda };
+            }
+            return meeting;
+          });
 
-    return Math.min(
-      (currentAgenda.actualDuration / currentAgenda.plannedDuration) * 100,
-      150,
-    );
-  },
+          return {
+            meetings: updatedMeetings,
+            currentMeeting:
+              state.currentMeeting?.id === meetingId
+                ? updatedMeetings.find((meeting) => meeting.id === meetingId) ||
+                  state.currentMeeting
+                : state.currentMeeting,
+          };
+        });
+      },
 
-  getTotalProgressPercentage: () => {
-    const state = get();
-    if (
-      !state.currentMeeting ||
-      state.currentMeeting.totalPlannedDuration === 0
-    )
-      return 0;
+      startTimer: () => {
+        const state = get();
+        const currentAgenda = get().getCurrentAgenda();
+        const currentMeeting = state.currentMeeting;
 
-    return Math.min(
-      (state.currentMeeting.totalActualDuration /
-        state.currentMeeting.totalPlannedDuration) *
-        100,
-      150,
-    );
-  },
+        if (!currentAgenda || !currentMeeting) return;
 
-  calculateTimeColor: (percentage: number) => {
-    return getProgressColor(percentage);
-  },
+        notificationManager.ensureInitialized().catch(console.warn);
 
-  syncTime: () => {
-    const state = get();
-    if (!state.isRunning || !state.lastTickTime) return;
+        const nowTimestamp = Date.now();
+        const now = new Date(nowTimestamp);
 
-    const now = Date.now();
-    const timeDiff = Math.round((now - state.lastTickTime) / 1000);
+        set((prevState) =>
+          syncMeetingCurrentAgendaId(
+            prevState,
+            currentMeeting.id,
+            currentAgenda.id,
+          ),
+        );
 
-    if (timeDiff > 1) {
-      set({
-        currentTime: state.currentTime + timeDiff,
-        lastTickTime: now,
-      });
-    }
-  },
+        set({
+          isRunning: true,
+          meetingStartTime: state.meetingStartTime || now,
+          lastTickTime: nowTimestamp,
+        });
+
+        logger.timerStart(
+          currentAgenda.id,
+          "agenda",
+          currentAgenda.plannedDuration * 60,
+        );
+
+        logger.info(
+          "Agenda timer started",
+          {
+            meetingId: currentMeeting.id,
+            meetingTitle: currentMeeting.title,
+            agendaId: currentAgenda.id,
+            agendaTitle: currentAgenda.title,
+            plannedDuration: currentAgenda.plannedDuration,
+          },
+          "agenda",
+        );
+
+        get().updateAgenda(currentMeeting.id, currentAgenda.id, {
+          status: "running",
+          startTime: currentAgenda.startTime || now,
+        });
+
+        notifyAgenda('start', currentMeeting.settings, `アジェンダ「${currentAgenda.title}」を開始しました`);
+      },
+
+      pauseTimer: () => {
+        const state = get();
+        const currentAgenda = get().getCurrentAgenda();
+
+        if (currentAgenda && state.currentMeeting) {
+          get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
+            status: "paused",
+          });
+        }
+
+        set({ isRunning: false });
+      },
+
+      stopTimer: () => {
+        if (get().isRunning) {
+          set({
+            isRunning: false,
+            lastTickTime: undefined,
+          });
+        }
+
+        get().nextAgenda();
+      },
+
+      nextAgenda: () => {
+        const state = get();
+        if (!state.currentMeeting || state.isRunning) return;
+
+        const currentAgenda = get().getCurrentAgenda();
+        if (!currentAgenda) return;
+
+        const canAdvance =
+          currentAgenda.status === "running" ||
+          currentAgenda.status === "paused" ||
+          currentAgenda.status === "overtime";
+
+        if (!canAdvance) return;
+
+        get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
+          status: "completed",
+          endTime: new Date(),
+        });
+
+        const nextAgenda = state.currentMeeting.agenda
+          .filter(
+            (agenda) =>
+              agenda.status === "pending" && agenda.id !== currentAgenda?.id,
+          )
+          .sort((a, b) => a.order - b.order)[0];
+
+        if (nextAgenda) {
+          set((prevState) => ({
+            ...syncMeetingCurrentAgendaId(
+              prevState,
+              state.currentMeeting!.id,
+              nextAgenda.id,
+            ),
+            currentTime: 0,
+          }));
+
+          if (state.currentMeeting.settings.autoTransition && state.isRunning) {
+            setTimeout(() => get().startTimer(), 1000);
+          }
+        } else {
+          const completedAt = new Date();
+          set((prevState) => ({
+            meetings: prevState.meetings.map((meeting) =>
+              meeting.id === prevState.currentMeeting?.id
+                ? {
+                    ...meeting,
+                    status: "completed",
+                    endTime: completedAt,
+                  }
+                : meeting,
+            ),
+            currentMeeting: prevState.currentMeeting
+              ? {
+                  ...prevState.currentMeeting,
+                  status: "completed",
+                  endTime: completedAt,
+                }
+              : null,
+            isRunning: false,
+            currentTime: 0,
+            meetingStartTime: undefined,
+            lastTickTime: undefined,
+          }));
+        }
+      },
+
+      tick: () => {
+        const state = get();
+        if (!state.isRunning || !state.currentMeeting) return;
+
+        const currentAgenda = get().getCurrentAgenda();
+        if (!currentAgenda) return;
+
+        const now = Date.now();
+        const deltaTime = state.lastTickTime
+          ? Math.round((now - state.lastTickTime) / 1000)
+          : 1;
+
+        const newCurrentTime = state.currentTime + deltaTime;
+        const newRemainingTime = currentAgenda.plannedDuration - newCurrentTime;
+
+        set({
+          currentTime: newCurrentTime,
+          lastTickTime: now,
+        });
+
+        get().updateAgenda(state.currentMeeting.id, currentAgenda.id, {
+          remainingTime: newRemainingTime,
+          actualDuration: newCurrentTime,
+          status: newRemainingTime <= 0 ? "overtime" : "running",
+        });
+
+        // 5 minute warning
+        if (newRemainingTime === 300) {
+            notifyAgenda('warning', state.currentMeeting.settings, `アジェンダ「${currentAgenda.title}」の残り時間は5分です`);
+        }
+
+        // Time's up
+        if (newRemainingTime === 0) {
+            notifyAgenda('end', state.currentMeeting.settings, `アジェンダ「${currentAgenda.title}」の予定時間が終了しました`);
+        }
+
+        // Overtime check every minute
+        if (newRemainingTime < 0 && Math.abs(newRemainingTime) % 60 === 0) {
+             notifyAgenda('overtime', state.currentMeeting.settings, `アジェンダ「${currentAgenda.title}」が${Math.abs(Math.floor(newRemainingTime / 60))}分超過しています`);
+        }
+      },
+
+      getCurrentAgenda: () => {
+        const state = get();
+        if (!state.currentMeeting) return null;
+
+        const sortedPendingAgendas = [...state.currentMeeting.agenda]
+          .filter((agenda) => agenda.status === "pending")
+          .sort((a, b) => a.order - b.order);
+        const firstPending = sortedPendingAgendas[0];
+
+        if (!state.currentMeeting.currentAgendaId) {
+          return firstPending || null;
+        }
+
+        const currentAgenda = state.currentMeeting.agenda.find(
+          (agenda) => agenda.id === state.currentMeeting!.currentAgendaId,
+        );
+
+        if (!currentAgenda) {
+          return firstPending || null;
+        }
+
+        return currentAgenda;
+      },
+
+      getProgressPercentage: () => {
+        const currentAgenda = get().getCurrentAgenda();
+        if (!currentAgenda) return 0;
+
+        return Math.min(
+          (currentAgenda.actualDuration / currentAgenda.plannedDuration) * 100,
+          150,
+        );
+      },
+
+      getTotalProgressPercentage: () => {
+        const state = get();
+        if (
+          !state.currentMeeting ||
+          state.currentMeeting.totalPlannedDuration === 0
+        )
+          return 0;
+
+        return Math.min(
+          (state.currentMeeting.totalActualDuration /
+            state.currentMeeting.totalPlannedDuration) *
+            100,
+          150,
+        );
+      },
+
+      calculateTimeColor: (percentage: number) => {
+        return getProgressColor(percentage);
+      },
+
+      syncTime: () => {
+        const state = get();
+        if (!state.isRunning || !state.lastTickTime) return;
+
+        const now = Date.now();
+        const timeDiff = Math.round((now - state.lastTickTime) / 1000);
+
+        if (timeDiff > 1) {
+          set({
+            currentTime: state.currentTime + timeDiff,
+            lastTickTime: now,
+          });
+        }
+      },
     }),
     {
       name: "agenda-timer-store",

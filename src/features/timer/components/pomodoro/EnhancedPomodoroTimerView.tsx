@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import {
   Target,
   Play,
@@ -11,24 +11,28 @@ import {
   SkipForward,
   Calendar,
   TrendingUp,
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
+} from "lucide-react";
+import {
+  TIMER_STATUS_CONFIG,
+  POMODORO_PHASE_COLORS,
+} from "@/constants/timer-theme";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { PomodoroPhase, PomodoroSettings } from '@/types/pomodoro';
-import { formatTime } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { PomodoroPhase, PomodoroSettings } from "@/types/pomodoro";
+import { formatDuration } from "@/lib/utils";
 
 interface PomodoroSettingsDialogProps {
   settings: PomodoroSettings;
@@ -54,10 +58,10 @@ const PomodoroSettingsDialog = ({
   };
 
   const presetSettings = [
-    { name: 'クラシック', work: 25, shortBreak: 5, longBreak: 15, interval: 4 },
-    { name: '集中型', work: 50, shortBreak: 10, longBreak: 30, interval: 3 },
-    { name: '短時間型', work: 15, shortBreak: 3, longBreak: 10, interval: 4 },
-    { name: '長時間型', work: 90, shortBreak: 20, longBreak: 45, interval: 2 },
+    { name: "クラシック", work: 25, shortBreak: 5, longBreak: 15, interval: 4 },
+    { name: "集中型", work: 50, shortBreak: 10, longBreak: 30, interval: 3 },
+    { name: "短時間型", work: 15, shortBreak: 3, longBreak: 10, interval: 4 },
+    { name: "長時間型", work: 90, shortBreak: 20, longBreak: 45, interval: 2 },
   ];
 
   return (
@@ -79,7 +83,9 @@ const PomodoroSettingsDialog = ({
 
         <div className="space-y-6">
           <div>
-            <Label className="text-sm font-medium mb-3 block">プリセット設定</Label>
+            <Label className="text-sm font-medium mb-3 block">
+              プリセット設定
+            </Label>
             <div className="grid grid-cols-2 gap-2">
               {presetSettings.map((preset) => (
                 <Button
@@ -110,7 +116,10 @@ const PomodoroSettingsDialog = ({
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="work-duration" className="flex items-center gap-2 mb-2">
+              <Label
+                htmlFor="work-duration"
+                className="flex items-center gap-2 mb-2"
+              >
                 <Zap className="w-4 h-4" />
                 作業時間: {localSettings.workDuration}分
               </Label>
@@ -131,7 +140,10 @@ const PomodoroSettingsDialog = ({
             </div>
 
             <div>
-              <Label htmlFor="short-break" className="flex items-center gap-2 mb-2">
+              <Label
+                htmlFor="short-break"
+                className="flex items-center gap-2 mb-2"
+              >
                 <Coffee className="w-4 h-4" />
                 短い休憩: {localSettings.shortBreakDuration}分
               </Label>
@@ -152,7 +164,10 @@ const PomodoroSettingsDialog = ({
             </div>
 
             <div>
-              <Label htmlFor="long-break" className="flex items-center gap-2 mb-2">
+              <Label
+                htmlFor="long-break"
+                className="flex items-center gap-2 mb-2"
+              >
                 <Calendar className="w-4 h-4" />
                 長い休憩: {localSettings.longBreakDuration}分
               </Label>
@@ -173,7 +188,10 @@ const PomodoroSettingsDialog = ({
             </div>
 
             <div>
-              <Label htmlFor="long-break-interval" className="flex items-center gap-2 mb-2">
+              <Label
+                htmlFor="long-break-interval"
+                className="flex items-center gap-2 mb-2"
+              >
                 <TrendingUp className="w-4 h-4" />
                 長い休憩の間隔: {localSettings.longBreakInterval}セット
               </Label>
@@ -270,19 +288,19 @@ const phaseInfoMap: Record<
   { name: string; color: string; progressColor: string }
 > = {
   work: {
-    name: '作業時間',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    progressColor: 'bg-blue-500',
+    name: "作業時間",
+    color: `${POMODORO_PHASE_COLORS.work.bg} ${POMODORO_PHASE_COLORS.work.text} ${POMODORO_PHASE_COLORS.work.border}`,
+    progressColor: POMODORO_PHASE_COLORS.work.progress,
   },
-  'short-break': {
-    name: '短い休憩',
-    color: 'bg-green-100 text-green-800 border-green-200',
-    progressColor: 'bg-green-500',
+  "short-break": {
+    name: "短い休憩",
+    color: `${POMODORO_PHASE_COLORS.shortBreak.bg} ${POMODORO_PHASE_COLORS.shortBreak.text} ${POMODORO_PHASE_COLORS.shortBreak.border}`,
+    progressColor: POMODORO_PHASE_COLORS.shortBreak.progress,
   },
-  'long-break': {
-    name: '長い休憩',
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
-    progressColor: 'bg-purple-500',
+  "long-break": {
+    name: "長い休憩",
+    color: `${POMODORO_PHASE_COLORS.longBreak.bg} ${POMODORO_PHASE_COLORS.longBreak.text} ${POMODORO_PHASE_COLORS.longBreak.border}`,
+    progressColor: POMODORO_PHASE_COLORS.longBreak.progress,
   },
 };
 
@@ -305,25 +323,36 @@ export const EnhancedPomodoroTimerView = ({
 }: EnhancedPomodoroTimerViewProps) => {
   const currentPhaseDuration = useMemo(() => {
     switch (currentPhase) {
-      case 'work':
+      case "work":
         return settings.workDuration * 60;
-      case 'short-break':
+      case "short-break":
         return settings.shortBreakDuration * 60;
-      case 'long-break':
+      case "long-break":
         return settings.longBreakDuration * 60;
       default:
         return settings.workDuration * 60;
     }
   }, [currentPhase, settings]);
 
-  const progress = ((currentPhaseDuration - timeRemaining) / currentPhaseDuration) * 100;
+  const progress =
+    ((currentPhaseDuration - timeRemaining) / currentPhaseDuration) * 100;
   const phaseInfo = phaseInfoMap[currentPhase] ?? phaseInfoMap.work;
 
+  // Use TIMER_STATUS_CONFIG for badge logic
   const statusBadge = isRunning
-    ? { text: '実行中', variant: 'default' as const }
+    ? {
+        text: TIMER_STATUS_CONFIG.running.label,
+        variant: TIMER_STATUS_CONFIG.running.badgeVariant,
+      }
     : isPaused
-    ? { text: '一時停止', variant: 'secondary' as const }
-    : { text: '待機中', variant: 'outline' as const };
+      ? {
+          text: TIMER_STATUS_CONFIG.paused.label,
+          variant: TIMER_STATUS_CONFIG.paused.badgeVariant,
+        }
+      : {
+          text: TIMER_STATUS_CONFIG.idle.label,
+          variant: TIMER_STATUS_CONFIG.idle.badgeVariant,
+        };
 
   return (
     <div className="w-full space-y-6">
@@ -342,7 +371,7 @@ export const EnhancedPomodoroTimerView = ({
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className={`p-3 rounded-full ${phaseInfo.color}`}>
-                {currentPhase === 'work' ? (
+                {currentPhase === "work" ? (
                   <Zap className="w-5 h-5" />
                 ) : (
                   <Coffee className="w-5 h-5" />
@@ -357,7 +386,7 @@ export const EnhancedPomodoroTimerView = ({
             </div>
           </div>
 
-          {currentPhase === 'work' && (
+          {currentPhase === "work" && (
             <div className="space-y-2">
               <Label htmlFor="task-name" className="text-sm font-medium">
                 現在のタスク（任意）
@@ -375,7 +404,7 @@ export const EnhancedPomodoroTimerView = ({
 
           <div className="text-center space-y-4">
             <div className="text-6xl md:text-8xl font-mono font-bold tracking-wider">
-              {formatTime(timeRemaining)}
+              {formatDuration(timeRemaining)}
             </div>
 
             <div className="space-y-2">
@@ -385,7 +414,7 @@ export const EnhancedPomodoroTimerView = ({
                 indicatorClassName={phaseInfo.progressColor}
               />
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>設定時間 {formatTime(currentPhaseDuration)}</span>
+                <span>設定時間 {formatDuration(currentPhaseDuration)}</span>
                 <span>{Math.round(progress)}% 経過</span>
               </div>
             </div>
@@ -395,10 +424,15 @@ export const EnhancedPomodoroTimerView = ({
             {!isRunning ? (
               <Button onClick={onStart} size="lg" className="px-8">
                 <Play className="mr-2 h-5 w-5" />
-                {isPaused ? '再開' : '開始'}
+                {isPaused ? "再開" : "開始"}
               </Button>
             ) : (
-              <Button onClick={onPause} variant="outline" size="lg" className="px-8">
+              <Button
+                onClick={onPause}
+                variant="outline"
+                size="lg"
+                className="px-8"
+              >
                 <Pause className="mr-2 h-5 w-5" />
                 一時停止
               </Button>
@@ -445,26 +479,33 @@ export const EnhancedPomodoroTimerView = ({
               <div className="text-2xl font-bold text-blue-600">
                 {todayStats.completedPomodoros}
               </div>
-              <div className="text-sm text-muted-foreground">完了ポモドーロ</div>
+              <div className="text-sm text-muted-foreground">
+                完了ポモドーロ
+              </div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {todayStats.totalFocusTime}
               </div>
-              <div className="text-sm text-muted-foreground">集中時間（分）</div>
+              <div className="text-sm text-muted-foreground">
+                集中時間（分）
+              </div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
                 {todayStats.totalBreakTime}
               </div>
-              <div className="text-sm text-muted-foreground">休憩時間（分）</div>
+              <div className="text-sm text-muted-foreground">
+                休憩時間（分）
+              </div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
                 {todayStats.completedPomodoros > 0
                   ? Math.round(
                       (todayStats.totalFocusTime /
-                        (todayStats.completedPomodoros * settings.workDuration)) *
+                        (todayStats.completedPomodoros *
+                          settings.workDuration)) *
                         100,
                     )
                   : 0}
