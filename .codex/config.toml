@@ -1,6 +1,0 @@
-# Codex MCP server configuration
-# refs: https://developers.openai.com/codex/mcp
-
-[mcp_servers.playwright]
-command = "npx"
-args = ["-y", "@playwright/mcp@latest"]
