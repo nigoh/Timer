@@ -1,148 +1,82 @@
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
+## Timer App 用 Copilot 実装ガイド
 
-## ディレクトリ構造（必須）
+このファイルは、Timer App（React + TypeScript + Vite + Zustand）で
+Copilot が一貫した実装を行うための最優先ガイドです。
+
+## 現行アーキテクチャ（必須）
 
 ```txt
-src/features/{機能名}/
-├── {機能名}.tsx                    # メインページ
-├── Enhanced{機能名}List.tsx        # 一覧（検索・フィルタ・ソート）
-├── components/                     # UIコンポーネント
-│   ├── {機能名}Dialogs.tsx         # CRUD用モーダル
-│   ├── {機能名}FilterDialog.tsx    # フィルタ設定
-│   ├── {機能名}Filters.tsx         # フィルタ表示
-│   ├── {機能名}ListTable.tsx       # データテーブル
-│   └── SearchField.tsx             # 検索フィールド
-├── hooks/                          # ビジネスロジック
-│   └── use{機能名}Form.ts          # フォーム管理
-├── stores/                         # Zustand状態管理
-│   ├── use{機能名}Store.ts         # メインデータ
-│   └── use{機能名}FormStore.ts     # フォーム状態
-├── constants/                      # 定数・マスタデータ
-│   └── {機能名}Constants.ts        
-└── index.ts                        # エクスポート統一
+src/
+├── App.tsx
+├── components/                  # 共通 UI（LogViewer / ErrorBoundary / ui/*）
+├── features/
+│   └── timer/
+│       ├── components/          # 機能別 View
+│       │   ├── agenda/
+│       │   ├── basic-timer/
+│       │   ├── multi-timer/
+│       │   └── pomodoro/
+│       ├── containers/          # 画面コンテナ
+│       └── stores/              # Zustand ストア（機能の単一責務）
+├── types/                       # ドメイン型
+└── utils/                       # logger / notification manager
 ```
 
-**技術スタック**: React 19 + TypeScript 5 + Vite 6 + Zustand 5
+**技術スタック（実態）**: React 18 / TypeScript 5 / Vite 5 / Zustand 4 / Radix UI / Tailwind
 
-## 実装必須要件
+## 実装ルール
 
-### 1. Zustand状態管理（統一必須）
+### 1. 状態管理
 
-```typescript
-// 状態とアクションの分離
-export interface FeatureState {
-  items: Feature[];
-  loading: boolean;
-  error: string | null;
-}
+- ドメイン状態は `src/features/timer/stores/*` の Zustand に集約する。
+- React の `useState` は「UIローカル状態（開閉、タブ、一時入力）」のみに限定する。
+- `set` は最小差分更新を優先し、不要な再代入を避ける。
+- ストアは **State / Actions を interface で明示**し、公開 API を固定化する。
 
-export interface FeatureActions {
-  addItem: (item: Feature) => void;
-  updateItem: (id: string, item: Partial<Feature>) => void;
-  deleteItem: (id: string) => void;
-}
+### 2. コンポーネント責務
 
-// 無限ループ防止
-updateField: (field, value) => {
-  const state = get();
-  if (state.formData[field] === value) return;
-  set((state) => ({ formData: { ...state.formData, [field]: value } }));
-}
-```
+- `containers` は配線専用、表示ロジックは `components/*View.tsx` に置く。
+- 1ファイルが肥大化する場合は、機能単位で `components/{feature}` に分割する。
+- コンポーネントから直接 `localStorage` や通知 API を叩かず、ストア/ユーティリティ経由にする。
 
-### 2. 必須機能セット
+### 3. 通知・ログ
 
-- **検索・フィルター・ソート**: 全カラム対応
-- **CRUD操作**: モーダルベース、バリデーション付き
-- **CSVエクスポート**: フィルター条件反映
-- **レスポンシブ対応**: 320px〜対応
-- **エラーハンドリング**: 楽観的更新、ロールバック対応
+- 通知は必ず `src/utils/notification-manager.ts` を利用する。
+- 重要なユーザー操作・エラーは `src/utils/logger.ts` を通して記録する。
+- 新規機能追加時は「開始/完了/失敗」のログポイントを定義する。
 
-### 3. 定数管理システム
+### 4. 型・命名
 
-```typescript
-// constants/{機能名}Constants.ts
-export const OPTIONS = ['選択肢1', '選択肢2'] as const;
-export type OptionType = typeof OPTIONS[number];
+- ドメイン型は `src/types/*` を正本とし、同等型を再定義しない。
+- import は `@/` エイリアスを優先する。
+- 一時的な any の導入は禁止。必要なら union/type guard を追加する。
 
-// 使用時
-import { DEPARTMENTS, Department } from '../constants/employeeFormConstants';
-```
+### 5. パフォーマンス
 
-### 4. useCallback必須
-
-```typescript
-const handleSave = useCallback(async () => {
-  // 処理内容
-}, [適切な依存配列]);
-```
+- 重いハンドラは `useCallback`、派生計算は `useMemo` を検討する。
+- 1秒 tick 系処理は store 側で最小演算に保つ。
+- 不要な `useEffect` を増やさず、依存配列を厳密に管理する。
 
 ## 禁止事項
 
-- ❌ **Zustand以外の状態管理**（React useStateとの混在禁止）
-- ❌ **propsバケツリレー**での状態共有
-- ❌ **100行超え**のコンポーネント
-- ❌ **コンポーネント内**でのAPI直接呼び出し
-- ❌ **重複定数定義**（各ファイルでの個別定義）
-- ❌ **useCallbackなし**の重い処理
-- ❌ **MUI v7非対応**のProps使用（InputProps、PaperProps等）
+- ❌ 廃止済みファイル（`App.full.tsx` など）を復活させる実装
+- ❌ 同一責務のストア重複作成（例: 同じタイマー種別の別名 store）
+- ❌ UI から直接の副作用呼び出し（通知/永続化/複雑ログ）
+- ❌ 未使用 import / 未使用 state の残置
+- ❌ 仕様変更を伴うのに docs 未更新のまま終了
 
-## 推奨パターン
+## 品質チェック（PR前）
 
-### コンポーネント分離
+- [ ] `npm run type-check` が成功
+- [ ] 変更範囲に応じて `npm run test` を実行
+- [ ] 仕様変更がある場合、`docs/REQUIREMENTS.md` を更新
+- [ ] README 参照リンクが有効
+- [ ] 追加依存がある場合、理由を PR に明記
 
-```typescript
-const FeatureManager = () => (
-  <FeatureLayout>
-    <FeatureHeader />    {/* ヘッダーのみ */}
-    <FeatureFilters />   {/* フィルターのみ */}
-    <FeatureList />      {/* 一覧のみ */}
-    <FeatureDialogs />   {/* ダイアログのみ */}
-  </FeatureLayout>
-);
-```
+## 参照ドキュメント
 
-### エラーハンドリング
-
-```typescript
-const handleSave = useCallback(async () => {
-  try {
-    setSubmitting(true);
-    if (!validateForm()) {
-      toast.error('入力内容に不備があります');
-      return;
-    }
-    await saveData();
-    toast.success('保存しました');
-  } catch (error) {
-    toast.error('保存に失敗しました');
-  } finally {
-    setSubmitting(false);
-  }
-}, [validateForm, saveData]);
-```
-
-## 品質チェックリスト
-
-新機能実装完了時の確認項目：
-
-### 📋 必須チェック
-
-- [ ] 社員管理機能と同じディレクトリ構造
-- [ ] Zustandストア（メイン + フォーム）による状態管理
-- [ ] 検索・フィルター・ソート機能完備
-- [ ] CRUD操作の完全実装（モーダル）
-- [ ] CSVエクスポート機能
-- [ ] レスポンシブ対応（320px〜）
-- [ ] エラーハンドリング（楽観的更新）
-- [ ] useCallbackによる最適化
-- [ ] 定数の一元管理（constantsフォルダー）
-- [ ] MUI v7対応（slotProps使用）
-- [ ] TypeScript型定義完備
-- [ ] 100行以内のコンポーネント分割
-- [ ] コンポーネント分離（FeatureLayout使用）
-
-## Skill設計原本の参照
-- 要件整理・仕様分解・実装計画を行う場合は、`docs/skills/timer-ssd-bootstrap/SKILL.md` を参照する。
-- 対応表は `docs/skills/timer-ssd-bootstrap/references/requirements-map.md` を利用する。
-- DoDは `docs/skills/timer-ssd-bootstrap/references/dod-checklist.md` を利用する。
+- 要件: `docs/REQUIREMENTS.md`
+- 機能一覧: `docs/FEATURES.md`
+- 技術仕様: `docs/TECHNICAL_SPECS.md`
+- UX仕様: `docs/UX_DESIGN_SPEC.md`
+- AI協業運用: `docs/AI_COLLABORATION_GUIDE.md`

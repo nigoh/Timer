@@ -14,6 +14,8 @@
 - [機能一覧（参照版）](./docs/FEATURES.md)
 - [技術仕様（参照版）](./docs/TECHNICAL_SPECS.md)
 - [UX設計仕様](./docs/UX_DESIGN_SPEC.md)
+- [概念モデル](./docs/CONCEPTS.md)
+- [AI協業ガイド（Copilot運用）](./docs/AI_COLLABORATION_GUIDE.md)
 
 READMEは要約のみを記載し、詳細仕様は正本要件へ集約します。
 
