@@ -63,54 +63,54 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
               レポートはまだありません
             </p>
           ) : (
-            <div className="space-y-2 overflow-auto pr-1 lg:h-full lg:min-h-0">
+            <ul className="space-y-1 overflow-auto pr-1 lg:h-full lg:min-h-0">
               {reports.map((report) => (
-                <div
-                  key={report.id}
-                  className="rounded-md border p-2 text-xs text-muted-foreground"
-                >
-                  <p className="truncate font-medium text-foreground">
-                    {report.meetingTitle}
-                  </p>
-                  <p>{formatDateTime(report.createdAt)}</p>
-                  <div className="mt-2 flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => setSelectedReport(report)}
-                      aria-label="レポートを表示"
-                    >
-                      <Eye className="mr-1 h-3.5 w-3.5" />
-                      表示
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => handleCopy(report.markdown)}
-                      aria-label="レポートをコピー"
-                    >
-                      <ClipboardCopy className="mr-1 h-3.5 w-3.5" />
-                      コピー
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => deleteReport(report.id)}
-                      aria-label="レポートを削除"
-                    >
-                      <Trash2 className="mr-1 h-3.5 w-3.5" />
-                      削除
-                    </Button>
+                <li key={report.id} className="px-1.5 py-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground">
+                        {report.meetingTitle}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(report.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setSelectedReport(report)}
+                        aria-label="レポートを表示"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleCopy(report.markdown)}
+                        aria-label="レポートをコピー"
+                      >
+                        <ClipboardCopy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => deleteReport(report.id)}
+                        aria-label="レポートを削除"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </CardContent>
       </Card>

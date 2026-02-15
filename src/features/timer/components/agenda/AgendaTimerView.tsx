@@ -952,53 +952,55 @@ const MeetingList: React.FC<MeetingListProps> = ({
         {meetings.length === 0 ? (
           <p className="text-xs text-muted-foreground">会議がありません</p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="space-y-1">
             {meetings.map((meeting) => (
-              <div key={meeting.id} className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant={
-                    meeting.id === currentMeetingId ? "default" : "outline"
-                  }
-                  size="sm"
-                  className="h-7 max-w-[260px] gap-1 px-2 text-xs"
-                  onClick={() => onSelectMeeting(meeting.id)}
-                >
-                  <span className="truncate text-left">{meeting.title}</span>
-                  <span className="shrink-0 text-[10px] opacity-80">
-                    {meeting.agenda.length}件
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => onEditMeeting(meeting)}
-                  aria-label="会議名を編集"
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-blue-600 hover:text-blue-700"
-                  onClick={() => onSaveReport(meeting)}
-                  aria-label="レポートを保存"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-red-500 hover:text-red-700"
-                  onClick={() => onDeleteMeeting(meeting)}
-                  aria-label="会議を削除"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+              <div key={meeting.id} className="px-1 py-1">
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant={
+                      meeting.id === currentMeetingId ? "default" : "ghost"
+                    }
+                    size="sm"
+                    className="h-8 flex-1 justify-between px-2 text-xs"
+                    onClick={() => onSelectMeeting(meeting.id)}
+                  >
+                    <span className="truncate text-left">{meeting.title}</span>
+                    <span className="shrink-0 text-[10px] opacity-80">
+                      {meeting.agenda.length}件
+                    </span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onEditMeeting(meeting)}
+                    aria-label="会議名を編集"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                    onClick={() => onSaveReport(meeting)}
+                    aria-label="レポートを保存"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:text-red-700"
+                    onClick={() => onDeleteMeeting(meeting)}
+                    aria-label="会議を削除"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -1051,7 +1053,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
       </CardHeader>
 
       <CardContent className="px-3 pb-3 pt-0 lg:min-h-0">
-        <div className="space-y-3 overflow-auto pr-1 lg:h-full lg:min-h-0">
+        <div className="space-y-1.5 overflow-auto pr-1 lg:h-full lg:min-h-0">
           {currentMeeting.agenda.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -1072,9 +1074,8 @@ const AgendaList: React.FC<AgendaListProps> = ({
                   <div
                     key={agenda.id}
                     className={cn(
-                      "relative p-4 pb-11 rounded-lg border cursor-pointer",
-                      isActive &&
-                        `${TIMER_STATUS_CONFIG.running.surfaceClass} shadow-md`,
+                      "cursor-pointer px-2 py-1.5",
+                      isActive && TIMER_STATUS_CONFIG.running.surfaceClass,
                       agenda.status === "completed" &&
                         TIMER_STATUS_CONFIG.completed.surfaceClass,
                       agenda.status === "overtime" &&
@@ -1082,9 +1083,9 @@ const AgendaList: React.FC<AgendaListProps> = ({
                     )}
                     onClick={() => selectAgenda(currentMeeting.id, agenda.id)}
                   >
-                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <div className="mb-0.5 flex flex-wrap items-center gap-1.5">
                           {agenda.status === "completed" ? (
                             <CheckCircle2
                               className={`w-3.5 h-3.5 ${TIMER_STATUS_CONFIG.completed.color}`}
@@ -1135,13 +1136,13 @@ const AgendaList: React.FC<AgendaListProps> = ({
                         </div>
 
                         {agenda.memo && (
-                          <p className="mb-2 text-xs text-muted-foreground line-clamp-2">
+                          <p className="mb-1 text-xs text-muted-foreground line-clamp-2">
                             {agenda.memo}
                           </p>
                         )}
 
-                        <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-4">
+                        <div className="flex items-center justify-between gap-1.5 text-xs">
+                          <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-3">
                             <span className="break-all sm:break-normal">
                               予定: {formatMinutes(agenda.plannedDuration)}
                             </span>
@@ -1157,10 +1158,11 @@ const AgendaList: React.FC<AgendaListProps> = ({
                             )}
                           </div>
 
-                          <div className="flex shrink-0 gap-1">
+                          <div className="flex shrink-0 gap-0.5">
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="h-7 px-2"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 onEditAgenda(agenda);
@@ -1171,26 +1173,24 @@ const AgendaList: React.FC<AgendaListProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="h-7 px-2 text-destructive hover:text-destructive"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 deleteAgenda(currentMeeting.id, agenda.id);
                               }}
-                              className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
 
-                        {agenda.actualDuration > 0 && (
-                          <div className="mt-2">
-                            <Progress
-                              value={Math.min(progress, 100)}
-                              className="h-2"
-                              indicatorClassName={progressDisplay.bgColor}
-                            />
-                          </div>
-                        )}
+                        <div className="mt-1">
+                          <Progress
+                            value={Math.min(progress, 100)}
+                            className="h-1.5"
+                            indicatorClassName={progressDisplay.bgColor}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
