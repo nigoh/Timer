@@ -1,4 +1,4 @@
-import { LucideIcon, Play, Pause, Square, CheckCircle, AlertCircle, Clock, Timer, CheckCircle2, Circle } from "lucide-react";
+import { Play, Pause, AlertCircle, CheckCircle2, Circle } from "lucide-react";
 import React from "react";
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed' | 'overtime' | 'warning';

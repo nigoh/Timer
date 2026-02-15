@@ -68,21 +68,6 @@
   }
 }
 
-/* タイマー専用スタイル */
-@layer components {
-  .timer-display {
-    @apply font-mono font-bold tracking-wider;
-  }
-  
-  .timer-glow {
-    @apply shadow-lg shadow-primary/25;
-  }
-  
-  .timer-running {
-    @apply animate-timer-pulse;
-  }
-}
-
 /* スクロールバーのカスタマイズ */
 @layer utilities {
   .scrollbar-thin {
