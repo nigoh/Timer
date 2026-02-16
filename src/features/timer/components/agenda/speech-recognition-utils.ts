@@ -57,3 +57,30 @@ export const createSpeechRecognitionInstance = () => {
 
   return SpeechRecognitionClass ? new SpeechRecognitionClass() : null;
 };
+
+const stripHtmlTags = (value: string) =>
+  value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .trim();
+
+export const buildAiMinutesPrompt = (params: {
+  meetingTitle: string;
+  agendaTitle: string;
+  minutesContent: string;
+}) => {
+  const rawMinutes = stripHtmlTags(params.minutesContent);
+  const sourceText = rawMinutes || "（音声認識テキストなし）";
+
+  return [
+    "以下の会議メモをもとに、議事録を日本語で作成してください。",
+    "出力は次の見出し順にしてください: サマリー / 決定事項 / ToDo / 次回アクション",
+    "",
+    `会議名: ${params.meetingTitle}`,
+    `議題: ${params.agendaTitle}`,
+    "",
+    "会議メモ:",
+    sourceText,
+  ].join("\n");
+};

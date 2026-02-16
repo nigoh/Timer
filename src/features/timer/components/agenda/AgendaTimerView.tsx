@@ -55,6 +55,7 @@ import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingR
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
 import {
   appendTranscriptToMinutesContent,
+  buildAiMinutesPrompt,
   createSpeechRecognitionInstance,
   type SpeechRecognitionLike,
 } from "@/features/timer/components/agenda/speech-recognition-utils";
@@ -513,6 +514,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
 interface MinutesEditorProps {
   meetingId: string;
+  meetingTitle: string;
   agenda: AgendaItem;
 }
 
@@ -658,12 +660,17 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
   );
 };
 
-const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
+const MinutesEditor: React.FC<MinutesEditorProps> = ({
+  meetingId,
+  meetingTitle,
+  agenda,
+}) => {
   const { updateAgendaMinutes } = useAgendaTimerStore();
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const latestMinutesContentRef = useRef(agenda.minutesContent);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [speechError, setSpeechError] = useState("");
+  const [aiPromptMessage, setAiPromptMessage] = useState("");
   const isSpeechSupported = useMemo(() => {
     if (typeof window === "undefined") {
       return false;
@@ -684,6 +691,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   useEffect(() => {
     recognitionRef.current?.stop();
     setSpeechError("");
+    setAiPromptMessage("");
   }, [agenda.id]);
 
   const stopSpeechRecognition = () => {
@@ -755,6 +763,42 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
     recognition.start();
   };
 
+  const copyAiPrompt = async () => {
+    const prompt = buildAiMinutesPrompt({
+      meetingTitle,
+      agendaTitle: agenda.title,
+      minutesContent: latestMinutesContentRef.current,
+    });
+
+    if (!navigator.clipboard) {
+      setAiPromptMessage(
+        "この環境ではクリップボードにコピーできません。手動で選択してください。",
+      );
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setAiPromptMessage(
+        "AI議事録プロンプトをコピーしました。生成AIへ貼り付けて作成できます。",
+      );
+      logger.info(
+        "Agenda AI minutes prompt copied",
+        { meetingId, agendaId: agenda.id },
+        "agenda",
+      );
+    } catch (error) {
+      setAiPromptMessage(
+        "AIプロンプトのコピーに失敗しました。もう一度お試しください。",
+      );
+      logger.error(
+        "Agenda AI minutes prompt copy failed",
+        { meetingId, agendaId: agenda.id, error },
+        "agenda",
+      );
+    }
+  };
+
   const quillModules = {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
@@ -771,26 +815,34 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
       <CardHeader className="space-y-2 pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">議事録</CardTitle>
-          <Button
-            type="button"
-            variant={isRecognizing ? "destructive" : "outline"}
-            size="sm"
-            onClick={isRecognizing ? stopSpeechRecognition : startSpeechRecognition}
-            disabled={!isSpeechSupported}
-          >
-            {isRecognizing ? (
-              <MicOff className="mr-1 h-4 w-4" />
-            ) : (
-              <Mic className="mr-1 h-4 w-4" />
-            )}
-            {isRecognizing ? "音声入力を停止" : "音声入力を開始"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={copyAiPrompt}>
+              AI議事録を作成
+            </Button>
+            <Button
+              type="button"
+              variant={isRecognizing ? "destructive" : "outline"}
+              size="sm"
+              onClick={isRecognizing ? stopSpeechRecognition : startSpeechRecognition}
+              disabled={!isSpeechSupported}
+            >
+              {isRecognizing ? (
+                <MicOff className="mr-1 h-4 w-4" />
+              ) : (
+                <Mic className="mr-1 h-4 w-4" />
+              )}
+              {isRecognizing ? "音声入力を停止" : "音声入力を開始"}
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           {isSpeechSupported
-            ? "会議音声を認識して議事録へ自動追記できます"
+            ? "会議音声を認識し、AI議事録作成用プロンプトをコピーできます"
             : "このブラウザでは音声入力を利用できません"}
         </p>
+        {aiPromptMessage && (
+          <p className="text-xs text-muted-foreground">{aiPromptMessage}</p>
+        )}
         {speechError && <p className="text-xs text-destructive">{speechError}</p>}
       </CardHeader>
       <CardContent className="p-3 pt-0 lg:min-h-0">
@@ -1491,6 +1543,7 @@ export const AgendaTimerView: React.FC = () => {
           {currentMeeting && currentAgenda ? (
             <MinutesEditor
               meetingId={currentMeeting.id}
+              meetingTitle={currentMeeting.title}
               agenda={currentAgenda}
             />
           ) : (

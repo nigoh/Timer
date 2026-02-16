@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   appendTranscriptToMinutesContent,
+  buildAiMinutesPrompt,
   createSpeechRecognitionInstance,
 } from "../speech-recognition-utils";
 
@@ -118,5 +119,31 @@ describe("createSpeechRecognitionInstance", () => {
     expect(createSpeechRecognitionInstance()).toBeInstanceOf(
       MockWebkitSpeechRecognition,
     );
+  });
+});
+
+describe("buildAiMinutesPrompt", () => {
+  it("会議情報とメモ本文をAI向けプロンプトへ整形する", () => {
+    const prompt = buildAiMinutesPrompt({
+      meetingTitle: "定例会議",
+      agendaTitle: "進捗共有",
+      minutesContent: "<p>A案件を継続</p><p>B案件は完了</p>",
+    });
+
+    expect(prompt).toContain("会議名: 定例会議");
+    expect(prompt).toContain("議題: 進捗共有");
+    expect(prompt).toContain("A案件を継続");
+    expect(prompt).toContain("B案件は完了");
+    expect(prompt).not.toContain("<p>");
+  });
+
+  it("議事録が空の場合はプレースホルダー文言を含む", () => {
+    const prompt = buildAiMinutesPrompt({
+      meetingTitle: "定例会議",
+      agendaTitle: "進捗共有",
+      minutesContent: "",
+    });
+
+    expect(prompt).toContain("（音声認識テキストなし）");
   });
 });
