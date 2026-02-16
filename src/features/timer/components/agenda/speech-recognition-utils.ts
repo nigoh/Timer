@@ -1,4 +1,4 @@
-interface SpeechRecognitionLike {
+export interface SpeechRecognitionLike {
   continuous: boolean;
   interimResults: boolean;
   lang: string;

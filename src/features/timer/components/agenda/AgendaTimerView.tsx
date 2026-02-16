@@ -56,6 +56,7 @@ import { MeetingReportHistory } from "@/features/timer/components/agenda/Meeting
 import {
   appendTranscriptToMinutesContent,
   createSpeechRecognitionInstance,
+  type SpeechRecognitionLike,
 } from "@/features/timer/components/agenda/speech-recognition-utils";
 import { AgendaItem, Meeting } from "@/types/agenda";
 import { cn, formatDuration } from "@/lib/utils";
@@ -515,25 +516,6 @@ interface MinutesEditorProps {
   agenda: AgendaItem;
 }
 
-interface SpeechRecognitionLike extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onstart: (() => void) | null;
-  onend: (() => void) | null;
-  onerror: ((event: { error?: string; message?: string }) => void) | null;
-  onresult:
-    | ((event: {
-        resultIndex: number;
-        results: ArrayLike<
-          ArrayLike<{ transcript: string }> & { isFinal: boolean }
-        >;
-      }) => void)
-    | null;
-  start: () => void;
-  stop: () => void;
-}
-
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -710,8 +692,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
 
   const startSpeechRecognition = () => {
     const recognition =
-      recognitionRef.current ??
-      (createSpeechRecognitionInstance() as SpeechRecognitionLike | null);
+      recognitionRef.current ?? createSpeechRecognitionInstance();
     if (!recognition) {
       setSpeechError("このブラウザは音声入力に対応していません。");
       return;
@@ -752,7 +733,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
       const transcript = Array.from(event.results)
         .slice(event.resultIndex)
         .filter((result) => result.isFinal)
-        .map((result) => result[0]?.transcript?.trim())
+        .map((result) => result?.[0]?.transcript?.trim())
         .filter(Boolean)
         .join(" ");
 

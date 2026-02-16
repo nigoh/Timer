@@ -1,5 +1,23 @@
-import { describe, expect, it } from "vitest";
-import { appendTranscriptToMinutesContent } from "../speech-recognition-utils";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  appendTranscriptToMinutesContent,
+  createSpeechRecognitionInstance,
+} from "../speech-recognition-utils";
+
+afterEach(() => {
+  (
+    window as Window & {
+      SpeechRecognition?: unknown;
+      webkitSpeechRecognition?: unknown;
+    }
+  ).SpeechRecognition = undefined;
+  (
+    window as Window & {
+      SpeechRecognition?: unknown;
+      webkitSpeechRecognition?: unknown;
+    }
+  ).webkitSpeechRecognition = undefined;
+});
 
 describe("appendTranscriptToMinutesContent", () => {
   it("空の議事録へ音声テキストを段落として追加する", () => {
@@ -20,6 +38,85 @@ describe("appendTranscriptToMinutesContent", () => {
   it("音声テキスト内のHTML文字をエスケープする", () => {
     expect(appendTranscriptToMinutesContent("", "<script>alert(1)</script>")).toBe(
       "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>",
+    );
+  });
+});
+
+describe("createSpeechRecognitionInstance", () => {
+  it("SpeechRecognition が存在しない場合は null を返す", () => {
+    (
+      window as Window & {
+        SpeechRecognition?: unknown;
+        webkitSpeechRecognition?: unknown;
+      }
+    ).SpeechRecognition = undefined;
+    (
+      window as Window & {
+        SpeechRecognition?: unknown;
+        webkitSpeechRecognition?: unknown;
+      }
+    ).webkitSpeechRecognition = undefined;
+
+    expect(createSpeechRecognitionInstance()).toBeNull();
+  });
+
+  it("SpeechRecognition があればインスタンスを生成する", () => {
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "";
+      onstart = null;
+      onend = null;
+      onerror = null;
+      onresult = null;
+      start() {}
+      stop() {}
+    }
+    (
+      window as Window & {
+        SpeechRecognition?: typeof MockSpeechRecognition;
+        webkitSpeechRecognition?: unknown;
+      }
+    ).SpeechRecognition = MockSpeechRecognition;
+    (
+      window as Window & {
+        SpeechRecognition?: unknown;
+        webkitSpeechRecognition?: unknown;
+      }
+    ).webkitSpeechRecognition = undefined;
+
+    expect(createSpeechRecognitionInstance()).toBeInstanceOf(
+      MockSpeechRecognition,
+    );
+  });
+
+  it("SpeechRecognition が無くても webkitSpeechRecognition があれば利用する", () => {
+    class MockWebkitSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "";
+      onstart = null;
+      onend = null;
+      onerror = null;
+      onresult = null;
+      start() {}
+      stop() {}
+    }
+    (
+      window as Window & {
+        SpeechRecognition?: unknown;
+        webkitSpeechRecognition?: typeof MockWebkitSpeechRecognition;
+      }
+    ).SpeechRecognition = undefined;
+    (
+      window as Window & {
+        SpeechRecognition?: unknown;
+        webkitSpeechRecognition?: typeof MockWebkitSpeechRecognition;
+      }
+    ).webkitSpeechRecognition = MockWebkitSpeechRecognition;
+
+    expect(createSpeechRecognitionInstance()).toBeInstanceOf(
+      MockWebkitSpeechRecognition,
     );
   });
 });
