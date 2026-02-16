@@ -146,4 +146,15 @@ describe("buildAiMinutesPrompt", () => {
 
     expect(prompt).toContain("（音声認識テキストなし）");
   });
+
+  it("会議名と議題が空でも既定値を入れてプロンプト生成する", () => {
+    const prompt = buildAiMinutesPrompt({
+      meetingTitle: " ",
+      agendaTitle: "",
+      minutesContent: "議論あり",
+    });
+
+    expect(prompt).toContain("会議名: 未設定の会議");
+    expect(prompt).toContain("議題: 未設定の議題");
+  });
 });

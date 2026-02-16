@@ -58,18 +58,23 @@ export const createSpeechRecognitionInstance = () => {
   return SpeechRecognitionClass ? new SpeechRecognitionClass() : null;
 };
 
-const stripHtmlTags = (value: string) =>
-  value
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .trim();
+export const stripHtmlTags = (value: string) =>
+  (() => {
+    if (typeof DOMParser !== "undefined") {
+      const parsed = new DOMParser().parseFromString(value, "text/html");
+      return parsed.body.textContent?.trim() ?? "";
+    }
+
+    return value.replace(/[<>]/g, "").trim();
+  })();
 
 export const buildAiMinutesPrompt = (params: {
   meetingTitle: string;
   agendaTitle: string;
   minutesContent: string;
 }) => {
+  const meetingTitle = params.meetingTitle.trim() || "未設定の会議";
+  const agendaTitle = params.agendaTitle.trim() || "未設定の議題";
   const rawMinutes = stripHtmlTags(params.minutesContent);
   const sourceText = rawMinutes || "（音声認識テキストなし）";
 
@@ -77,8 +82,8 @@ export const buildAiMinutesPrompt = (params: {
     "以下の会議メモをもとに、議事録を日本語で作成してください。",
     "出力は次の見出し順にしてください: サマリー / 決定事項 / ToDo / 次回アクション",
     "",
-    `会議名: ${params.meetingTitle}`,
-    `議題: ${params.agendaTitle}`,
+    `会議名: ${meetingTitle}`,
+    `議題: ${agendaTitle}`,
     "",
     "会議メモ:",
     sourceText,

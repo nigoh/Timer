@@ -518,6 +518,13 @@ interface MinutesEditorProps {
   agenda: AgendaItem;
 }
 
+const AI_PROMPT_STATUS = {
+  success: "success",
+  error: "error",
+} as const;
+
+type AiPromptStatus = (typeof AI_PROMPT_STATUS)[keyof typeof AI_PROMPT_STATUS];
+
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -670,6 +677,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({
   const latestMinutesContentRef = useRef(agenda.minutesContent);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [speechError, setSpeechError] = useState("");
+  const [aiPromptStatus, setAiPromptStatus] = useState<AiPromptStatus | null>(null);
   const [aiPromptMessage, setAiPromptMessage] = useState("");
   const isSpeechSupported = useMemo(() => {
     if (typeof window === "undefined") {
@@ -691,6 +699,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({
   useEffect(() => {
     recognitionRef.current?.stop();
     setSpeechError("");
+    setAiPromptStatus(null);
     setAiPromptMessage("");
   }, [agenda.id]);
 
@@ -772,8 +781,9 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({
 
     if (!navigator.clipboard) {
       setAiPromptMessage(
-        "この環境ではクリップボードにコピーできません。手動で選択してください。",
+        "この環境ではAI議事録プロンプトのコピー機能を利用できません。",
       );
+      setAiPromptStatus(AI_PROMPT_STATUS.error);
       return;
     }
 
@@ -782,6 +792,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({
       setAiPromptMessage(
         "AI議事録プロンプトをコピーしました。生成AIへ貼り付けて作成できます。",
       );
+      setAiPromptStatus(AI_PROMPT_STATUS.success);
       logger.info(
         "Agenda AI minutes prompt copied",
         { meetingId, agendaId: agenda.id },
@@ -791,6 +802,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({
       setAiPromptMessage(
         "AIプロンプトのコピーに失敗しました。もう一度お試しください。",
       );
+      setAiPromptStatus(AI_PROMPT_STATUS.error);
       logger.error(
         "Agenda AI minutes prompt copy failed",
         { meetingId, agendaId: agenda.id, error },
@@ -841,7 +853,16 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({
             : "このブラウザでは音声入力を利用できません"}
         </p>
         {aiPromptMessage && (
-          <p className="text-xs text-muted-foreground">{aiPromptMessage}</p>
+          <p
+            className={cn(
+              "text-xs",
+              aiPromptStatus === AI_PROMPT_STATUS.error
+                ? "text-destructive"
+                : "text-muted-foreground",
+            )}
+          >
+            {aiPromptMessage}
+          </p>
         )}
         {speechError && <p className="text-xs text-destructive">{speechError}</p>}
       </CardHeader>
