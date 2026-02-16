@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -41,6 +41,8 @@ import {
   ChevronRight,
   Volume2,
   VolumeX,
+  Mic,
+  MicOff,
   PanelRightClose,
   PanelRightOpen,
   FileText,
@@ -51,9 +53,14 @@ import { useAgendaTimerStore } from "@/features/timer/stores/new-agenda-timer-st
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingReportDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
+import {
+  appendTranscriptToMinutesContent,
+  createSpeechRecognitionInstance,
+} from "@/features/timer/components/agenda/speech-recognition-utils";
 import { AgendaItem, Meeting } from "@/types/agenda";
 import { cn, formatDuration } from "@/lib/utils";
 import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
+import { logger } from "@/utils/logger";
 
 const formatMinutes = (seconds: number): string => {
   return `${Math.ceil(seconds / 60)}分`;
@@ -508,6 +515,25 @@ interface MinutesEditorProps {
   agenda: AgendaItem;
 }
 
+interface SpeechRecognitionLike extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: { error?: string; message?: string }) => void) | null;
+  onresult:
+    | ((event: {
+        resultIndex: number;
+        results: ArrayLike<
+          ArrayLike<{ transcript: string }> & { isFinal: boolean }
+        >;
+      }) => void)
+    | null;
+  start: () => void;
+  stop: () => void;
+}
+
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -652,6 +678,102 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
 
 const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   const { updateAgendaMinutes } = useAgendaTimerStore();
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const latestMinutesContentRef = useRef(agenda.minutesContent);
+  const [isRecognizing, setIsRecognizing] = useState(false);
+  const [speechError, setSpeechError] = useState("");
+  const isSpeechSupported = useMemo(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return createSpeechRecognitionInstance() !== null;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    latestMinutesContentRef.current = agenda.minutesContent;
+  }, [agenda.minutesContent]);
+
+  useEffect(() => {
+    recognitionRef.current?.stop();
+    setSpeechError("");
+  }, [agenda.id]);
+
+  const stopSpeechRecognition = () => {
+    recognitionRef.current?.stop();
+  };
+
+  const startSpeechRecognition = () => {
+    const recognition =
+      recognitionRef.current ??
+      (createSpeechRecognitionInstance() as SpeechRecognitionLike | null);
+    if (!recognition) {
+      setSpeechError("このブラウザは音声入力に対応していません。");
+      return;
+    }
+
+    recognitionRef.current = recognition;
+    setSpeechError("");
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = "ja-JP";
+    recognition.onstart = () => {
+      setIsRecognizing(true);
+      logger.info(
+        "Agenda voice recognition started",
+        { meetingId, agendaId: agenda.id },
+        "agenda",
+      );
+    };
+    recognition.onend = () => {
+      setIsRecognizing(false);
+      logger.info(
+        "Agenda voice recognition completed",
+        { meetingId, agendaId: agenda.id },
+        "agenda",
+      );
+    };
+    recognition.onerror = (event) => {
+      setSpeechError(
+        "音声認識に失敗しました。マイク許可と接続状態を確認してください。",
+      );
+      logger.error(
+        "Agenda voice recognition failed",
+        { meetingId, agendaId: agenda.id, error: event.error },
+        "agenda",
+      );
+    };
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .slice(event.resultIndex)
+        .filter((result) => result.isFinal)
+        .map((result) => result[0]?.transcript?.trim())
+        .filter(Boolean)
+        .join(" ");
+
+      if (!transcript) {
+        return;
+      }
+
+      const nextMinutesContent = appendTranscriptToMinutesContent(
+        latestMinutesContentRef.current,
+        transcript,
+      );
+      latestMinutesContentRef.current = nextMinutesContent;
+
+      updateAgendaMinutes(meetingId, agenda.id, {
+        minutesContent: nextMinutesContent,
+        minutesFormat: "richtext",
+      });
+    };
+    recognition.start();
+  };
+
   const quillModules = {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
@@ -665,8 +787,30 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
 
   return (
     <Card className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">議事録</CardTitle>
+      <CardHeader className="space-y-2 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-base">議事録</CardTitle>
+          <Button
+            type="button"
+            variant={isRecognizing ? "destructive" : "outline"}
+            size="sm"
+            onClick={isRecognizing ? stopSpeechRecognition : startSpeechRecognition}
+            disabled={!isSpeechSupported}
+          >
+            {isRecognizing ? (
+              <MicOff className="mr-1 h-4 w-4" />
+            ) : (
+              <Mic className="mr-1 h-4 w-4" />
+            )}
+            {isRecognizing ? "音声入力を停止" : "音声入力を開始"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {isSpeechSupported
+            ? "会議音声を認識して議事録へ自動追記できます"
+            : "このブラウザでは音声入力を利用できません"}
+        </p>
+        {speechError && <p className="text-xs text-destructive">{speechError}</p>}
       </CardHeader>
       <CardContent className="p-3 pt-0 lg:min-h-0">
         <div className="min-h-[280px] min-w-0 overflow-hidden rounded-md border bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words">
