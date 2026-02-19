@@ -259,7 +259,7 @@ interface IntegrationLinkActions {
 | **Phase 2** | GitHub REST API 連携（Issue タイトル自動取得）、PAT 入力 UI（メモリ保持）、Public/Private リポジトリ対応 | GitHub API クライアント, PAT 入力フォーム, エラーハンドリング |
 | **Phase 3** | 統計ビュー（Issue ごとの合計作業時間）、エクスポート機能 | 統計コンポーネント, CSV/JSON エクスポート |
 
-> 実装状況（2026-02-19）: Phase 2 の「Issue タイトル自動取得」と「PAT 入力（非永続メモリ保持）」を先行実装済み。
+> 実装状況（2026-02-19）: Phase 2 の「Issue タイトル自動取得」と「PAT 入力（非永続メモリ保持）」を実装済み。Phase 3 は「Issue 別集計ビュー」を実装済み（エクスポートは未実装）。
 
 ---
 

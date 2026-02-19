@@ -18,6 +18,7 @@
 - `src/features/timer/containers`: コンテナ（配線）
 - `src/features/timer/stores`: ドメイン状態（Zustand）
 - `src/features/timer/api`: 外部 API クライアント（GitHub 連携）
+- `src/features/timer/utils`: 機能ユーティリティ（Issue別集計ロジックなど）
 - `src/types`: ドメイン型
 - `src/utils`: 通知/ログユーティリティ
 
