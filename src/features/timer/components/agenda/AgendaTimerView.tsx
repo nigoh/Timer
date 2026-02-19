@@ -51,6 +51,11 @@ import { useAgendaTimerStore } from "@/features/timer/stores/new-agenda-timer-st
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingReportDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
+import {
+  AGENDA_MINUTES_MOBILE_QUERY,
+  AGENDA_MINUTES_QUILL_FORMATS,
+  getAgendaMinutesQuillModules,
+} from "@/features/timer/components/agenda/agenda-minutes-quill";
 import { AgendaItem, Meeting } from "@/types/agenda";
 import { cn, formatDuration } from "@/lib/utils";
 import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
@@ -652,16 +657,26 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
 
 const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   const { updateAgendaMinutes } = useAgendaTimerStore();
-  const quillModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      ["blockquote", "code-block"],
-      ["link"],
-      ["clean"],
-    ],
-  };
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia(AGENDA_MINUTES_MOBILE_QUERY).matches;
+  });
+  const quillModules = useMemo(
+    () => getAgendaMinutesQuillModules(isMobile),
+    [isMobile],
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(AGENDA_MINUTES_MOBILE_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   return (
     <Card className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full">
@@ -669,7 +684,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
         <CardTitle className="text-base">議事録</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 lg:min-h-0">
-        <div className="min-h-[280px] min-w-0 overflow-hidden rounded-md border bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words">
+        <div className="min-h-[280px] min-w-0 overflow-hidden rounded-md border bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-base">
           <ReactQuill
             key={agenda.id}
             theme="snow"
@@ -686,6 +701,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
               });
             }}
             modules={quillModules}
+            formats={AGENDA_MINUTES_QUILL_FORMATS}
           />
         </div>
       </CardContent>
@@ -1220,6 +1236,7 @@ export const AgendaTimerView: React.FC = () => {
   const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
   const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isMobileManagementOpen, setIsMobileManagementOpen] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(() => {
     if (typeof window === "undefined") {
       return false;
@@ -1331,9 +1348,53 @@ export const AgendaTimerView: React.FC = () => {
 
   return (
     <div className="w-full">
+      {/* Mobile layout (< lg): Timer first, then AgendaList; management via dialog */}
+      <div className="lg:hidden flex flex-col gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setIsMobileManagementOpen(true)}
+          >
+            <Users className="w-4 h-4 mr-1.5" />
+            会議管理
+          </Button>
+          {currentMeeting && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsSettingsDialogOpen(true)}
+            >
+              <Settings className="w-4 h-4 mr-1.5" />
+              設定
+            </Button>
+          )}
+        </div>
+        <TimerDisplay />
+        {currentMeeting && (
+          <AgendaList
+            onAddAgenda={() => {
+              setEditingAgenda(null);
+              setIsAgendaDialogOpen(true);
+            }}
+            onEditAgenda={(agenda) => {
+              setEditingAgenda(agenda);
+              setIsAgendaDialogOpen(true);
+            }}
+          />
+        )}
+        {currentMeeting && currentAgenda && (
+          <MinutesEditor
+            meetingId={currentMeeting.id}
+            agenda={currentAgenda}
+          />
+        )}
+      </div>
+
+      {/* Desktop layout (lg+): existing grid layout */}
       <div
         className={cn(
-          "flex flex-col gap-4 lg:grid lg:h-[calc(100dvh-160px)] lg:min-h-[560px]",
+          "hidden lg:grid lg:h-[calc(100dvh-160px)] lg:min-h-[560px] gap-4",
           isSidePanelOpen
             ? "lg:grid-cols-12"
             : "lg:grid-cols-[minmax(0,44px)_minmax(0,3fr)_minmax(0,6fr)]",
@@ -1383,6 +1444,66 @@ export const AgendaTimerView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Mobile management dialog: meeting list + report history */}
+      <Dialog
+        open={isMobileManagementOpen}
+        onOpenChange={setIsMobileManagementOpen}
+      >
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto [&>button]:hidden">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                会議管理
+              </DialogTitle>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileManagementOpen(false)}
+                aria-label="閉じる"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4">
+            <MeetingList
+              meetings={meetings}
+              currentMeetingId={currentMeeting?.id}
+              isSidePanelOpen={true}
+              onSelectMeeting={(id) => {
+                setCurrentMeeting(id);
+                setIsMobileManagementOpen(false);
+              }}
+              onCreateMeeting={() => {
+                setEditingMeeting(null);
+                setIsMeetingDialogOpen(true);
+              }}
+              onEditMeeting={(meeting) => {
+                setEditingMeeting(meeting);
+                setIsMeetingDialogOpen(true);
+              }}
+              onDeleteMeeting={(meeting) => {
+                setMeetingToDelete(meeting);
+                setIsDeleteMeetingDialogOpen(true);
+              }}
+              onSaveReport={(meeting) => {
+                setCurrentMeeting(meeting.id);
+                createDraftFromMeeting(meeting);
+                setReportDialogOpen(true);
+              }}
+              onOpenSettings={() => {
+                setIsSettingsDialogOpen(true);
+                setIsMobileManagementOpen(false);
+              }}
+              onToggleSidePanel={() => setIsMobileManagementOpen(false)}
+            />
+            <MeetingReportHistory />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {currentMeeting && (
         <AgendaDialog
