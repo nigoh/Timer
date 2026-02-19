@@ -51,6 +51,11 @@ import { useAgendaTimerStore } from "@/features/timer/stores/new-agenda-timer-st
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingReportDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
+import {
+  AGENDA_MINUTES_MOBILE_QUERY,
+  AGENDA_MINUTES_QUILL_FORMATS,
+  getAgendaMinutesQuillModules,
+} from "@/features/timer/components/agenda/agenda-minutes-quill";
 import { AgendaItem, Meeting } from "@/types/agenda";
 import { cn, formatDuration } from "@/lib/utils";
 import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
@@ -652,16 +657,26 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
 
 const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   const { updateAgendaMinutes } = useAgendaTimerStore();
-  const quillModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      ["blockquote", "code-block"],
-      ["link"],
-      ["clean"],
-    ],
-  };
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia(AGENDA_MINUTES_MOBILE_QUERY).matches;
+  });
+  const quillModules = useMemo(
+    () => getAgendaMinutesQuillModules(isMobile),
+    [isMobile],
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(AGENDA_MINUTES_MOBILE_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   return (
     <Card className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full">
@@ -686,6 +701,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
               });
             }}
             modules={quillModules}
+            formats={AGENDA_MINUTES_QUILL_FORMATS}
           />
         </div>
       </CardContent>
