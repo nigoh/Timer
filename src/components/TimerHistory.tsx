@@ -22,6 +22,9 @@ import { BasicTimerHistory } from "../types/timer";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
+import { GitHubIssueLinking } from "./GitHubIssueLinking";
+import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
+import { buildIntegrationIssueStats } from "@/features/timer/utils/integration-stats";
 
 interface TimerHistoryProps {
   history: BasicTimerHistory[];
@@ -87,7 +90,7 @@ const HistoryEntry: React.FC<HistoryEntryProps> = ({ entry, onDelete }) => {
             </div>
 
             {/* 時間情報 */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:gap-4">
               <div>
                 <div className="text-muted-foreground text-xs">予定時間</div>
                 <div className="font-mono">{formatTime(entry.duration)}</div>
@@ -132,6 +135,9 @@ const HistoryEntry: React.FC<HistoryEntryProps> = ({ entry, onDelete }) => {
                 })}
               </span>
             </div>
+
+            {/* GitHub Issue 連携 */}
+            <GitHubIssueLinking timeLogId={entry.id} />
           </div>
 
           {/* 削除ボタン */}
@@ -155,12 +161,17 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
   onClearHistory,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const linksByLogId = useIntegrationLinkStore((state) => state.linksByLogId);
 
   // 統計計算
   const totalSessions = history.length;
   const completedSessions = history.filter((h) => h.completed).length;
   const totalTime = history.reduce((sum, h) => sum + h.actualDuration, 0);
   const averageTime = totalSessions > 0 ? totalTime / totalSessions : 0;
+  const issueStats = React.useMemo(
+    () => buildIntegrationIssueStats(history, linksByLogId),
+    [history, linksByLogId],
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -171,9 +182,9 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] max-h-[85vh] p-4 sm:max-w-2xl sm:p-6">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2 pr-8">
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5" />
               タイマー履歴
@@ -196,7 +207,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
         <div className="space-y-4">
           {/* 統計サマリー */}
           {totalSessions > 0 && (
-            <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+            <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted p-3 sm:grid-cols-4 sm:gap-4 sm:p-4">
               <div className="text-center">
                 <div className="text-lg font-bold">{totalSessions}</div>
                 <div className="text-xs text-muted-foreground">セッション</div>
@@ -214,6 +225,32 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
                   {formatTime(Math.round(averageTime))}
                 </div>
                 <div className="text-xs text-muted-foreground">平均時間</div>
+              </div>
+            </div>
+          )}
+
+          {issueStats.length > 0 && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <h3 className="text-sm font-medium">GitHub Issue 別集計</h3>
+              <div className="space-y-2">
+                {issueStats.slice(0, 5).map((stat) => (
+                  <div
+                    key={stat.issueUrl}
+                    className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <a
+                      href={stat.issueUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 break-all text-xs text-blue-600 hover:underline"
+                    >
+                      {stat.issueTitle}
+                    </a>
+                    <div className="text-xs text-muted-foreground">
+                      合計 {formatTime(stat.totalActualDuration)} / {stat.sessionCount}件
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

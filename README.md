@@ -16,6 +16,7 @@
 - [UX設計仕様](./docs/UX_DESIGN_SPEC.md)
 - [概念モデル](./docs/CONCEPTS.md)
 - [AI協業ガイド（Copilot運用）](./docs/AI_COLLABORATION_GUIDE.md)
+- [設計書: GitHub / GitLab 連携（Issue #36）](./docs/DESIGN_GITHUB_GITLAB_INTEGRATION.md)
 
 READMEは要約のみを記載し、詳細仕様は正本要件へ集約します。
 
