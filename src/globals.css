@@ -98,3 +98,29 @@
     background: hsl(var(--foreground));
   }
 }
+
+@layer components {
+  .dark .ql-toolbar.ql-snow,
+  .dark .ql-container.ql-snow {
+    border-color: hsl(var(--border));
+  }
+
+  .dark .ql-toolbar.ql-snow {
+    background-color: hsl(var(--muted));
+  }
+
+  .dark .ql-editor,
+  .dark .ql-snow .ql-picker,
+  .dark .ql-snow .ql-picker-options {
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+  }
+
+  .dark .ql-snow .ql-stroke {
+    stroke: hsl(var(--foreground));
+  }
+
+  .dark .ql-snow .ql-fill {
+    fill: hsl(var(--foreground));
+  }
+}
