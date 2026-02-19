@@ -88,7 +88,7 @@ const HistoryEntry: React.FC<HistoryEntryProps> = ({ entry, onDelete }) => {
             </div>
 
             {/* 時間情報 */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:gap-4">
               <div>
                 <div className="text-muted-foreground text-xs">予定時間</div>
                 <div className="font-mono">{formatTime(entry.duration)}</div>
@@ -175,9 +175,9 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] max-h-[85vh] p-4 sm:max-w-2xl sm:p-6">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2 pr-8">
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5" />
               タイマー履歴
@@ -200,7 +200,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
         <div className="space-y-4">
           {/* 統計サマリー */}
           {totalSessions > 0 && (
-            <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+            <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted p-3 sm:grid-cols-4 sm:gap-4 sm:p-4">
               <div className="text-center">
                 <div className="text-lg font-bold">{totalSessions}</div>
                 <div className="text-xs text-muted-foreground">セッション</div>

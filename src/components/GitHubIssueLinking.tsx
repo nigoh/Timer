@@ -88,13 +88,13 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
           {links.length > 0 && (
             <ul className="space-y-1">
               {links.map((link) => (
-                <li key={link.id} className="flex items-center gap-2 text-xs">
+                <li key={link.id} className="flex min-w-0 items-start gap-2 text-xs">
                   <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />
                   <a
                     href={link.issueUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline truncate flex-1"
+                    className="min-w-0 flex-1 break-all text-blue-600 hover:underline"
                   >
                     {link.owner}/{link.repo} #{link.issueNumber}
                     {link.issueTitle && (
@@ -118,7 +118,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
           {/* 追加フォーム */}
           {isFormOpen ? (
             <div className="space-y-2 p-2 bg-muted rounded-md">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label htmlFor={`owner-repo-${timeLogId}`} className="text-xs">
                     Owner/Repo
