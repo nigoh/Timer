@@ -1,15 +1,22 @@
-import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { DonutSegment } from '@/types/analytics';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { DonutSegment } from "@/types/analytics";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const COLORS = [
-  'hsl(221, 83%, 53%)',
-  'hsl(142, 71%, 45%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(0, 84%, 60%)',
-  'hsl(270, 60%, 55%)',
-  'hsl(190, 80%, 45%)',
+  "hsl(221, 83%, 53%)",
+  "hsl(142, 71%, 45%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(0, 84%, 60%)",
+  "hsl(270, 60%, 55%)",
+  "hsl(190, 80%, 45%)",
 ];
 
 interface DonutChartProps {
@@ -17,6 +24,15 @@ interface DonutChartProps {
 }
 
 const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
+  const formatMinutes = (
+    value: number | string | Array<number | string> | undefined,
+  ) => {
+    if (Array.isArray(value)) {
+      return `${value[0] ?? 0}分`;
+    }
+    return `${value ?? 0}分`;
+  };
+
   if (data.length === 0) {
     return (
       <Card>
@@ -52,11 +68,16 @@ const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
               ))}
             </Pie>
             <Tooltip
-              formatter={(v: number | undefined, name: string | undefined) => [`${v ?? 0}分`, name ?? '']}
+              formatter={(value, name) => [
+                formatMinutes(value),
+                String(name ?? ""),
+              ]}
               contentStyle={{ fontSize: 12 }}
             />
             <Legend
-              formatter={(value) => <span style={{ fontSize: 11 }}>{value}</span>}
+              formatter={(value) => (
+                <span style={{ fontSize: 11 }}>{value}</span>
+              )}
             />
           </PieChart>
         </ResponsiveContainer>

@@ -47,10 +47,11 @@ import {
   X,
   PieChart,
 } from "lucide-react";
-import { useAgendaTimerStore } from "@/features/timer/stores/new-agenda-timer-store";
+import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingReportDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
+import { GitHubIssueLinking } from "@/components/GitHubIssueLinking";
 import {
   AGENDA_MINUTES_MOBILE_QUERY,
   AGENDA_MINUTES_QUILL_FORMATS,
@@ -140,7 +141,12 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
         }
       }}
     >
-      <DialogContent className="sm:max-w-md [&>button]:hidden">
+      <DialogContent
+        className="sm:max-w-md [&>button]:hidden"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+      >
         <DialogHeader>
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2">
@@ -323,6 +329,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 }) => {
   const { updateMeetingSettings } = useAgendaTimerStore();
   const [settings, setSettings] = useState(meeting.settings);
+  const meetingIssueLinkId = `meeting:${meeting.id}`;
 
   useEffect(() => {
     setSettings(meeting.settings);
@@ -495,6 +502,8 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </div>
             </div>
           </div>
+
+          <GitHubIssueLinking timeLogId={meetingIssueLinkId} />
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
@@ -926,41 +935,50 @@ const MeetingList: React.FC<MeetingListProps> = ({
             </Badge>
           </CardTitle>
           <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:justify-start">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-7 w-7 p-0 sm:h-7 sm:w-auto sm:px-2 sm:text-xs"
-              onClick={onCreateMeeting}
-              aria-label="新しい会議を作成"
+            <Tooltip content="新しい会議を作成" side="top">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-7 w-7 p-0 sm:h-7 sm:w-auto sm:px-2 sm:text-xs"
+                onClick={onCreateMeeting}
+                aria-label="新しい会議を作成"
+              >
+                <Plus className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">新しい会議</span>
+              </Button>
+            </Tooltip>
+            <Tooltip content="会議設定を開く" side="top">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={onOpenSettings}
+                disabled={!currentMeetingId}
+              >
+                <Settings className="mr-1 h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+            <Tooltip
+              content={isSidePanelOpen ? "会議一覧を閉じる" : "会議一覧を開く"}
+              side="top"
             >
-              <Plus className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">新しい会議</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={onOpenSettings}
-              disabled={!currentMeetingId}
-            >
-              <Settings className="mr-1 h-3.5 w-3.5" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={onToggleSidePanel}
-              aria-label={isSidePanelOpen ? "一覧を閉じる" : "一覧を開く"}
-            >
-              {isSidePanelOpen ? (
-                <PanelRightClose className="h-3.5 w-3.5" />
-              ) : (
-                <PanelRightOpen className="h-3.5 w-3.5" />
-              )}
-            </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={onToggleSidePanel}
+                aria-label={isSidePanelOpen ? "一覧を閉じる" : "一覧を開く"}
+              >
+                {isSidePanelOpen ? (
+                  <PanelRightClose className="h-3.5 w-3.5" />
+                ) : (
+                  <PanelRightOpen className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </CardHeader>
@@ -986,36 +1004,42 @@ const MeetingList: React.FC<MeetingListProps> = ({
                       {meeting.agenda.length}件
                     </span>
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => onEditMeeting(meeting)}
-                    aria-label="会議名を編集"
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-blue-600 hover:text-blue-700"
-                    onClick={() => onSaveReport(meeting)}
-                    aria-label="レポートを保存"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-red-500 hover:text-red-700"
-                    onClick={() => onDeleteMeeting(meeting)}
-                    aria-label="会議を削除"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <Tooltip content="会議名を編集" side="top">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onEditMeeting(meeting)}
+                      aria-label="会議名を編集"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="会議レポートを作成" side="top">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-blue-600 hover:text-blue-700"
+                      onClick={() => onSaveReport(meeting)}
+                      aria-label="レポートを保存"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="会議を削除" side="top">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-red-500 hover:text-red-700"
+                      onClick={() => onDeleteMeeting(meeting)}
+                      aria-label="会議を削除"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </Tooltip>
                 </div>
               </div>
             ))}
@@ -1175,28 +1199,34 @@ const AgendaList: React.FC<AgendaListProps> = ({
                           </div>
 
                           <div className="flex shrink-0 gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onEditAgenda(agenda);
-                              }}
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                deleteAgenda(currentMeeting.id, agenda.id);
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <Tooltip content="アジェンダを編集" side="top">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onEditAgenda(agenda);
+                                }}
+                                aria-label="アジェンダを編集"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip content="アジェンダを削除" side="top">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  deleteAgenda(currentMeeting.id, agenda.id);
+                                }}
+                                aria-label="アジェンダを削除"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </Tooltip>
                           </div>
                         </div>
 
@@ -1384,10 +1414,7 @@ export const AgendaTimerView: React.FC = () => {
           />
         )}
         {currentMeeting && currentAgenda && (
-          <MinutesEditor
-            meetingId={currentMeeting.id}
-            agenda={currentAgenda}
-          />
+          <MinutesEditor meetingId={currentMeeting.id} agenda={currentAgenda} />
         )}
       </div>
 

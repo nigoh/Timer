@@ -2,7 +2,16 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Button } from "./components/ui/button";
 import { Theme } from "@radix-ui/themes";
-import { Timer, List, Target, Clock, Bug, Moon, Sun, BarChart2 } from "lucide-react";
+import {
+  Timer,
+  List,
+  Target,
+  Clock,
+  Bug,
+  Moon,
+  Sun,
+  BarChart2,
+} from "lucide-react";
 import { BasicTimer } from "./features/timer/containers/BasicTimer";
 import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
 import { EnhancedPomodoroTimer } from "./features/timer/containers/EnhancedPomodoroTimer";
@@ -71,7 +80,7 @@ function App() {
 
   return (
     <Theme appearance={colorMode}>
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="min-h-[100svh] bg-background text-foreground flex flex-col md:min-h-screen">
         <div className="w-full flex-1 px-2 md:px-3">
           <Tabs
             value={activeTab}
@@ -102,7 +111,11 @@ function App() {
               </Button>
 
               <LogViewer>
-                <Button variant="outline" size="sm" className="order-1 md:order-none">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="order-1 md:order-none"
+                >
                   <Bug className="w-4 h-4 md:mr-2" />
                   <span className="inline">ログ</span>
                 </Button>
@@ -114,7 +127,10 @@ function App() {
                   <span className="inline text-xs md:hidden">基本</span>
                   <span className="hidden md:inline">基本タイマー</span>
                 </TabsTrigger>
-                <TabsTrigger value="pomodoro" className="flex items-center gap-2">
+                <TabsTrigger
+                  value="pomodoro"
+                  className="flex items-center gap-2"
+                >
                   <Target className="w-4 h-4" />
                   <span className="inline text-xs md:hidden">ポモ</span>
                   <span className="hidden md:inline">ポモドーロ</span>
@@ -122,14 +138,17 @@ function App() {
                 <TabsTrigger value="agenda" className="flex items-center gap-2">
                   <List className="w-4 h-4" />
                   <span className="inline text-xs md:hidden">会議</span>
-                  <span className="hidden md:inline">アジェンダ</span>
+                  <span className="hidden md:inline">会議</span>
                 </TabsTrigger>
                 <TabsTrigger value="multi" className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   <span className="inline text-xs md:hidden">複数</span>
                   <span className="hidden md:inline">複数タイマー</span>
                 </TabsTrigger>
-                <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <TabsTrigger
+                  value="dashboard"
+                  className="flex items-center gap-2"
+                >
                   <BarChart2 className="w-4 h-4" />
                   <span className="inline text-xs md:hidden">分析</span>
                   <span className="hidden md:inline">分析</span>
@@ -137,7 +156,7 @@ function App() {
               </TabsList>
             </header>
 
-            <main className="flex-1 pb-16 md:pb-0">
+            <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
               <TabsContent value="basic">
                 <ErrorBoundary componentName="BasicTimer">
                   <BasicTimer />
@@ -171,10 +190,10 @@ function App() {
           </Tabs>
         </div>
         <nav
-          className="fixed bottom-0 inset-x-0 z-40 bg-background border-t md:hidden"
+          className="fixed bottom-0 inset-x-0 z-40 border-t bg-background md:hidden"
           aria-label="メインナビゲーション"
         >
-          <div className="flex h-16 items-center justify-around">
+          <div className="flex h-16 items-center justify-around pb-[env(safe-area-inset-bottom)]">
             {(
               [
                 { value: "basic", Icon: Timer, label: "基本" },

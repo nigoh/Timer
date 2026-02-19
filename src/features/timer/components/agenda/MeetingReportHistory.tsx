@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip } from "@radix-ui/themes";
 import { ClipboardCopy, Eye, FileText, Trash2 } from "lucide-react";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { MeetingReport } from "@/types/meetingReport";
@@ -65,7 +66,20 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
           ) : (
             <ul className="space-y-1 overflow-auto pr-1 lg:h-full lg:min-h-0">
               {reports.map((report) => (
-                <li key={report.id} className="px-1.5 py-1.5 text-xs">
+                <li
+                  key={report.id}
+                  className="cursor-pointer rounded-sm px-1.5 py-1.5 text-xs hover:bg-muted/50"
+                  onClick={() => setSelectedReport(report)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedReport(report);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`レポートを表示: ${report.meetingTitle}`}
+                >
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-medium text-foreground">
@@ -76,36 +90,51 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setSelectedReport(report)}
-                        aria-label="レポートを表示"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleCopy(report.markdown)}
-                        aria-label="レポートをコピー"
-                      >
-                        <ClipboardCopy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => deleteReport(report.id)}
-                        aria-label="レポートを削除"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip content="レポートを表示" side="top">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedReport(report);
+                          }}
+                          aria-label="レポートを表示"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content="レポートをコピー" side="top">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleCopy(report.markdown);
+                          }}
+                          aria-label="レポートをコピー"
+                        >
+                          <ClipboardCopy className="h-3.5 w-3.5" />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content="レポートを削除" side="top">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteReport(report.id);
+                          }}
+                          aria-label="レポートを削除"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </Tooltip>
                     </div>
                   </div>
                 </li>
