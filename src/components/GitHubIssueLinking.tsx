@@ -5,13 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useIntegrationLinkStore } from '@/features/timer/stores/integration-link-store';
+import { fetchGitHubIssue } from '@/features/timer/api/github-issues';
 
 interface GitHubIssueLinkingProps {
   timeLogId: string;
 }
 
 export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogId }) => {
-  const { getLinks, addLink, removeLink } = useIntegrationLinkStore();
+  const { getLinks, addLink, removeLink, githubPat, setGithubPat } = useIntegrationLinkStore();
   const links = getLinks(timeLogId);
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -20,8 +21,9 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
   const [issueNumber, setIssueNumber] = useState('');
   const [issueTitle, setIssueTitle] = useState('');
   const [error, setError] = useState('');
+  const [isFetchingTitle, setIsFetchingTitle] = useState(false);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     setError('');
 
     const parts = ownerRepo.trim().split('/');
@@ -36,12 +38,38 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
     }
 
     const [owner, repo] = parts;
+    let resolvedTitle = issueTitle.trim() || undefined;
+    let resolvedIssueUrl = `https://github.com/${owner}/${repo}/issues/${num}`;
+
+    if (!resolvedTitle) {
+      setIsFetchingTitle(true);
+      try {
+        const issue = await fetchGitHubIssue({
+          owner,
+          repo,
+          issueNumber: num,
+          pat: githubPat ?? undefined,
+        });
+        resolvedTitle = issue.title;
+        resolvedIssueUrl = issue.issueUrl;
+      } catch (fetchError) {
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : 'Issue タイトルの取得に失敗しました',
+        );
+        return;
+      } finally {
+        setIsFetchingTitle(false);
+      }
+    }
+
     addLink(timeLogId, {
       owner,
       repo,
       issueNumber: num,
-      issueTitle: issueTitle.trim() || undefined,
-      issueUrl: `https://github.com/${owner}/${repo}/issues/${num}`,
+      issueTitle: resolvedTitle,
+      issueUrl: resolvedIssueUrl,
     });
 
     setOwnerRepo('');
@@ -84,6 +112,20 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
 
       {isExpanded && (
         <div className="space-y-2">
+          <div className="space-y-1 rounded-md bg-muted/60 p-2">
+            <Label htmlFor={`github-pat-${timeLogId}`} className="text-xs">
+              GitHub PAT（Private リポジトリ用 / メモリのみ保持）
+            </Label>
+            <Input
+              id={`github-pat-${timeLogId}`}
+              type="password"
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              value={githubPat ?? ''}
+              onChange={(e) => setGithubPat(e.target.value || null)}
+              className="h-7 text-xs"
+            />
+          </div>
+
           {/* 連携済みリスト */}
           {links.length > 0 && (
             <ul className="space-y-1">
@@ -161,13 +203,14 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
               {error && <p className="text-xs text-destructive">{error}</p>}
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleAdd} className="h-6 text-xs px-2">
-                  紐付け
+                  {isFetchingTitle ? '取得中...' : '紐付け'}
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={handleCancel}
                   className="h-6 text-xs px-2"
+                  disabled={isFetchingTitle}
                 >
                   キャンセル
                 </Button>
@@ -179,6 +222,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
               size="sm"
               onClick={() => setIsFormOpen(true)}
               className="h-6 text-xs px-2 text-muted-foreground hover:text-foreground"
+              disabled={isFetchingTitle}
             >
               <Plus className="w-3 h-3 mr-1" />
               GitHub Issue を紐付ける

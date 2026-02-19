@@ -17,6 +17,7 @@
 - `src/features/timer/components`: 機能別 View
 - `src/features/timer/containers`: コンテナ（配線）
 - `src/features/timer/stores`: ドメイン状態（Zustand）
+- `src/features/timer/api`: 外部 API クライアント（GitHub 連携）
 - `src/types`: ドメイン型
 - `src/utils`: 通知/ログユーティリティ
 
@@ -53,6 +54,7 @@
 
 - 一部ストアは Zustand `persist` を利用し、LocalStorage に保存する。
 - 永続化対象はストアごとに `partialize` で制御する。
+- `integration-link-store` は `linksByLogId` のみ永続化し、`githubPat` はメモリ保持（非永続）とする。
 
 ## パフォーマンス仕様
 
