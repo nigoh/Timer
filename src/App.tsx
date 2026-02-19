@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Button } from "./components/ui/button";
 import { Theme } from "@radix-ui/themes";
-import { Timer, List, Target, Clock, Bug, Moon, Sun } from "lucide-react";
+import { Timer, List, Target, Clock, Bug, Moon, Sun, BarChart2 } from "lucide-react";
 import { BasicTimer } from "./features/timer/containers/BasicTimer";
 import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
 import { EnhancedPomodoroTimer } from "./features/timer/containers/EnhancedPomodoroTimer";
 import { MultiTimer } from "./features/timer/containers/MultiTimer";
+import { Dashboard } from "./features/timer/containers/Dashboard";
 import LogViewer from "./components/LogViewer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
@@ -107,7 +108,7 @@ function App() {
                 </Button>
               </LogViewer>
 
-              <TabsList className="order-2 hidden md:grid h-10 w-full grid-cols-4 md:order-none md:flex-1">
+              <TabsList className="order-2 hidden md:grid h-10 w-full grid-cols-5 md:order-none md:flex-1">
                 <TabsTrigger value="basic" className="flex items-center gap-2">
                   <Timer className="w-4 h-4" />
                   <span className="inline text-xs md:hidden">基本</span>
@@ -127,6 +128,11 @@ function App() {
                   <Clock className="w-4 h-4" />
                   <span className="inline text-xs md:hidden">複数</span>
                   <span className="hidden md:inline">複数タイマー</span>
+                </TabsTrigger>
+                <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                  <BarChart2 className="w-4 h-4" />
+                  <span className="inline text-xs md:hidden">分析</span>
+                  <span className="hidden md:inline">分析</span>
                 </TabsTrigger>
               </TabsList>
             </header>
@@ -155,6 +161,12 @@ function App() {
                   <MultiTimer />
                 </ErrorBoundary>
               </TabsContent>
+
+              <TabsContent value="dashboard">
+                <ErrorBoundary componentName="Dashboard">
+                  <Dashboard />
+                </ErrorBoundary>
+              </TabsContent>
             </main>
           </Tabs>
         </div>
@@ -169,6 +181,7 @@ function App() {
                 { value: "pomodoro", Icon: Target, label: "ポモ" },
                 { value: "agenda", Icon: List, label: "会議" },
                 { value: "multi", Icon: Clock, label: "複数" },
+                { value: "dashboard", Icon: BarChart2, label: "分析" },
               ] as const
             ).map(({ value, Icon, label }) => (
               <button

@@ -83,98 +83,47 @@
 | 6 | ヒートマップ | 曜日 × 時間帯の集中分数 | ヒートマップ |
 | 7 | 内訳ドーナツ | 種別・カテゴリ比率 | ドーナツチャート |
 
-### チャートライブラリ選定案
+### チャートライブラリ
 
-以下の 3 候補を比較する。**意思決定は @nigoh に委ねる。**
+**採用: Recharts v3**（`npm install recharts` 済み）
 
-#### 候補 A: Recharts ✅（推奨）
+- npm 週間 DL 約 400 万（React チャートライブラリ最多）、React ネイティブ設計、TypeScript 型定義内蔵。
+- Line / Bar / Pie(Donut) を採用。ヒートマップは Recharts 非内蔵のため Tailwind CSS グリッドで自前実装。
 
-- npm 週間 DL: **約 400 万**（2024 年時点、React チャートライブラリ最多）
-- React ネイティブ設計（コンポーネントベース、宣言的 API）
-- TypeScript 型定義が公式バンドル
-- Line / Bar / Area / RadialBar / Pie(Donut) をカバー
-- **ヒートマップ非内蔵**（別途 `@uiw/react-heat-map` 等が必要）
+### 集計ロジック
 
-```bash
-npm install recharts
-```
+**採用: Option A クライアント完結 + Option B 最小抽象化の併用**
 
-#### 候補 B: Chart.js + react-chartjs-2
-
-- npm 週間 DL: Chart.js **約 500 万** / react-chartjs-2 **約 170 万**
-- 歴史的シェアが高く事例豊富
-- 設定がオブジェクトベースで React との相性がやや低い
-- TypeScript 型は `@types/chart.js` で対応
-- **ヒートマップ非内蔵**（プラグイン追加が必要）
-
-```bash
-npm install chart.js react-chartjs-2
-```
-
-#### 候補 C: Nivo
-
-- npm 週間 DL: **約 60 万**
-- **ヒートマップコンポーネント内蔵** (`@nivo/heatmap`)
-- D3 ベース、アニメーション・SVG 品質が高い
-- バンドルサイズが大きい（コンポーネント分割インポートで軽減可）
-- TypeScript 型定義が公式バンドル
-
-```bash
-npm install @nivo/core @nivo/line @nivo/bar @nivo/pie @nivo/heatmap
-```
-
-#### 比較表
-
-| 項目 | Recharts | Chart.js + react-chartjs-2 | Nivo |
-|------|----------|---------------------------|------|
-| 週間 DL | ◎ 最多 | ◎ 高い | △ 少ない |
-| React 親和性 | ◎ | △ | ◎ |
-| TypeScript | ◎ | ○ | ◎ |
-| ヒートマップ | △（追加ライブラリ） | △（プラグイン） | ◎（内蔵） |
-| バンドルサイズ | ○ 軽量 | ○ | △ 大きめ |
-| 実績・事例 | ◎ | ◎ | ○ |
-
-### 集計ロジック設計案
-
-**意思決定は @nigoh に委ねる。**
-
-#### Option A: クライアントサイド完結（現時点の推奨）
-
-各 Zustand ストアのログ/履歴データをセレクタ関数で集計し、
-`useMemo` でメモ化した派生値をコンポーネントへ渡す。
+- `src/features/timer/services/analytics.ts` に `IAnalyticsService` インターフェースと `LocalAnalyticsService` を実装。
+- `Dashboard` コンテナで各 Zustand ストアから生データを読み、`useMemo` 内で `localAnalyticsService.compute()` を呼び出す。
+- 将来の API 移行時は `LocalAnalyticsService` を差し替えるだけで hook・UI 変更不要。
 
 ```
 Zustand stores (localStorage persist)
-  └─ aggregateByDay() / aggregateByWeek() / aggregateByMonth()
-       └─ useMemo → DashboardStore (derived selectors)
-            └─ ChartComponents
+  └─ Dashboard.tsx (useMemo → localAnalyticsService.compute(filter, rawData))
+       └─ AnalyticsResult → DashboardView
+            ├─ KpiCard ×4
+            ├─ TrendChart (Recharts BarChart / LineChart)
+            ├─ HeatmapChart (Tailwind CSS grid)
+            └─ DonutChart (Recharts PieChart)
 ```
 
-- **利点**: バックエンド不要、オフライン対応、実装がシンプル
-- **欠点**: データ量増加時（数千セッション以上）に UI スレッドが重くなる可能性
-- **対策**: 集計は `Web Worker` 化のオプションを残す設計にする
-
-#### Option B: 抽象化レイヤー（将来の API 移行を見据えた設計）
-
-集計ロジックをサービス層 (`src/features/timer/services/analytics.ts`) に切り出し、
-現状はクライアント処理・将来は REST API/BFF に差し替えられる構造にする。
+### 実装ファイル構成
 
 ```
-DashboardContainer
-  └─ useAnalytics(filter) hook
-       └─ AnalyticsService.fetch(filter)
-            ├─ [現状] LocalAggregator (Zustand → 集計)
-            └─ [将来] API Client (GET /api/analytics)
+src/
+├── types/analytics.ts                              # AnalyticsFilter / Result 型
+├── features/timer/
+│   ├── services/analytics.ts                       # IAnalyticsService / LocalAnalyticsService
+│   ├── stores/dashboard-store.ts                   # フィルタ永続化 (Zustand persist)
+│   ├── components/dashboard/
+│   │   ├── DashboardView.tsx                       # レイアウト・フィルタバー
+│   │   ├── KpiCard.tsx
+│   │   ├── TrendChart.tsx
+│   │   ├── HeatmapChart.tsx
+│   │   └── DonutChart.tsx
+│   └── containers/Dashboard.tsx                    # 配線（データ取得 + useMemo）
 ```
-
-- **利点**: API 移行時に hook・UI の変更不要
-- **欠点**: 抽象化コストが生じ、初期実装が増える
-
-#### 推奨方針
-
-1. **初期実装は Option A**（クライアント完結）で素早くリリース。
-2. `AnalyticsService` インターフェースのみ Option B の形で定義し、実体はクライアント実装にする（最小の抽象化）。
-3. データ量やパフォーマンス計測後に Web Worker 化 / API 移行を判断する。
 
 ## アクセシビリティ仕様
 
