@@ -49,6 +49,20 @@
 - フォーム入力は `Label` と `id/htmlFor` を必ず関連付ける。
 - 視覚的に不要なラベルは `sr-only` を使って支援技術向けに保持する。
 
+## アジェンダ会議前ファシリテーション設計
+
+- ドメイン状態は `src/features/timer/stores/new-agenda-timer-store.ts` に集約し、会議前メタデータを追加する。
+- `AgendaItem` へ以下を追加する。
+  - `purpose: "share" | "collect" | "decide" | "prioritize"`
+  - `expectedOutcome: string`
+  - `agreementChecklist: string[]`
+  - `preComments: { id: string; author: string; category: "proposal" | "risk" | "question"; body: string; createdAt: string }[]`
+- `Meeting` へ以下を追加する。
+  - `parkingLot: { id: string; topic: string; reason?: string; carriedToAgendaId?: string }[]`
+  - `preMeetingBrief: { decisions: string[]; issues: string[]; unresolved: string[]; generatedAt?: string }`
+- 会議レポート生成とは別に、会議開始前のブリーフ生成アクションを提供する。
+- 通知・ログ経路は既存仕様どおり `notification-manager` / `logger` のみを利用する。
+
 ## 永続化
 
 - 一部ストアは Zustand `persist` を利用し、LocalStorage に保存する。
