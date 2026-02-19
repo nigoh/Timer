@@ -1,4 +1,4 @@
-# 設計書: GitHub / GitLab 連携機能（Issue #36）
+# 設計書: GitHub 連携機能（Issue #36）
 
 > **ステータス**: 設計中  
 > **対象Issue**: [#36 githubやgitlabなど、プロジェクト管理ツールとの連携ができるようにしたい。](https://github.com/nigoh/Timer/issues/36)  
@@ -8,7 +8,7 @@
 
 ## 1. 概要・目標
 
-タイマーアプリで記録した作業ログ（TimeLog）を、GitHub Issues / GitLab Issues などの外部プロジェクト管理ツールと紐付け可能にする。
+タイマーアプリで記録した作業ログ（TimeLog）を、**GitHub Issues** と紐付け可能にする。GitLab 対応は将来フェーズとして設計上の拡張余地を残す。
 
 **主な目標**
 
@@ -18,6 +18,7 @@
 
 **スコープ外（本フェーズ）**
 
+- GitLab 対応（将来フェーズ）
 - 外部ツールへの自動コメント投稿・Issue ステータス更新
 - OAuth フロー（PAT による手動認証を先行する）
 
@@ -42,15 +43,13 @@ flowchart TD
     end
 
     subgraph External["外部 API"]
-        GH["GitHub REST API\n/repos/:owner/:repo/issues"]
-        GL["GitLab REST API\n/projects/:id/issues"]
+        GH["GitHub REST API\nhttps://api.github.com\n/repos/:owner/:repo/issues/:number"]
     end
 
     TLD --> TLS
     TLS --> ILS
     ILS --> LS
-    ILS -->|"Issue 検索 (任意)"| GH
-    ILS -->|"Issue 検索 (任意)"| GL
+    ILS -->|"Issue タイトル取得 (Phase 2)"| GH
     TLS2 --> TLD
 ```
 
@@ -62,8 +61,8 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A["TimeLog 詳細\n---\n開始: 09:00\n終了: 09:45\n作業時間: 45 min"] --> B["タスク連携\n---\n[+ タスクを紐付ける]"]
-    B --> C{"連携済みタスク一覧\n---\n[GitHub] nigoh/Timer #36 ×\n[GitLab] mygroup/proj #12 ×"}
+    A["TimeLog 詳細\n---\n開始: 09:00\n終了: 09:45\n作業時間: 45 min"] --> B["タスク連携\n---\n[+ GitHub Issue を紐付ける]"]
+    B --> C{"連携済みタスク一覧\n---\n[GitHub] nigoh/Timer #36 ×"}
 ```
 
 **ASCII モックアップ**
@@ -77,21 +76,20 @@ flowchart LR
 │  時間   45 分                                        │
 │  メモ   設計書作成                                   │
 │─────────────────────────────────────────────────────│
-│  🔗 タスク連携                                       │
+│  🔗 GitHub Issue 連携                                │
 │                                                     │
 │  [GitHub] nigoh/Timer #36  ✕                        │
-│  [GitLab] mygroup/proj #12 ✕                        │
 │                                                     │
-│  [ + タスクを紐付ける ]                              │
-│    Provider: [GitHub ▾]  Owner/Repo: [__________]  │
-│    Issue #:  [______]    [ 紐付け ]                 │
+│  [ + GitHub Issue を紐付ける ]                       │
+│    Owner/Repo: [__________]  Issue #: [______]      │
+│    [ 紐付け ]                                        │
 └─────────────────────────────────────────────────────┘
 ```
 
 ### 3.2 タスク紐付けフォームの UX フロー
 
-1. 「+ タスクを紐付ける」ボタンを押すとインライン入力欄が展開される。
-2. Provider（GitHub / GitLab）・Owner/Repo・Issue 番号を入力し「紐付け」を押す。
+1. 「+ GitHub Issue を紐付ける」ボタンを押すとインライン入力欄が展開される。
+2. Owner/Repo・Issue 番号を入力し「紐付け」を押す。
 3. `integrationLinkStore.addLink(timeLogId, link)` が呼ばれ LocalStorage に保存。
 4. 連携済みリストにカードが追加される。
 5. `×` ボタンで個別リンクを削除できる。
@@ -104,22 +102,18 @@ flowchart LR
 // src/types/integrationLink.ts
 
 /** 外部タスクへのリンク情報 */
-export type IntegrationProvider = "github" | "gitlab";
-
 export interface IntegrationLink {
   /** ローカル一意 ID (crypto.randomUUID) */
   id: string;
-  /** 連携プロバイダー */
-  provider: IntegrationProvider;
-  /** リポジトリ所有者 (GitHub: owner, GitLab: namespace) */
+  /** リポジトリ所有者 */
   owner: string;
   /** リポジトリ名 */
   repo: string;
   /** Issue 番号 */
   issueNumber: number;
-  /** Issue タイトル (任意キャッシュ) */
+  /** Issue タイトル (任意キャッシュ: Phase 2 で API から自動取得) */
   issueTitle?: string;
-  /** Issue URL */
+  /** GitHub Issue URL */
   issueUrl: string;
   /** 作成日時 */
   createdAt: string; // ISO 8601
@@ -138,32 +132,53 @@ export interface TimeLogWithLinks {
 
 ## 5. API 連携仕様
 
-外部 API は Issue タイトルの自動補完・検証にのみ使用する（将来フェーズ）。  
-**フェーズ 1 では URL とタイトルを手入力**とし、API 呼び出しは行わない。
+### 5.1 方針
 
-### 5.1 GitHub REST API（フェーズ 2 候補）
+GitHub REST API（`https://api.github.com`）をブラウザから直接呼び出す。  
+GitHub API は CORS を許可しているため、フロントエンドから直接 `fetch` で呼び出せる。プロキシは不要。
 
-| 用途 | エンドポイント | メソッド |
-|------|---------------|---------|
-| Issue 取得 | `GET /repos/{owner}/{repo}/issues/{issue_number}` | GET |
-| Issue 一覧（検索補助） | `GET /repos/{owner}/{repo}/issues?state=open` | GET |
+| フェーズ | API 呼び出し | 内容 |
+|---------|------------|------|
+| **Phase 1** | なし | Owner/Repo・Issue 番号・タイトルを手入力。URL は `https://github.com/{owner}/{repo}/issues/{number}` で自動生成する |
+| **Phase 2** | あり | Issue 番号入力後に API でタイトルを自動取得する |
 
-**認証**: `Authorization: Bearer {PAT}` ヘッダー（PAT は LocalStorage に暗号化保存 ※要検討）
+### 5.2 使用エンドポイント（Phase 2）
 
-### 5.2 GitLab REST API（フェーズ 2 候補）
+```
+GET https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}
+```
 
-| 用途 | エンドポイント | メソッド |
-|------|---------------|---------|
-| Issue 取得 | `GET /projects/{id}/issues/{issue_iid}` | GET |
-| Issue 一覧（検索補助） | `GET /projects/{id}/issues?state=opened` | GET |
+**レスポンス（利用フィールドのみ）**
 
-**認証**: `PRIVATE-TOKEN: {PAT}` ヘッダー
+```json
+{
+  "number": 36,
+  "title": "githubやgitlabなど、プロジェクト管理ツールとの連携ができるようにしたい。",
+  "html_url": "https://github.com/nigoh/Timer/issues/36",
+  "state": "open"
+}
+```
 
-### 5.3 セキュリティ方針
+### 5.3 認証
 
-- PAT はブラウザ上で平文保存しない（フェーズ 2 で実装方法を確定）。
-- フェーズ 1 は API 呼び出しなし・URL 手入力のみ。
-- CORS 制約がある場合は将来的にプロキシ経由とする。
+| ケース | 方法 | 備考 |
+|--------|------|------|
+| **Public リポジトリ** | 認証なし | レート制限: 60 req/h |
+| **Private リポジトリ** | `Authorization: Bearer {PAT}` ヘッダー | レート制限: 5000 req/h |
+
+**PAT の保管方針（Phase 2 で確定）**
+
+- フェーズ 2 では UI から PAT を入力させ、`sessionStorage` に一時保存する方向で検討する。
+- `localStorage` への平文保存は行わない。
+- Private リポジトリ対応が不要であれば認証なしで進める。
+
+### 5.4 エラーハンドリング
+
+| HTTP ステータス | 原因 | UIへの伝え方 |
+|----------------|------|------------|
+| 404 | リポジトリ or Issue が存在しない | 「Issue が見つかりません」トースト |
+| 401 / 403 | 認証失敗 / 権限なし | 「認証エラー: PAT を確認してください」トースト |
+| 429 | レート制限超過 | 「しばらく時間をおいて再試行してください」トースト |
 
 ---
 
@@ -174,7 +189,7 @@ export interface TimeLogWithLinks {
 **配置先**: `src/features/timer/stores/integrationLinkStore.ts`
 
 ```typescript
-// 概念コード（実装は Phase 2 以降）
+// 概念コード（実装は Phase 1 以降）
 
 interface IntegrationLinkState {
   /** timeLogId → IntegrationLink[] のマップ */
@@ -207,8 +222,8 @@ interface IntegrationLinkActions {
 
 | フェーズ | 内容 | 成果物 |
 |---------|------|--------|
-| **Phase 1** | データモデル・ストア実装、手入力 UI（URL + タイトル）、LocalStorage 永続化 | `integrationLinkStore.ts`, `IntegrationLink` 型, TimeLog 詳細 UI 更新 |
-| **Phase 2** | GitHub / GitLab API 連携（Issue タイトル自動取得）、PAT 入力 UI | API クライアント, PAT 管理 UI |
+| **Phase 1** | データモデル・ストア実装、手入力 UI（Owner/Repo + Issue 番号 + タイトル）、LocalStorage 永続化 | `integrationLinkStore.ts`, `IntegrationLink` 型, TimeLog 詳細 UI 更新 |
+| **Phase 2** | GitHub REST API 連携（Issue タイトル自動取得）、PAT 入力 UI（Private リポジトリ対応） | GitHub API クライアント, PAT 管理 UI, エラーハンドリング |
 | **Phase 3** | 統計ビュー（Issue ごとの合計作業時間）、エクスポート機能 | 統計コンポーネント, CSV/JSON エクスポート |
 
 ---
@@ -217,7 +232,8 @@ interface IntegrationLinkActions {
 
 | # | 項目 | ステータス |
 |---|------|-----------|
-| 1 | PAT の安全な保存方法（IndexedDB 暗号化 / サーバーサイド proxy） | 未決定 |
-| 2 | GitLab Self-hosted への対応（ベース URL 設定 UI） | 検討中 |
+| 1 | PAT の安全な保管方法（`sessionStorage` 一時保存 vs 入力都度 vs Private リポジトリ不要の割り切り） | 未決定 |
+| 2 | Private リポジトリ対応の要否（PAT 不要なら Phase 2 が大幅に簡略化される） | 未決定 |
 | 3 | TimeLog と IntegrationLink の整合性（ログ削除時のリンク孤立） | 未決定 |
-| 4 | 複数プロバイダーの同一 Issue 重複登録の扱い | 未決定 |
+| 4 | 同一 Issue の重複登録の扱い | 未決定 |
+| 5 | GitLab 対応（将来フェーズ）の設計拡張方針 | 将来検討 |
