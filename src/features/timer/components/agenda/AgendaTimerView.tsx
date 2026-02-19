@@ -669,7 +669,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
         <CardTitle className="text-base">議事録</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 lg:min-h-0">
-        <div className="min-h-[280px] min-w-0 overflow-hidden rounded-md border bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words">
+        <div className="min-h-[280px] min-w-0 overflow-hidden rounded-md border bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-base">
           <ReactQuill
             key={agenda.id}
             theme="snow"
