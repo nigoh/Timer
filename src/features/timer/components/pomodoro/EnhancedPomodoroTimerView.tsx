@@ -420,43 +420,47 @@ export const EnhancedPomodoroTimerView = ({
             </div>
           </div>
 
-          <div className="flex justify-center gap-3">
-            {!isRunning ? (
-              <Button onClick={onStart} size="lg" className="px-8">
-                <Play className="mr-2 h-5 w-5" />
-                {isPaused ? "再開" : "開始"}
-              </Button>
-            ) : (
+          <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex gap-2">
+              {!isRunning ? (
+                <Button onClick={onStart} size="lg" className="px-6">
+                  <Play className="mr-2 h-5 w-5" />
+                  {isPaused ? "再開" : "開始"}
+                </Button>
+              ) : (
+                <Button
+                  onClick={onPause}
+                  variant="outline"
+                  size="lg"
+                  className="px-6"
+                >
+                  <Pause className="mr-2 h-5 w-5" />
+                  一時停止
+                </Button>
+              )}
+
               <Button
-                onClick={onPause}
-                variant="outline"
+                onClick={onStop}
+                variant="destructive"
                 size="lg"
-                className="px-8"
+                disabled={!isRunning && !isPaused}
               >
-                <Pause className="mr-2 h-5 w-5" />
-                一時停止
+                <Square className="mr-2 h-5 w-5" />
+                停止
               </Button>
-            )}
+            </div>
 
-            <Button
-              onClick={onStop}
-              variant="destructive"
-              size="lg"
-              disabled={!isRunning && !isPaused}
-            >
-              <Square className="mr-2 h-5 w-5" />
-              停止
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={onSkip} variant="outline" size="lg">
+                <SkipForward className="mr-2 h-5 w-5" />
+                スキップ
+              </Button>
 
-            <Button onClick={onSkip} variant="outline" size="lg">
-              <SkipForward className="mr-2 h-5 w-5" />
-              スキップ
-            </Button>
-
-            <Button onClick={onReset} variant="outline" size="lg">
-              <RotateCcw className="mr-2 h-5 w-5" />
-              リセット
-            </Button>
+              <Button onClick={onReset} variant="outline" size="lg">
+                <RotateCcw className="mr-2 h-5 w-5" />
+                リセット
+              </Button>
+            </div>
           </div>
 
           <div className="flex justify-center pt-2 border-t">

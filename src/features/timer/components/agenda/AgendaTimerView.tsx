@@ -1220,6 +1220,7 @@ export const AgendaTimerView: React.FC = () => {
   const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
   const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isMobileManagementOpen, setIsMobileManagementOpen] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(() => {
     if (typeof window === "undefined") {
       return false;
@@ -1331,9 +1332,53 @@ export const AgendaTimerView: React.FC = () => {
 
   return (
     <div className="w-full">
+      {/* Mobile layout (< lg): Timer first, then AgendaList; management via dialog */}
+      <div className="lg:hidden flex flex-col gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setIsMobileManagementOpen(true)}
+          >
+            <Users className="w-4 h-4 mr-1.5" />
+            会議管理
+          </Button>
+          {currentMeeting && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsSettingsDialogOpen(true)}
+            >
+              <Settings className="w-4 h-4 mr-1.5" />
+              設定
+            </Button>
+          )}
+        </div>
+        <TimerDisplay />
+        {currentMeeting && (
+          <AgendaList
+            onAddAgenda={() => {
+              setEditingAgenda(null);
+              setIsAgendaDialogOpen(true);
+            }}
+            onEditAgenda={(agenda) => {
+              setEditingAgenda(agenda);
+              setIsAgendaDialogOpen(true);
+            }}
+          />
+        )}
+        {currentMeeting && currentAgenda && (
+          <MinutesEditor
+            meetingId={currentMeeting.id}
+            agenda={currentAgenda}
+          />
+        )}
+      </div>
+
+      {/* Desktop layout (lg+): existing grid layout */}
       <div
         className={cn(
-          "flex flex-col gap-4 lg:grid lg:h-[calc(100dvh-160px)] lg:min-h-[560px]",
+          "hidden lg:grid lg:h-[calc(100dvh-160px)] lg:min-h-[560px] gap-4",
           isSidePanelOpen
             ? "lg:grid-cols-12"
             : "lg:grid-cols-[minmax(0,44px)_minmax(0,3fr)_minmax(0,6fr)]",
@@ -1383,6 +1428,66 @@ export const AgendaTimerView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Mobile management dialog: meeting list + report history */}
+      <Dialog
+        open={isMobileManagementOpen}
+        onOpenChange={setIsMobileManagementOpen}
+      >
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto [&>button]:hidden">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                会議管理
+              </DialogTitle>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileManagementOpen(false)}
+                aria-label="閉じる"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4">
+            <MeetingList
+              meetings={meetings}
+              currentMeetingId={currentMeeting?.id}
+              isSidePanelOpen={true}
+              onSelectMeeting={(id) => {
+                setCurrentMeeting(id);
+                setIsMobileManagementOpen(false);
+              }}
+              onCreateMeeting={() => {
+                setEditingMeeting(null);
+                setIsMeetingDialogOpen(true);
+              }}
+              onEditMeeting={(meeting) => {
+                setEditingMeeting(meeting);
+                setIsMeetingDialogOpen(true);
+              }}
+              onDeleteMeeting={(meeting) => {
+                setMeetingToDelete(meeting);
+                setIsDeleteMeetingDialogOpen(true);
+              }}
+              onSaveReport={(meeting) => {
+                setCurrentMeeting(meeting.id);
+                createDraftFromMeeting(meeting);
+                setReportDialogOpen(true);
+              }}
+              onOpenSettings={() => {
+                setIsSettingsDialogOpen(true);
+                setIsMobileManagementOpen(false);
+              }}
+              onToggleSidePanel={() => setIsMobileManagementOpen(false)}
+            />
+            <MeetingReportHistory />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {currentMeeting && (
         <AgendaDialog
