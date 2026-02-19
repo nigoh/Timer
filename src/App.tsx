@@ -10,6 +10,7 @@ import LogViewer from "./components/LogViewer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import { logger } from "./utils/logger";
+import { cn } from "./lib/utils";
 import "./globals.css";
 
 function App() {
@@ -67,7 +68,7 @@ function App() {
               </Button>
             </LogViewer>
 
-            <TabsList className="order-2 grid h-10 w-full grid-cols-4 md:order-none md:flex-1">
+            <TabsList className="order-2 hidden md:grid h-10 w-full grid-cols-4 md:order-none md:flex-1">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <Timer className="w-4 h-4" />
                 <span className="inline text-xs md:hidden">基本</span>
@@ -91,7 +92,7 @@ function App() {
             </TabsList>
           </header>
 
-          <main className="flex-1">
+          <main className="flex-1 pb-16 md:pb-0">
             <TabsContent value="basic">
               <ErrorBoundary componentName="BasicTimer">
                 <BasicTimer />
@@ -118,6 +119,36 @@ function App() {
           </main>
         </Tabs>
       </div>
+      <nav
+        className="fixed bottom-0 inset-x-0 z-40 bg-background border-t md:hidden"
+        aria-label="メインナビゲーション"
+      >
+        <div className="flex h-16 items-center justify-around">
+          {(
+            [
+              { value: "basic", Icon: Timer, label: "基本" },
+              { value: "pomodoro", Icon: Target, label: "ポモ" },
+              { value: "agenda", Icon: List, label: "会議" },
+              { value: "multi", Icon: Clock, label: "複数" },
+            ] as const
+          ).map(({ value, Icon, label }) => (
+            <button
+              key={value}
+              onClick={() => handleTabChange(value)}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 text-xs",
+                activeTab === value
+                  ? "text-primary"
+                  : "text-muted-foreground",
+              )}
+              aria-current={activeTab === value ? "page" : undefined}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
       <Footer />
     </div>
   );
