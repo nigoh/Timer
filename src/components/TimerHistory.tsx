@@ -22,6 +22,7 @@ import { BasicTimerHistory } from "../types/timer";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
+import { GitHubIssueLinking } from "./GitHubIssueLinking";
 
 interface TimerHistoryProps {
   history: BasicTimerHistory[];
@@ -132,6 +133,9 @@ const HistoryEntry: React.FC<HistoryEntryProps> = ({ entry, onDelete }) => {
                 })}
               </span>
             </div>
+
+            {/* GitHub Issue 連携 */}
+            <GitHubIssueLinking timeLogId={entry.id} />
           </div>
 
           {/* 削除ボタン */}
