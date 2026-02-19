@@ -21,6 +21,7 @@
 - GitLab 対応（将来フェーズ）
 - 外部ツールへの自動コメント投稿・Issue ステータス更新
 - OAuth フロー（PAT による手動認証を先行する）
+- PAT の永続保存（メモリ保持のみ）
 
 ---
 
@@ -51,6 +52,7 @@ flowchart TD
     ILS --> LS
     ILS -->|"Issue タイトル取得 (Phase 2)"| GH
     TLS2 --> TLD
+    PAT["PAT (メモリのみ・非永続)"] -->|"Authorization ヘッダー"| GH
 ```
 
 ---
@@ -65,7 +67,7 @@ flowchart LR
     B --> C{"連携済みタスク一覧\n---\n[GitHub] nigoh/Timer #36 ×"}
 ```
 
-**ASCII モックアップ**
+**ASCII モックアップ（Phase 2: PAT 入力 UI を含む）**
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -77,6 +79,9 @@ flowchart LR
 │  メモ   設計書作成                                   │
 │─────────────────────────────────────────────────────│
 │  🔗 GitHub Issue 連携                                │
+│                                                     │
+│  GitHub PAT (任意・Private リポジトリ用):            │
+│  [••••••••••••••••]  ← メモリのみ保持、保存しない    │
 │                                                     │
 │  [GitHub] nigoh/Timer #36  ✕                        │
 │                                                     │
@@ -165,26 +170,31 @@ GET https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}
 
 | ケース | 方法 | 備考 |
 |--------|------|------|
-| **Public リポジトリ** | 認証なし | レート制限: 60 req/h。**PAT 不要のため最も安全** |
+| **Public リポジトリ** | 認証なし | レート制限: 60 req/h |
 | **Private リポジトリ** | `Authorization: Bearer {PAT}` ヘッダー | レート制限: 5000 req/h |
 
-#### PAT をブラウザで扱う場合のリスクと対策
+#### アプリ内 PAT 入力（採用方針）
 
-ブラウザ SPA で PAT を保持することには本質的な XSS リスクが伴う。各保管方式のリスクを以下に整理する。
+**アプリ内でユーザーが PAT を入力し、メモリのみに保持する方式は一般的な SPA の実装パターンであり、適切に実装すれば受け入れ可能なセキュリティレベルを確保できる。**
 
-| 保管方式 | XSS 耐性 | タブ閉後 | 推奨度 |
-|---------|---------|---------|-------|
-| `localStorage` | ❌ 低い（常時読取可） | 残存 | **禁止** |
-| `sessionStorage` | ❌ 低い（同セッション読取可） | 消去 | 非推奨 |
-| メモリのみ（React state） | ✅ 相対的に高い | 消去 | **推奨** |
-| 保管しない（毎回入力） | ✅ 最も安全 | — | **最優先** |
+採用する条件と制約:
 
-**推奨方針**
+| 項目 | 方針 |
+|------|------|
+| 保管場所 | **メモリのみ（非永続 Zustand フィールド）** |
+| `localStorage` への保存 | **禁止**（XSS で常時盗取可能） |
+| `sessionStorage` への保存 | **禁止**（XSS で同セッション中に盗取可能） |
+| ページリロード後 | PAT は破棄される（再入力が必要） |
+| 通信経路 | HTTPS 必須（GitHub Pages 前提） |
+| PAT スコープ | `repo`（read-only アクセスで十分な場合は `public_repo` + Fine-grained PAT の read-only を推奨） |
 
-1. **Phase 1・Phase 2 ともに、まず Public リポジトリのみを対象とする**。認証なしで動作するため PAT の保管問題自体が発生しない。
-2. Private リポジトリ対応が必要な場合は、PAT をメモリ（React state / Zustand の非永続フィールド）にのみ保持し、**ページリロードで破棄**する。`localStorage` / `sessionStorage` への保存は行わない。
-3. PAT には最小権限スコープ（`public_repo` または `repo` の read-only）のみを要求する旨を UI で案内する。
-4. HTTPS（GitHub Pages）上での利用を前提とする。
+#### XSS リスクについて
+
+メモリ保持もゼロリスクではない（既存コードに XSS 脆弱性があれば JavaScript から読み取れる）。ただし:
+
+- `localStorage` / `sessionStorage` と比べてリスクは低い（ページを閉じれば消去）。
+- アプリ本体の XSS 対策（React の標準的な出力エスケープ、CSP ヘッダー設定）を前提とすれば、PAT のメモリ保持は **現実的なリスク許容範囲**内である。
+- 認証情報の扱いをユーザー自身が判断できるよう、UI に「PAT はこのページを閉じると破棄されます」の旨を明示する。
 
 ### 5.4 エラーハンドリング
 
@@ -208,6 +218,12 @@ GET https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}
 interface IntegrationLinkState {
   /** timeLogId → IntegrationLink[] のマップ */
   linksByLogId: Record<string, IntegrationLink[]>;
+  /**
+   * GitHub PAT（メモリのみ・非永続）
+   * - localStorage / sessionStorage には保存しない
+   * - ページリロードで null にリセットされる
+   */
+  githubPat: string | null;
 }
 
 interface IntegrationLinkActions {
@@ -217,10 +233,13 @@ interface IntegrationLinkActions {
   removeLink: (timeLogId: string, linkId: string) => void;
   /** 指定 timeLogId のリンク一覧を返す */
   getLinks: (timeLogId: string) => IntegrationLink[];
+  /** PAT をメモリにセット（persist 対象外） */
+  setGithubPat: (pat: string | null) => void;
 }
 ```
 
-**永続化**: Zustand `persist` ミドルウェア、LocalStorage キー: `integration-links`
+**永続化**: Zustand `persist` ミドルウェア、LocalStorage キー: `integration-links`  
+**注意**: `githubPat` は `persist` の `partialize` オプションで**永続化対象から除外**する。
 
 ### 6.2 既存ストアとの関係
 
@@ -237,7 +256,7 @@ interface IntegrationLinkActions {
 | フェーズ | 内容 | 成果物 |
 |---------|------|--------|
 | **Phase 1** | データモデル・ストア実装、手入力 UI（Owner/Repo + Issue 番号 + タイトル）、LocalStorage 永続化 | `integrationLinkStore.ts`, `IntegrationLink` 型, TimeLog 詳細 UI 更新 |
-| **Phase 2** | GitHub REST API 連携（Issue タイトル自動取得）、PAT 入力 UI（Private リポジトリ対応） | GitHub API クライアント, PAT 管理 UI, エラーハンドリング |
+| **Phase 2** | GitHub REST API 連携（Issue タイトル自動取得）、PAT 入力 UI（メモリ保持）、Public/Private リポジトリ対応 | GitHub API クライアント, PAT 入力フォーム, エラーハンドリング |
 | **Phase 3** | 統計ビュー（Issue ごとの合計作業時間）、エクスポート機能 | 統計コンポーネント, CSV/JSON エクスポート |
 
 ---
@@ -246,7 +265,7 @@ interface IntegrationLinkActions {
 
 | # | 項目 | ステータス |
 |---|------|-----------|
-| 1 | Private リポジトリ対応の要否（不要であれば PAT 問題ごと消える） | **未決定** |
+| 1 | Private リポジトリ対応 → **対象とする。PAT をアプリ内で入力し、メモリのみに保持する** | ✅ **確定** |
 | 2 | PAT をメモリ保持とした場合の UX（ページリロードごとに再入力を許容できるか） | 未決定 |
 | 3 | TimeLog と IntegrationLink の整合性（ログ削除時のリンク孤立） | 未決定 |
 | 4 | 同一 Issue の重複登録の扱い | 未決定 |
