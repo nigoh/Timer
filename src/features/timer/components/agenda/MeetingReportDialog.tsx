@@ -22,6 +22,7 @@ import {
   buildPostPreviewMarkdown,
   PostTemplateType,
 } from "@/features/timer/utils/meeting-report-post-template";
+import { buildMeetingAiAssist } from "@/features/timer/utils/meeting-ai-assist";
 
 export const MeetingReportDialog: React.FC = () => {
   const {
@@ -55,7 +56,13 @@ export const MeetingReportDialog: React.FC = () => {
     }
   }, [isDialogOpen]);
 
+  const aiAssist = React.useMemo(
+    () => (draft ? buildMeetingAiAssist(draft) : null),
+    [draft],
+  );
+
   if (!draft) return null;
+  const assist = aiAssist ?? buildMeetingAiAssist(draft);
 
   const participantsText = draft.participants.join(", ");
   const formIdPrefix = `meeting-report-${draft.id}`;
@@ -85,6 +92,30 @@ export const MeetingReportDialog: React.FC = () => {
       previousMarkdown: previousReportMarkdown,
     },
   );
+  const applyAiAssist = () => {
+    if (!draft || !aiAssist) return;
+
+    const nextActionsAssist = [
+      assist.facilitationAssist,
+      assist.agendaAssist,
+      assist.preparationAssist,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    updateDraftField(
+      "summary",
+      draft.summary.trim() ? draft.summary : assist.summary,
+    );
+    updateDraftField(
+      "decisions",
+      draft.decisions.trim() ? draft.decisions : assist.consensusAssist,
+    );
+    updateDraftField(
+      "nextActions",
+      draft.nextActions.trim() ? draft.nextActions : nextActionsAssist,
+    );
+    setPostStatusMessage("AIアシスト案を反映しました。必要に応じて編集してください。");
+  };
 
   const handlePostToIssue = async () => {
     if (!primaryLink || !draft.markdown.trim()) {
@@ -213,6 +244,22 @@ export const MeetingReportDialog: React.FC = () => {
                     updateDraftField("summary", event.target.value)
                   }
                 />
+              </div>
+
+              <div className="space-y-2 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>AIアシスト（会議参加者が編集して利用）</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={applyAiAssist}>
+                    下書きに反映
+                  </Button>
+                </div>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  <li>議事録要約: {assist.summary}</li>
+                  <li>合意形成アシスト: {assist.consensusAssist}</li>
+                  <li>ファシリテーションアシスト: {assist.facilitationAssist}</li>
+                  <li>アジェンダ作成アシスト: {assist.agendaAssist}</li>
+                  <li>会議事前準備アシスト: {assist.preparationAssist}</li>
+                </ul>
               </div>
 
               <div className="space-y-2 rounded-md border p-3">
