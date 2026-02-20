@@ -172,15 +172,15 @@ src/
 
 - 実現可否: 可能（GitHub REST API `POST /repos/{owner}/{repo}/issues/{issue_number}/comments` を利用）。
 - 認証:
-  - Public リポジトリ: `public_repo` 相当権限を持つ PAT で投稿可能。
-  - Private リポジトリ: `repo` 相当権限（または Fine-grained token の Issues: Read and write）が必要。
+  - Public リポジトリ: Classic PAT の `public_repo` もしくは Fine-grained token の Issues: Read and write で投稿可能。
+  - Private リポジトリ: Classic PAT の `repo` もしくは Fine-grained token の Issues: Read and write が必要。
 - 投稿フロー:
   1. 会議と Issue リンクが存在することを検証
   2. ユーザーが投稿ボタンを明示的に実行
   3. Markdown 形式で議事録をコメント投稿
   4. 成功/失敗を通知とログで記録
 - セキュリティ:
-  - PAT は `integration-link-store` のメモリ保持のみ（永続化しない）を維持する。
+  - PAT は `integration-link-store` のメモリ内のみに保持し、永続化しない。
 
 ## パフォーマンス仕様
 
