@@ -12,6 +12,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Copy, Save, Trash2 } from "lucide-react";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
+import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
+import { postGitHubIssueComment } from "@/features/timer/api/github-issues";
 
 export const MeetingReportDialog: React.FC = () => {
   const {
@@ -25,6 +27,9 @@ export const MeetingReportDialog: React.FC = () => {
     removeDraftTodo,
     saveDraft,
   } = useMeetingReportStore();
+  const { getLinks, githubPat } = useIntegrationLinkStore();
+  const [isPosting, setIsPosting] = React.useState(false);
+  const [postStatusMessage, setPostStatusMessage] = React.useState("");
 
   if (!draft) return null;
 
@@ -36,6 +41,33 @@ export const MeetingReportDialog: React.FC = () => {
       await navigator.clipboard.writeText(draft.markdown);
     }
     saveDraft();
+  };
+
+  const primaryLink = getLinks(`meeting:${draft.meetingId}`)[0];
+
+  const handlePostToIssue = async () => {
+    if (!primaryLink || !draft.markdown.trim()) {
+      return;
+    }
+
+    setIsPosting(true);
+    setPostStatusMessage("");
+    try {
+      await postGitHubIssueComment({
+        owner: primaryLink.owner,
+        repo: primaryLink.repo,
+        issueNumber: primaryLink.issueNumber,
+        body: draft.markdown,
+        pat: githubPat ?? undefined,
+      });
+      setPostStatusMessage("Issue コメントへの投稿に成功しました");
+    } catch (error) {
+      setPostStatusMessage(
+        error instanceof Error ? error.message : "Issue コメント投稿に失敗しました",
+      );
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   return (
@@ -232,6 +264,11 @@ export const MeetingReportDialog: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
+            {postStatusMessage && (
+              <p className="w-full text-xs text-muted-foreground">
+                {postStatusMessage}
+              </p>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -239,6 +276,16 @@ export const MeetingReportDialog: React.FC = () => {
             >
               キャンセル
             </Button>
+            {primaryLink && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePostToIssue}
+                disabled={isPosting || !draft.markdown.trim()}
+              >
+                {isPosting ? "投稿中..." : "Issue に投稿"}
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={handleCopyAndSave}>
               <Copy className="mr-1 h-4 w-4" />
               コピーして保存

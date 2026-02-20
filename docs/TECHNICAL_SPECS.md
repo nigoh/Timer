@@ -138,7 +138,7 @@ src/
 - 永続化対象はストアごとに `partialize` で制御する。
 - `integration-link-store` は `linksByLogId` のみ永続化し、`githubPat` はメモリ保持（非永続）とする。
 
-## アジェンダ向け GitHub Issue 入力仕様（要件策定中）
+## アジェンダ向け GitHub Issue 入力仕様（初期実装）
 
 - 入力: `owner/repo` + `issueNumber` を受け取り、既存の GitHub API クライアントを再利用して Issue データを取得する。
 - 変換: Issue タイトルを会議名候補へ、Issue 本文（チェックリスト・見出し・箇条書き）をアジェンダ候補へ正規化する。
@@ -168,7 +168,7 @@ src/
 - 推奨テンプレート:
   - `docs/templates/GITHUB_MEETING_INPUT_ISSUE_TEMPLATE.md` を正本とする。
 
-## 会議レポートの GitHub Issue コメント投稿仕様（要件策定中）
+## 会議レポートの GitHub Issue コメント投稿仕様（初期実装）
 
 - 実現可否: 可能（GitHub REST API `POST /repos/{owner}/{repo}/issues/{issue_number}/comments` を利用）。
 - 認証:

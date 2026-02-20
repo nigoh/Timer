@@ -1,6 +1,7 @@
 export interface GitHubIssue {
   title: string;
   issueUrl: string;
+  body: string;
 }
 
 interface FetchGitHubIssueParams {
@@ -42,7 +43,11 @@ export const fetchGitHubIssue = async ({
     throw new Error(`GitHub API エラー: ${response.status}`);
   }
 
-  const data = (await response.json()) as { title?: unknown; html_url?: unknown };
+  const data = (await response.json()) as {
+    title?: unknown;
+    html_url?: unknown;
+    body?: unknown;
+  };
   if (typeof data.title !== "string" || typeof data.html_url !== "string") {
     throw new Error("GitHub API のレスポンスが不正です");
   }
@@ -50,5 +55,51 @@ export const fetchGitHubIssue = async ({
   return {
     title: data.title,
     issueUrl: data.html_url,
+    body: typeof data.body === "string" ? data.body : "",
   };
+};
+
+interface PostGitHubIssueCommentParams {
+  owner: string;
+  repo: string;
+  issueNumber: number;
+  body: string;
+  pat?: string;
+}
+
+export const postGitHubIssueComment = async ({
+  owner,
+  repo,
+  issueNumber,
+  body,
+  pat,
+}: PostGitHubIssueCommentParams): Promise<void> => {
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": GITHUB_API_VERSION,
+    "Content-Type": "application/json",
+  };
+
+  if (pat?.trim()) {
+    headers.Authorization = `Bearer ${pat.trim()}`;
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${issueNumber}/comments`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ body }),
+    },
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error("コメント投稿先の Issue が見つかりません");
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("コメント投稿の認証に失敗しました（PAT を確認してください）");
+    }
+    throw new Error(`GitHub API エラー: ${response.status}`);
+  }
 };
