@@ -138,6 +138,13 @@ src/
 - 永続化対象はストアごとに `partialize` で制御する。
 - `integration-link-store` は `linksByLogId` のみ永続化し、`githubPat` はメモリ保持（非永続）とする。
 
+## アジェンダ向け GitHub Issue 入力仕様（要件策定中）
+
+- 入力: `owner/repo` + `issueNumber` を受け取り、既存の GitHub API クライアントを再利用して Issue データを取得する。
+- 変換: Issue タイトルを会議名候補へ、Issue 本文（チェックリスト・見出し・箇条書き）をアジェンダ候補へ正規化する。
+- 適用: 生成結果は即時保存せず UI ローカル状態でレビューし、ユーザー確定時に `agenda-timer-store` の会議/議題作成 API を呼び出す。
+- 失敗時: API エラーや本文解析失敗時は、既存の手動会議作成と手動議題追加フローへフォールバックする。
+
 ## パフォーマンス仕様
 
 - tick 系処理は `isRunning/isAnyRunning` を先に判定し、不要な更新は早期 return する。
