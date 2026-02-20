@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { IntegrationLink } from '@/types/integrationLink';
+import { AiProviderConfig } from '@/types/aiAssist';
 
 interface IntegrationLinkState {
   /** timeLogId → IntegrationLink[] のマップ */
@@ -12,6 +13,13 @@ interface IntegrationLinkState {
    * - ページリロードで null にリセットされる
    */
   githubPat: string | null;
+  /**
+   * AI API 設定（メモリのみ・非永続）
+   * - localStorage / sessionStorage には保存しない
+   * - partialize により persist 対象外
+   * - ページリロードで null にリセットされる
+   */
+  aiProviderConfig: AiProviderConfig | null;
 }
 
 interface IntegrationLinkActions {
@@ -23,6 +31,8 @@ interface IntegrationLinkActions {
   getLinks: (timeLogId: string) => IntegrationLink[];
   /** PAT をメモリにセット（persist 対象外） */
   setGithubPat: (pat: string | null) => void;
+  /** AI API 設定をメモリにセット（persist 対象外） */
+  setAiProviderConfig: (config: AiProviderConfig | null) => void;
 }
 
 type IntegrationLinkStore = IntegrationLinkState & IntegrationLinkActions;
@@ -32,6 +42,7 @@ export const useIntegrationLinkStore = create<IntegrationLinkStore>()(
     (set, get) => ({
       linksByLogId: {},
       githubPat: null,
+      aiProviderConfig: null,
 
       addLink: (timeLogId, link) => {
         const newLink: IntegrationLink = {
@@ -61,6 +72,7 @@ export const useIntegrationLinkStore = create<IntegrationLinkStore>()(
       getLinks: (timeLogId) => get().linksByLogId[timeLogId] ?? [],
 
       setGithubPat: (pat) => set({ githubPat: pat }),
+      setAiProviderConfig: (config) => set({ aiProviderConfig: config }),
     }),
     {
       name: 'integration-links',

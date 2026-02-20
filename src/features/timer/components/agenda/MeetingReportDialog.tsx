@@ -23,6 +23,8 @@ import {
   PostTemplateType,
 } from "@/features/timer/utils/meeting-report-post-template";
 import { buildMeetingAiAssist } from "@/features/timer/utils/meeting-ai-assist";
+import { generateMeetingAiAssist } from "@/features/timer/services/meeting-ai-assist-service";
+import { AiProviderConfig, AiProviderType } from "@/types/aiAssist";
 
 export const MeetingReportDialog: React.FC = () => {
   const {
@@ -39,27 +41,43 @@ export const MeetingReportDialog: React.FC = () => {
     saveDraft,
     reports,
   } = useMeetingReportStore();
-  const { getLinks, githubPat } = useIntegrationLinkStore();
+  const { getLinks, githubPat, aiProviderConfig, setAiProviderConfig } = useIntegrationLinkStore();
   const [isPosting, setIsPosting] = React.useState(false);
   const [isTodoImporting, setIsTodoImporting] = React.useState(false);
+  const [isAiGenerating, setIsAiGenerating] = React.useState(false);
   const [postStatusMessage, setPostStatusMessage] = React.useState("");
   const [isDiffOnlyPost, setIsDiffOnlyPost] = React.useState(false);
   const [postTemplate, setPostTemplate] = React.useState<PostTemplateType>(
     "detailed",
   );
+  const [generatedAiAssist, setGeneratedAiAssist] = React.useState<ReturnType<typeof buildMeetingAiAssist> | null>(null);
+  const [aiConfigDraft, setAiConfigDraft] = React.useState<AiProviderConfig>({
+    provider: aiProviderConfig?.provider ?? "openai",
+    model: aiProviderConfig?.model ?? "gpt-4o-mini",
+    apiKey: aiProviderConfig?.apiKey ?? "",
+    temperature: aiProviderConfig?.temperature ?? 0.2,
+  });
 
   React.useEffect(() => {
     if (!isDialogOpen) {
       setPostStatusMessage("");
       setIsDiffOnlyPost(false);
       setPostTemplate("detailed");
+      setGeneratedAiAssist(null);
     }
   }, [isDialogOpen]);
 
-  const aiAssist = React.useMemo(
+  const draftId = draft?.id;
+  React.useEffect(() => {
+    if (!draftId) return;
+    setGeneratedAiAssist(null);
+  }, [draftId]);
+
+  const baseAiAssist = React.useMemo(
     () => (draft ? buildMeetingAiAssist(draft) : null),
     [draft],
   );
+  const aiAssist = generatedAiAssist ?? baseAiAssist;
 
   if (!draft || !aiAssist) return null;
 
@@ -114,6 +132,37 @@ export const MeetingReportDialog: React.FC = () => {
       draft.nextActions.trim() ? draft.nextActions : nextActionsAssist,
     );
     setPostStatusMessage("AIアシスト案を反映しました。必要に応じて編集してください。");
+  };
+
+  const handleAiConfigChange = <K extends keyof AiProviderConfig>(
+    key: K,
+    value: AiProviderConfig[K],
+  ) => {
+    setAiConfigDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveAiConfig = () => {
+    setAiProviderConfig(aiConfigDraft);
+    setPostStatusMessage("AI API設定を保存しました（メモリのみ保持）");
+  };
+
+  const handleGenerateAssist = async (testOnly = false) => {
+    setIsAiGenerating(true);
+    try {
+      const result = await generateMeetingAiAssist(draft, aiConfigDraft);
+      if (!testOnly) {
+        setGeneratedAiAssist(result.assist);
+      }
+      setPostStatusMessage(
+        result.usedFallback
+          ? "AI APIに接続できなかったためルールベース提案を表示しています"
+          : testOnly
+            ? "AI API 接続テストに成功しました"
+            : "LangChain経由でAI提案を更新しました",
+      );
+    } finally {
+      setIsAiGenerating(false);
+    }
   };
 
   const handlePostToIssue = async () => {
@@ -248,8 +297,91 @@ export const MeetingReportDialog: React.FC = () => {
               <div className="space-y-2 rounded-md border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <Label>AIアシスト（会議参加者が編集して利用）</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={applyAiAssist}>
-                    下書きに反映
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateAssist(true)}
+                      disabled={isAiGenerating}
+                    >
+                      接続テスト
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGenerateAssist(false)}
+                      disabled={isAiGenerating}
+                    >
+                      {isAiGenerating ? "生成中..." : "AIで再生成"}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={applyAiAssist}>
+                      下書きに反映
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor={`${formIdPrefix}-ai-provider`} className="text-xs">
+                      Provider
+                    </Label>
+                    <select
+                      id={`${formIdPrefix}-ai-provider`}
+                      className="h-8 w-full rounded-md border bg-background px-2 text-xs"
+                      value={aiConfigDraft.provider}
+                      onChange={(event) =>
+                        handleAiConfigChange("provider", event.target.value as AiProviderType)
+                      }
+                    >
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`${formIdPrefix}-ai-model`} className="text-xs">
+                      Model
+                    </Label>
+                    <Input
+                      id={`${formIdPrefix}-ai-model`}
+                      value={aiConfigDraft.model}
+                      onChange={(event) => handleAiConfigChange("model", event.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`${formIdPrefix}-ai-key`} className="text-xs">
+                      API Key（メモリのみ）
+                    </Label>
+                    <Input
+                      id={`${formIdPrefix}-ai-key`}
+                      type="password"
+                      value={aiConfigDraft.apiKey}
+                      onChange={(event) => handleAiConfigChange("apiKey", event.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`${formIdPrefix}-ai-temperature`} className="text-xs">
+                      Temperature (0-2)
+                    </Label>
+                    <Input
+                      id={`${formIdPrefix}-ai-temperature`}
+                      type="number"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      value={aiConfigDraft.temperature ?? 0.2}
+                      onChange={(event) =>
+                        handleAiConfigChange("temperature", Number(event.target.value))
+                      }
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button type="button" variant="outline" size="sm" onClick={handleSaveAiConfig}>
+                    設定を保存
                   </Button>
                 </div>
                 <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
