@@ -5,6 +5,7 @@ const resetStore = () => {
   useIntegrationLinkStore.setState({
     linksByLogId: {},
     githubPat: null,
+    aiProviderConfig: null,
   });
 };
 
@@ -17,6 +18,7 @@ describe('useIntegrationLinkStore', () => {
     const state = useIntegrationLinkStore.getState();
     expect(state.linksByLogId).toEqual({});
     expect(state.githubPat).toBeNull();
+    expect(state.aiProviderConfig).toBeNull();
   });
 
   it('addLink adds a link with a generated id and createdAt', () => {
@@ -105,5 +107,17 @@ describe('useIntegrationLinkStore', () => {
     store.setGithubPat('ghp_test123');
     store.setGithubPat(null);
     expect(useIntegrationLinkStore.getState().githubPat).toBeNull();
+  });
+
+  it('setAiProviderConfig stores config in memory', () => {
+    const store = useIntegrationLinkStore.getState();
+    store.setAiProviderConfig({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKey: 'sk-test',
+      temperature: 0.7,
+    });
+
+    expect(useIntegrationLinkStore.getState().aiProviderConfig?.provider).toBe('openai');
   });
 });
