@@ -18,14 +18,10 @@ import {
   postGitHubIssueComment,
 } from "@/features/timer/api/github-issues";
 import { parseIssueTodoItems } from "@/features/timer/utils/github-issue-agenda-parser";
-
-const buildDiffMarkdown = (currentMarkdown: string, previousLines: Set<string>) => {
-  const diffLines = currentMarkdown
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !previousLines.has(line));
-  return diffLines.join("\n");
-};
+import {
+  buildPostPreviewMarkdown,
+  PostTemplateType,
+} from "@/features/timer/utils/meeting-report-post-template";
 
 export const MeetingReportDialog: React.FC = () => {
   const {
@@ -38,6 +34,7 @@ export const MeetingReportDialog: React.FC = () => {
     updateDraftTodo,
     removeDraftTodo,
     setDraftTodos,
+    addPostedCommentHistory,
     saveDraft,
     reports,
   } = useMeetingReportStore();
@@ -46,11 +43,15 @@ export const MeetingReportDialog: React.FC = () => {
   const [isTodoImporting, setIsTodoImporting] = React.useState(false);
   const [postStatusMessage, setPostStatusMessage] = React.useState("");
   const [isDiffOnlyPost, setIsDiffOnlyPost] = React.useState(false);
+  const [postTemplate, setPostTemplate] = React.useState<PostTemplateType>(
+    "detailed",
+  );
 
   React.useEffect(() => {
     if (!isDialogOpen) {
       setPostStatusMessage("");
       setIsDiffOnlyPost(false);
+      setPostTemplate("detailed");
     }
   }, [isDialogOpen]);
 
@@ -69,15 +70,20 @@ export const MeetingReportDialog: React.FC = () => {
   const primaryLink = getLinks(`meeting:${draft.meetingId}`)[0];
   const previousReportMarkdown =
     reports.find((report) => report.meetingId === draft.meetingId)?.markdown ?? "";
-  const previousReportLineSet = React.useMemo(
-    () =>
-      new Set(
-        previousReportMarkdown
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean),
-      ),
-    [previousReportMarkdown],
+  const postPreview = buildPostPreviewMarkdown(
+    postTemplate,
+    {
+      meetingTitle: draft.meetingTitle,
+      summary: draft.summary,
+      decisions: draft.decisions,
+      nextActions: draft.nextActions,
+      todos: draft.todos,
+      markdown: draft.markdown,
+    },
+    {
+      diffOnly: isDiffOnlyPost,
+      previousMarkdown: previousReportMarkdown,
+    },
   );
 
   const handlePostToIssue = async () => {
@@ -85,9 +91,7 @@ export const MeetingReportDialog: React.FC = () => {
       return;
     }
 
-    const commentBody = isDiffOnlyPost
-      ? buildDiffMarkdown(draft.markdown, previousReportLineSet)
-      : draft.markdown;
+    const commentBody = postPreview;
     if (!commentBody.trim()) {
       setPostStatusMessage("差分がないため投稿をスキップしました");
       return;
@@ -96,12 +100,17 @@ export const MeetingReportDialog: React.FC = () => {
     setIsPosting(true);
     setPostStatusMessage("");
     try {
-      await postGitHubIssueComment({
+      const postedComment = await postGitHubIssueComment({
         owner: primaryLink.owner,
         repo: primaryLink.repo,
         issueNumber: primaryLink.issueNumber,
         body: commentBody,
         pat: githubPat ?? undefined,
+      });
+      addPostedCommentHistory({
+        meetingId: draft.meetingId,
+        meetingTitle: draft.meetingTitle,
+        commentUrl: postedComment.commentUrl,
       });
       setPostStatusMessage("Issue コメントへの投稿に成功しました");
     } catch (error) {
@@ -154,7 +163,7 @@ export const MeetingReportDialog: React.FC = () => {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic">基本情報</TabsTrigger>
             <TabsTrigger value="minutes">議事内容/ToDo</TabsTrigger>
-            <TabsTrigger value="markdown">Markdown確認</TabsTrigger>
+            <TabsTrigger value="markdown">投稿プレビュー</TabsTrigger>
           </TabsList>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-1">
@@ -334,12 +343,36 @@ export const MeetingReportDialog: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="markdown" className="mt-0 space-y-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor={`${formIdPrefix}-post-template`}>
+                    投稿テンプレート
+                  </Label>
+                  <select
+                    id={`${formIdPrefix}-post-template`}
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    value={postTemplate}
+                    onChange={(event) =>
+                      setPostTemplate(event.target.value as PostTemplateType)
+                    }
+                  >
+                    <option value="detailed">詳細</option>
+                    <option value="summary">要約</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">投稿モード</Label>
+                  <p className="text-sm">
+                    {isDiffOnlyPost ? "差分のみ投稿" : "全文投稿"}
+                  </p>
+                </div>
+              </div>
               <Label htmlFor={`${formIdPrefix}-markdown-preview`}>
-                Markdownプレビュー
+                投稿前プレビュー
               </Label>
               <Textarea
                 id={`${formIdPrefix}-markdown-preview`}
-                value={draft.markdown}
+                value={postPreview}
                 rows={14}
                 readOnly
               />
@@ -373,7 +406,7 @@ export const MeetingReportDialog: React.FC = () => {
                   type="button"
                   variant="outline"
                   onClick={handlePostToIssue}
-                  disabled={isPosting || !draft.markdown.trim()}
+                  disabled={isPosting || !postPreview.trim()}
                 >
                   {isPosting ? "投稿中..." : "Issue に投稿"}
                 </Button>

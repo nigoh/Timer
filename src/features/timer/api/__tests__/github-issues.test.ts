@@ -110,16 +110,22 @@ describe("postGitHubIssueComment", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 201,
+      json: async () => ({
+        html_url: "https://github.com/nigoh/Timer/issues/36#issuecomment-1",
+      }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await postGitHubIssueComment({
+    const comment = await postGitHubIssueComment({
       owner: "nigoh",
       repo: "Timer",
       issueNumber: 36,
       body: "comment body",
       pat: "ghp_test_token",
     });
+    expect(comment.commentUrl).toBe(
+      "https://github.com/nigoh/Timer/issues/36#issuecomment-1",
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.github.com/repos/nigoh/Timer/issues/36/comments",
@@ -138,6 +144,7 @@ describe("postGitHubIssueComment", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
+      json: async () => ({}),
     });
     vi.stubGlobal("fetch", fetchMock);
 

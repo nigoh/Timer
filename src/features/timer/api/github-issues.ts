@@ -67,13 +67,17 @@ interface PostGitHubIssueCommentParams {
   pat?: string;
 }
 
+export interface PostedGitHubIssueComment {
+  commentUrl: string;
+}
+
 export const postGitHubIssueComment = async ({
   owner,
   repo,
   issueNumber,
   body,
   pat,
-}: PostGitHubIssueCommentParams): Promise<void> => {
+}: PostGitHubIssueCommentParams): Promise<PostedGitHubIssueComment> => {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": GITHUB_API_VERSION,
@@ -102,4 +106,11 @@ export const postGitHubIssueComment = async ({
     }
     throw new Error(`GitHub API エラー: ${response.status}`);
   }
+
+  const data = (await response.json()) as { html_url?: unknown };
+  if (typeof data.html_url !== "string") {
+    throw new Error("コメント投稿レスポンスに html_url が含まれていません");
+  }
+
+  return { commentUrl: data.html_url };
 };
