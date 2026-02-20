@@ -29,6 +29,8 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 4. 追加した副作用ポイントにログを埋める。
 5. `type-check` と必要最小限のテストで検証。
 6. 外部入力（GitHub Issue など）で初期値を生成する場合は、下書きレビュー後の明示確定でのみ store へ保存する。
+7. AI API 連携を導入する場合は、最初に provider 非依存 interface を定義し、その後に LangChain adapter を追加する。
+8. APIキーはメモリ保持を既定とし、永続化の必要性はセキュリティレビュー後に判断する。
 
 ## 禁止事項
 

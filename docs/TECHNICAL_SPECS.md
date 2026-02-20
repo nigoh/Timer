@@ -199,6 +199,21 @@ src/
 - 会議レポート確認ダイアログで提案を表示し、ユーザー明示操作で下書きへ反映する（既存入力がある項目は上書きしない）。
 - AIアシストは参加者の意思決定を補助する位置づけであり、自動確定や自動投稿は行わない。
 
+## 会議 AI API 連携仕様（設計フェーズ）
+
+- 方針: 実装は段階導入とし、初期段階では UI 変更を伴わないスケルトンを先行配置する。
+- 依存方針: LangChain を採用予定とし、プロバイダ固有差分を adapter 層で吸収する。
+- 初期スケルトン:
+  - 型定義: `src/types/aiAssist.ts`
+  - 設定検証: `src/features/timer/utils/ai-provider-config.ts`
+- 設定項目:
+  - `provider`: `openai | anthropic`
+  - `model`: モデル識別子
+  - `apiKey`: メモリ保持（永続化しない）
+  - `temperature`: 0〜2
+- 失敗時挙動:
+  - API未設定・接続失敗時は既存 `meeting-ai-assist.ts` のルールベース生成へフォールバックする。
+
 ## パフォーマンス仕様
 
 - tick 系処理は `isRunning/isAnyRunning` を先に判定し、不要な更新は早期 return する。
