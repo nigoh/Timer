@@ -36,4 +36,3 @@ describe("validateAiProviderConfig", () => {
     expect(result.reason).toContain("temperature");
   });
 });
-

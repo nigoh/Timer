@@ -26,4 +26,3 @@ export const validateAiProviderConfig = (
 
   return { valid: true };
 };
-

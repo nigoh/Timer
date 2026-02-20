@@ -21,4 +21,3 @@ export interface AiAssistResponse {
   agendaAssist: string;
   preparationAssist: string;
 }
-
