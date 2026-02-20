@@ -12,6 +12,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Copy, Save, Trash2 } from "lucide-react";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
+import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
+import {
+  fetchGitHubIssue,
+  postGitHubIssueComment,
+} from "@/features/timer/api/github-issues";
+import { parseIssueTodoItems } from "@/features/timer/utils/github-issue-agenda-parser";
+import {
+  buildPostPreviewMarkdown,
+  PostTemplateType,
+} from "@/features/timer/utils/meeting-report-post-template";
 
 export const MeetingReportDialog: React.FC = () => {
   const {
@@ -23,8 +33,27 @@ export const MeetingReportDialog: React.FC = () => {
     addDraftTodo,
     updateDraftTodo,
     removeDraftTodo,
+    setDraftTodos,
+    addPostedCommentHistory,
     saveDraft,
+    reports,
   } = useMeetingReportStore();
+  const { getLinks, githubPat } = useIntegrationLinkStore();
+  const [isPosting, setIsPosting] = React.useState(false);
+  const [isTodoImporting, setIsTodoImporting] = React.useState(false);
+  const [postStatusMessage, setPostStatusMessage] = React.useState("");
+  const [isDiffOnlyPost, setIsDiffOnlyPost] = React.useState(false);
+  const [postTemplate, setPostTemplate] = React.useState<PostTemplateType>(
+    "detailed",
+  );
+
+  React.useEffect(() => {
+    if (!isDialogOpen) {
+      setPostStatusMessage("");
+      setIsDiffOnlyPost(false);
+      setPostTemplate("detailed");
+    }
+  }, [isDialogOpen]);
 
   if (!draft) return null;
 
@@ -36,6 +65,88 @@ export const MeetingReportDialog: React.FC = () => {
       await navigator.clipboard.writeText(draft.markdown);
     }
     saveDraft();
+  };
+
+  const primaryLink = getLinks(`meeting:${draft.meetingId}`)[0];
+  const previousReportMarkdown =
+    reports.find((report) => report.meetingId === draft.meetingId)?.markdown ?? "";
+  const postPreview = buildPostPreviewMarkdown(
+    postTemplate,
+    {
+      meetingTitle: draft.meetingTitle,
+      summary: draft.summary,
+      decisions: draft.decisions,
+      nextActions: draft.nextActions,
+      todos: draft.todos,
+      markdown: draft.markdown,
+    },
+    {
+      diffOnly: isDiffOnlyPost,
+      previousMarkdown: previousReportMarkdown,
+    },
+  );
+
+  const handlePostToIssue = async () => {
+    if (!primaryLink || !draft.markdown.trim()) {
+      return;
+    }
+
+    const commentBody = postPreview;
+    if (!commentBody.trim()) {
+      setPostStatusMessage("差分がないため投稿をスキップしました");
+      return;
+    }
+
+    setIsPosting(true);
+    setPostStatusMessage("");
+    try {
+      const postedComment = await postGitHubIssueComment({
+        owner: primaryLink.owner,
+        repo: primaryLink.repo,
+        issueNumber: primaryLink.issueNumber,
+        body: commentBody,
+        pat: githubPat ?? undefined,
+      });
+      addPostedCommentHistory({
+        meetingId: draft.meetingId,
+        meetingTitle: draft.meetingTitle,
+        commentUrl: postedComment.commentUrl,
+      });
+      setPostStatusMessage("Issue コメントへの投稿に成功しました");
+    } catch (error) {
+      setPostStatusMessage(
+        error instanceof Error ? error.message : "Issue コメント投稿に失敗しました",
+      );
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const handleImportTodosFromIssue = async () => {
+    if (!primaryLink) return;
+    setIsTodoImporting(true);
+    setPostStatusMessage("");
+    try {
+      const issue = await fetchGitHubIssue({
+        owner: primaryLink.owner,
+        repo: primaryLink.repo,
+        issueNumber: primaryLink.issueNumber,
+        pat: githubPat ?? undefined,
+      });
+      const todos = parseIssueTodoItems(issue.body);
+      setDraftTodos(todos);
+      setPostStatusMessage(
+        todos.length > 0
+          ? `${todos.length}件のToDoをIssueから反映しました`
+          : "Issueから反映可能なToDoが見つかりませんでした",
+      );
+    } catch (error) {
+      setPostStatusMessage(
+        error instanceof Error ? error.message : "ToDo反映に失敗しました",
+      );
+    } finally {
+      setIsTodoImporting(false);
+    }
   };
 
   return (
@@ -51,8 +162,8 @@ export const MeetingReportDialog: React.FC = () => {
         >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic">基本情報</TabsTrigger>
-            <TabsTrigger value="minutes">議事内容</TabsTrigger>
-            <TabsTrigger value="markdown">Markdown確認</TabsTrigger>
+            <TabsTrigger value="minutes">議事内容/ToDo</TabsTrigger>
+            <TabsTrigger value="markdown">投稿プレビュー</TabsTrigger>
           </TabsList>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-1">
@@ -153,19 +264,32 @@ export const MeetingReportDialog: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>ToDo</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addDraftTodo}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    追加
-                  </Button>
-                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>ToDo</Label>
+                    <div className="flex gap-2">
+                      {primaryLink && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleImportTodosFromIssue}
+                          disabled={isTodoImporting}
+                        >
+                          {isTodoImporting ? "反映中..." : "Issueから反映"}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addDraftTodo}
+                      >
+                        <Plus className="mr-1 h-4 w-4" />
+                        追加
+                      </Button>
+                    </div>
+                  </div>
 
                 <div className="space-y-2">
                   {draft.todos.length === 0 && (
@@ -219,12 +343,36 @@ export const MeetingReportDialog: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="markdown" className="mt-0 space-y-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor={`${formIdPrefix}-post-template`}>
+                    投稿テンプレート
+                  </Label>
+                  <select
+                    id={`${formIdPrefix}-post-template`}
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    value={postTemplate}
+                    onChange={(event) =>
+                      setPostTemplate(event.target.value as PostTemplateType)
+                    }
+                  >
+                    <option value="detailed">詳細</option>
+                    <option value="summary">要約</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">投稿モード</Label>
+                  <p className="text-sm">
+                    {isDiffOnlyPost ? "差分のみ投稿" : "全文投稿"}
+                  </p>
+                </div>
+              </div>
               <Label htmlFor={`${formIdPrefix}-markdown-preview`}>
-                Markdownプレビュー
+                投稿前プレビュー
               </Label>
               <Textarea
                 id={`${formIdPrefix}-markdown-preview`}
-                value={draft.markdown}
+                value={postPreview}
                 rows={14}
                 readOnly
               />
@@ -232,6 +380,11 @@ export const MeetingReportDialog: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
+            {postStatusMessage && (
+              <p className="w-full text-xs text-muted-foreground">
+                {postStatusMessage}
+              </p>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -239,6 +392,26 @@ export const MeetingReportDialog: React.FC = () => {
             >
               キャンセル
             </Button>
+            {primaryLink && (
+              <>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={isDiffOnlyPost}
+                    onChange={(event) => setIsDiffOnlyPost(event.target.checked)}
+                  />
+                  差分のみ投稿
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePostToIssue}
+                  disabled={isPosting || !postPreview.trim()}
+                >
+                  {isPosting ? "投稿中..." : "Issue に投稿"}
+                </Button>
+              </>
+            )}
             <Button type="button" variant="outline" onClick={handleCopyAndSave}>
               <Copy className="mr-1 h-4 w-4" />
               コピーして保存

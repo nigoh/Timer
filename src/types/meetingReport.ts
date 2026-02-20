@@ -28,3 +28,11 @@ export interface MeetingReport {
   todos: MeetingReportTodo[];
   markdown: string;
 }
+
+export interface PostedIssueCommentHistory {
+  id: string;
+  meetingId: string;
+  meetingTitle: string;
+  commentUrl: string;
+  postedAt: string;
+}

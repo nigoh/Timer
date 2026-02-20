@@ -15,6 +15,8 @@ import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-st
 import { MeetingReport } from "@/types/meetingReport";
 import { cn } from "@/lib/utils";
 
+const MAX_POSTED_COMMENT_HISTORY = 5;
+
 const formatDateTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -28,10 +30,18 @@ interface MeetingReportHistoryProps {
 export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
   className,
 }) => {
-  const { reports, deleteReport } = useMeetingReportStore();
+  const { reports, postedCommentHistory, deleteReport } = useMeetingReportStore();
   const [selectedReport, setSelectedReport] = useState<MeetingReport | null>(
     null,
   );
+  const selectedReportPostedHistory = React.useMemo(() => {
+    if (!selectedReport) {
+      return [];
+    }
+    return postedCommentHistory
+      .filter((entry) => entry.meetingId === selectedReport.meetingId)
+      .slice(0, MAX_POSTED_COMMENT_HISTORY);
+  }, [postedCommentHistory, selectedReport]);
 
   const handleCopy = async (markdown: string) => {
     if (!markdown.trim()) return;
@@ -166,6 +176,25 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
               rows={16}
               readOnly
             />
+            {selectedReport && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Issue投稿履歴</p>
+                <ul className="space-y-1 text-xs">
+                  {selectedReportPostedHistory.map((entry) => (
+                      <li key={entry.id}>
+                        <a
+                          href={entry.commentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline break-all"
+                        >
+                          {entry.commentUrl}
+                        </a>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
             <div className="flex justify-end">
               <Button
                 type="button"

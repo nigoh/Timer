@@ -1,10 +1,15 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { Meeting } from "@/types/agenda";
-import { MeetingReport, MeetingReportTodo } from "@/types/meetingReport";
+import {
+  MeetingReport,
+  MeetingReportTodo,
+  PostedIssueCommentHistory,
+} from "@/types/meetingReport";
 
 interface MeetingReportState {
   reports: MeetingReport[];
+  postedCommentHistory: PostedIssueCommentHistory[];
   draft: MeetingReport | null;
   isDialogOpen: boolean;
 }
@@ -19,6 +24,14 @@ interface MeetingReportActions {
   addDraftTodo: () => void;
   updateDraftTodo: (id: string, updates: Partial<MeetingReportTodo>) => void;
   removeDraftTodo: (id: string) => void;
+  setDraftTodos: (
+    todos: Array<Pick<MeetingReportTodo, "text" | "owner" | "dueDate">>,
+  ) => void;
+  addPostedCommentHistory: (entry: {
+    meetingId: string;
+    meetingTitle: string;
+    commentUrl: string;
+  }) => void;
   setDialogOpen: (open: boolean) => void;
   saveDraft: () => void;
   deleteReport: (id: string) => void;
@@ -102,6 +115,7 @@ export const useMeetingReportStore = create<
   persist(
     (set, get) => ({
       reports: [],
+      postedCommentHistory: [],
       draft: null,
       isDialogOpen: false,
 
@@ -211,6 +225,39 @@ export const useMeetingReportStore = create<
         });
       },
 
+      setDraftTodos: (todos) => {
+        set((state) => {
+          if (!state.draft) return state;
+          const updatedDraft = {
+            ...state.draft,
+            todos: todos.map((todo) => ({
+              id: generateId(),
+              text: todo.text,
+              owner: todo.owner,
+              dueDate: todo.dueDate,
+              done: false,
+            })),
+          };
+          updatedDraft.markdown = buildReportMarkdown(updatedDraft);
+          return { draft: updatedDraft };
+        });
+      },
+
+      addPostedCommentHistory: ({ meetingId, meetingTitle, commentUrl }) => {
+        set((state) => ({
+          postedCommentHistory: [
+            {
+              id: generateId(),
+              meetingId,
+              meetingTitle,
+              commentUrl,
+              postedAt: new Date().toISOString(),
+            },
+            ...state.postedCommentHistory,
+          ],
+        }));
+      },
+
       setDialogOpen: (open) => set({ isDialogOpen: open }),
 
       saveDraft: () => {
@@ -245,6 +292,7 @@ export const useMeetingReportStore = create<
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         reports: state.reports,
+        postedCommentHistory: state.postedCommentHistory,
       }),
     },
   ),

@@ -49,8 +49,11 @@ import {
 } from "lucide-react";
 import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
+import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
+import { fetchGitHubIssue } from "@/features/timer/api/github-issues";
 import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingReportDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
+import { parseIssueAgendaItems } from "@/features/timer/utils/github-issue-agenda-parser";
 import { GitHubIssueLinking } from "@/components/GitHubIssueLinking";
 import {
   AGENDA_MINUTES_MOBILE_QUERY,
@@ -64,6 +67,28 @@ import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
 const formatMinutes = (seconds: number): string => {
   return `${Math.ceil(seconds / 60)}分`;
 };
+
+const DEFAULT_AGENDA_DURATION_MINUTES = 10;
+const createAgendaSelectionMap = (size: number): Record<number, boolean> =>
+  Object.fromEntries(Array.from({ length: size }, (_, index) => [index, true]));
+
+const parseAgendaDraftLines = (input: string) =>
+  input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [rawTitle, rawMinutes] = line.split("|").map((item) => item.trim());
+      const parsedMinutes = Number.parseInt(rawMinutes ?? "", 10);
+      return {
+        title: rawTitle,
+        plannedDurationMinutes:
+          Number.isFinite(parsedMinutes) && parsedMinutes > 0
+            ? parsedMinutes
+            : DEFAULT_AGENDA_DURATION_MINUTES,
+      };
+    })
+    .filter((item) => item.title.length > 0);
 
 // 進捗に応じた色とアイコンを取得
 const getProgressDisplay = (percentage: number) => {
@@ -111,12 +136,80 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { createMeeting, updateMeetingTitle } = useAgendaTimerStore();
+  const { createMeeting, updateMeetingTitle, addAgenda } = useAgendaTimerStore();
+  const { githubPat } = useIntegrationLinkStore();
   const [title, setTitle] = useState(meeting?.title || "");
+  const [ownerRepo, setOwnerRepo] = useState("");
+  const [issueNumber, setIssueNumber] = useState("");
+  const [agendaDraft, setAgendaDraft] = useState("");
+  const [issueError, setIssueError] = useState("");
+  const [isImportingIssue, setIsImportingIssue] = useState(false);
+  const [importedAgendaItems, setImportedAgendaItems] = useState<
+    ReturnType<typeof parseIssueAgendaItems>
+  >([]);
+  const [selectedAgendaItems, setSelectedAgendaItems] = useState<
+    Record<number, boolean>
+  >({});
 
   useEffect(() => {
     setTitle(meeting?.title || "");
+    setOwnerRepo("");
+    setIssueNumber("");
+    setAgendaDraft("");
+    setIssueError("");
+    setImportedAgendaItems([]);
+    setSelectedAgendaItems({});
   }, [meeting]);
+
+  const handleImportFromIssue = async () => {
+    setIssueError("");
+    const ownerRepoParts = ownerRepo.trim().split("/");
+    if (ownerRepoParts.length !== 2) {
+      setIssueError('Owner/Repo は "owner/repo" 形式で入力してください');
+      return;
+    }
+    const [owner = "", repo = ""] = ownerRepoParts;
+    const parsedIssueNumber = Number.parseInt(issueNumber, 10);
+    if (!owner || !repo) {
+      setIssueError('Owner/Repo は "owner/repo" 形式で入力してください');
+      return;
+    }
+    if (!Number.isFinite(parsedIssueNumber) || parsedIssueNumber <= 0) {
+      setIssueError("Issue 番号は正の整数を入力してください");
+      return;
+    }
+
+    setIsImportingIssue(true);
+    try {
+      const issue = await fetchGitHubIssue({
+        owner,
+        repo,
+        issueNumber: parsedIssueNumber,
+        pat: githubPat ?? undefined,
+      });
+      setTitle(issue.title);
+      const parsedAgendas = parseIssueAgendaItems(issue.body);
+      setImportedAgendaItems(parsedAgendas);
+      setSelectedAgendaItems(createAgendaSelectionMap(parsedAgendas.length));
+      setAgendaDraft(
+        parsedAgendas
+          .map((agenda) =>
+            agenda.plannedDurationMinutes
+              ? `${agenda.title} | ${agenda.plannedDurationMinutes}`
+              : agenda.title,
+          )
+          .join("\n"),
+      );
+    } catch (error) {
+      setIssueError(
+        error instanceof Error
+          ? error.message
+          : "Issue からの下書き生成に失敗しました",
+      );
+    } finally {
+      setIsImportingIssue(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,10 +218,30 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
     if (meeting) {
       updateMeetingTitle(meeting.id, title);
     } else {
-      createMeeting(title);
+      const createdMeetingId = createMeeting(title);
+      if (createdMeetingId) {
+        const agendaCandidates =
+          importedAgendaItems.length > 0
+            ? importedAgendaItems.filter((_, index) => selectedAgendaItems[index])
+            : parseAgendaDraftLines(agendaDraft);
+        agendaCandidates.forEach((agendaItem) => {
+          addAgenda(
+            createdMeetingId,
+            agendaItem.title,
+            (agendaItem.plannedDurationMinutes ?? DEFAULT_AGENDA_DURATION_MINUTES) *
+              60,
+          );
+        });
+      }
     }
 
     setTitle("");
+    setAgendaDraft("");
+    setOwnerRepo("");
+    setIssueNumber("");
+    setIssueError("");
+    setImportedAgendaItems([]);
+    setSelectedAgendaItems({});
     onClose();
   };
 
@@ -176,6 +289,84 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
               required
             />
           </div>
+
+          {!meeting && (
+            <div className="space-y-3 rounded-md border p-3">
+              <p className="text-sm font-medium">GitHub Issue から下書き入力</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="meeting-issue-owner-repo">Owner/Repo</Label>
+                  <Input
+                    id="meeting-issue-owner-repo"
+                    placeholder="owner/repo"
+                    value={ownerRepo}
+                    onChange={(event) => setOwnerRepo(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="meeting-issue-number">Issue #</Label>
+                  <Input
+                    id="meeting-issue-number"
+                    type="number"
+                    min="1"
+                    placeholder="36"
+                    value={issueNumber}
+                    onChange={(event) => setIssueNumber(event.target.value)}
+                  />
+                </div>
+              </div>
+              {issueError && <p className="text-xs text-destructive">{issueError}</p>}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleImportFromIssue}
+                disabled={isImportingIssue}
+              >
+                {isImportingIssue ? "取得中..." : "Issue から反映"}
+              </Button>
+              {importedAgendaItems.length > 0 && (
+                <div className="space-y-1 rounded-md bg-muted/50 p-2">
+                  <p className="text-xs font-medium">取り込み対象の選択</p>
+                  <ul className="space-y-1">
+                    {importedAgendaItems.map((item, index) => (
+                      <li key={`${item.title}-${index}`} className="text-xs">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selectedAgendaItems[index])}
+                            onChange={(event) =>
+                              setSelectedAgendaItems((prev) => ({
+                                ...prev,
+                                [index]: event.target.checked,
+                              }))
+                            }
+                          />
+                          <span>
+                            {item.title}
+                            {item.plannedDurationMinutes
+                              ? `（${item.plannedDurationMinutes}分）`
+                              : ""}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="space-y-1">
+                <Label htmlFor="meeting-issue-agenda-draft">
+                  アジェンダ下書き（1行: タイトル | 分）
+                </Label>
+                <Textarea
+                  id="meeting-issue-agenda-draft"
+                  rows={6}
+                  placeholder={"例: オープニング | 5\n課題整理 | 15"}
+                  value={agendaDraft}
+                  onChange={(event) => setAgendaDraft(event.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>

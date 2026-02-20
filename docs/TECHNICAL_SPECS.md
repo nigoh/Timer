@@ -138,6 +138,61 @@ src/
 - 永続化対象はストアごとに `partialize` で制御する。
 - `integration-link-store` は `linksByLogId` のみ永続化し、`githubPat` はメモリ保持（非永続）とする。
 
+## アジェンダ向け GitHub Issue 入力仕様（初期実装）
+
+- 入力: `owner/repo` + `issueNumber` を受け取り、既存の GitHub API クライアントを再利用して Issue データを取得する。
+- 変換: Issue タイトルを会議名候補へ、Issue 本文（チェックリスト・見出し・箇条書き）をアジェンダ候補へ正規化する。
+- 適用: 生成結果は即時保存せず UI ローカル状態でレビューし、ユーザー確定時に `agenda-timer-store` の会議/議題作成 API を呼び出す。
+- 失敗時: API エラーや本文解析失敗時は、既存の手動会議作成と手動議題追加フローへフォールバックする。
+
+### 推奨 Issue 入力フォーマット
+
+```md
+# 会議名（Issue title）
+
+## Agenda（または 議題）
+- [ ] 議題A
+- [ ] 議題B
+
+## Notes
+- 共有メモ
+```
+
+- 解析優先順位:
+  1. `## Agenda` / `## 議題` 配下のチェックリスト・箇条書き
+  2. 本文全体のチェックリスト
+  3. 本文全体の箇条書き・番号付きリスト
+- 予定時間抽出:
+  - `Duration: 10m` / `所要: 10分` を検出した場合のみ候補値として反映する。
+  - 未指定時は既存のデフォルト予定時間を適用する。
+- 会議作成UIでは抽出したアジェンダ候補をチェック選択して取り込み対象を確定する。
+- 推奨テンプレート:
+  - `docs/templates/GITHUB_MEETING_INPUT_ISSUE_TEMPLATE.md` を正本とする。
+
+## 会議レポートの GitHub Issue コメント投稿仕様（初期実装）
+
+- 実現可否: 可能（GitHub REST API `POST /repos/{owner}/{repo}/issues/{issue_number}/comments` を利用）。
+- 認証:
+  - Public リポジトリ: Classic PAT の `public_repo` もしくは Fine-grained token の Issues: Read and write で投稿可能。
+  - Private リポジトリ: Classic PAT の `repo` もしくは Fine-grained token の Issues: Read and write が必要。
+- 投稿フロー:
+  1. 会議と Issue リンクが存在することを検証
+  2. ユーザーが投稿ボタンを明示的に実行
+  3. Markdown 形式で議事録をコメント投稿
+  4. 成功/失敗を通知とログで記録
+- 投稿モード:
+  - 全文投稿: 会議レポート Markdown 全体を投稿
+  - 差分投稿: 前回レポートとの差分行のみ投稿（差分が空の場合は投稿スキップ）
+- 投稿テンプレート:
+  - 詳細: 会議レポート Markdown 全体
+  - 要約: サマリー/決定事項/次回アクション/ToDo を再構成した短縮テンプレート
+- ToDo 自動反映:
+  - Issue チェックリストから ToDo 候補を抽出し、`@mention` / `担当:` を owner、`期限:` / `due:` を dueDate にマッピングする。
+- 投稿履歴:
+  - 投稿成功時に `commentUrl` と `postedAt` を meeting-report-store の履歴へ保存し、レポート履歴画面から参照可能にする。
+- セキュリティ:
+  - PAT は `integration-link-store` のメモリ内のみに保持し、永続化しない。
+
 ## パフォーマンス仕様
 
 - tick 系処理は `isRunning/isAnyRunning` を先に判定し、不要な更新は早期 return する。
