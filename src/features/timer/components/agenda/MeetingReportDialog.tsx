@@ -61,8 +61,7 @@ export const MeetingReportDialog: React.FC = () => {
     [draft],
   );
 
-  if (!draft) return null;
-  const assist = aiAssist ?? buildMeetingAiAssist(draft);
+  if (!draft || !aiAssist) return null;
 
   const participantsText = draft.participants.join(", ");
   const formIdPrefix = `meeting-report-${draft.id}`;
@@ -96,19 +95,19 @@ export const MeetingReportDialog: React.FC = () => {
     if (!draft || !aiAssist) return;
 
     const nextActionsAssist = [
-      assist.facilitationAssist,
-      assist.agendaAssist,
-      assist.preparationAssist,
+      aiAssist.facilitationAssist,
+      aiAssist.agendaAssist,
+      aiAssist.preparationAssist,
     ]
       .filter(Boolean)
       .join("\n");
     updateDraftField(
       "summary",
-      draft.summary.trim() ? draft.summary : assist.summary,
+      draft.summary.trim() ? draft.summary : aiAssist.summary,
     );
     updateDraftField(
       "decisions",
-      draft.decisions.trim() ? draft.decisions : assist.consensusAssist,
+      draft.decisions.trim() ? draft.decisions : aiAssist.consensusAssist,
     );
     updateDraftField(
       "nextActions",
@@ -254,11 +253,11 @@ export const MeetingReportDialog: React.FC = () => {
                   </Button>
                 </div>
                 <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  <li>議事録要約: {assist.summary}</li>
-                  <li>合意形成アシスト: {assist.consensusAssist}</li>
-                  <li>ファシリテーションアシスト: {assist.facilitationAssist}</li>
-                  <li>アジェンダ作成アシスト: {assist.agendaAssist}</li>
-                  <li>会議事前準備アシスト: {assist.preparationAssist}</li>
+                  <li>議事録要約: {aiAssist.summary}</li>
+                  <li>合意形成アシスト: {aiAssist.consensusAssist}</li>
+                  <li>ファシリテーションアシスト: {aiAssist.facilitationAssist}</li>
+                  <li>アジェンダ作成アシスト: {aiAssist.agendaAssist}</li>
+                  <li>会議事前準備アシスト: {aiAssist.preparationAssist}</li>
                 </ul>
               </div>
 
