@@ -31,6 +31,12 @@ export const MeetingReportDialog: React.FC = () => {
   const [isPosting, setIsPosting] = React.useState(false);
   const [postStatusMessage, setPostStatusMessage] = React.useState("");
 
+  React.useEffect(() => {
+    if (!isDialogOpen) {
+      setPostStatusMessage("");
+    }
+  }, [isDialogOpen]);
+
   if (!draft) return null;
 
   const participantsText = draft.participants.join(", ");

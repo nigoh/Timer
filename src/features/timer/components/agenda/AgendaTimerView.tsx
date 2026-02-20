@@ -68,6 +68,22 @@ const formatMinutes = (seconds: number): string => {
   return `${Math.ceil(seconds / 60)}分`;
 };
 
+const parseAgendaDraftLines = (input: string) =>
+  input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [rawTitle, rawMinutes] = line.split("|").map((item) => item.trim());
+      const parsedMinutes = Number.parseInt(rawMinutes ?? "", 10);
+      return {
+        title: rawTitle,
+        plannedDurationMinutes:
+          Number.isFinite(parsedMinutes) && parsedMinutes > 0 ? parsedMinutes : 10,
+      };
+    })
+    .filter((item) => item.title.length > 0);
+
 // 進捗に応じた色とアイコンを取得
 const getProgressDisplay = (percentage: number) => {
   if (percentage <= 70) {
@@ -131,27 +147,6 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
     setIssueError("");
   }, [meeting]);
 
-  const parseAgendaDraftLines = useMemo(
-    () => (input: string) =>
-      input
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-          const [rawTitle, rawMinutes] = line.split("|").map((item) => item.trim());
-          const parsedMinutes = Number.parseInt(rawMinutes ?? "", 10);
-          return {
-            title: rawTitle,
-            plannedDurationMinutes:
-              Number.isFinite(parsedMinutes) && parsedMinutes > 0
-                ? parsedMinutes
-                : 10,
-          };
-        })
-        .filter((item) => item.title.length > 0),
-    [],
-  );
-
   const handleImportFromIssue = async () => {
     setIssueError("");
     const [owner = "", repo = ""] = ownerRepo.trim().split("/");
@@ -202,8 +197,7 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
     if (meeting) {
       updateMeetingTitle(meeting.id, title);
     } else {
-      createMeeting(title);
-      const createdMeetingId = useAgendaTimerStore.getState().currentMeeting?.id;
+      const createdMeetingId = createMeeting(title);
       if (createdMeetingId) {
         const agendaCandidates = parseAgendaDraftLines(agendaDraft);
         agendaCandidates.forEach((agendaItem) => {

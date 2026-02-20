@@ -5,7 +5,7 @@ import { notificationManager, SoundType } from "@/utils/notification-manager";
 import { logger } from "@/utils/logger";
 
 export interface AgendaTimerStore extends AgendaTimerState {
-  createMeeting: (title: string) => void;
+  createMeeting: (title: string) => string;
   updateMeetingTitle: (id: string, title: string) => void;
   deleteMeeting: (id: string) => void;
   setCurrentMeeting: (id: string) => void;
@@ -143,6 +143,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
           },
           "agenda",
         );
+        return newMeeting.id;
       },
 
       updateMeetingTitle: (id: string, title: string) => {
