@@ -69,6 +69,8 @@ const formatMinutes = (seconds: number): string => {
 };
 
 const DEFAULT_AGENDA_DURATION_MINUTES = 10;
+const createAgendaSelectionMap = (size: number): Record<number, boolean> =>
+  Object.fromEntries(Array.from({ length: size }, (_, index) => [index, true]));
 
 const parseAgendaDraftLines = (input: string) =>
   input
@@ -142,6 +144,12 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
   const [agendaDraft, setAgendaDraft] = useState("");
   const [issueError, setIssueError] = useState("");
   const [isImportingIssue, setIsImportingIssue] = useState(false);
+  const [importedAgendaItems, setImportedAgendaItems] = useState<
+    ReturnType<typeof parseIssueAgendaItems>
+  >([]);
+  const [selectedAgendaItems, setSelectedAgendaItems] = useState<
+    Record<number, boolean>
+  >({});
 
   useEffect(() => {
     setTitle(meeting?.title || "");
@@ -149,6 +157,8 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
     setIssueNumber("");
     setAgendaDraft("");
     setIssueError("");
+    setImportedAgendaItems([]);
+    setSelectedAgendaItems({});
   }, [meeting]);
 
   const handleImportFromIssue = async () => {
@@ -179,6 +189,8 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
       });
       setTitle(issue.title);
       const parsedAgendas = parseIssueAgendaItems(issue.body);
+      setImportedAgendaItems(parsedAgendas);
+      setSelectedAgendaItems(createAgendaSelectionMap(parsedAgendas.length));
       setAgendaDraft(
         parsedAgendas
           .map((agenda) =>
@@ -208,7 +220,10 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
     } else {
       const createdMeetingId = createMeeting(title);
       if (createdMeetingId) {
-        const agendaCandidates = parseAgendaDraftLines(agendaDraft);
+        const agendaCandidates =
+          importedAgendaItems.length > 0
+            ? importedAgendaItems.filter((_, index) => selectedAgendaItems[index])
+            : parseAgendaDraftLines(agendaDraft);
         agendaCandidates.forEach((agendaItem) => {
           addAgenda(
             createdMeetingId,
@@ -225,6 +240,8 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
     setOwnerRepo("");
     setIssueNumber("");
     setIssueError("");
+    setImportedAgendaItems([]);
+    setSelectedAgendaItems({});
     onClose();
   };
 
@@ -307,6 +324,35 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
               >
                 {isImportingIssue ? "取得中..." : "Issue から反映"}
               </Button>
+              {importedAgendaItems.length > 0 && (
+                <div className="space-y-1 rounded-md bg-muted/50 p-2">
+                  <p className="text-xs font-medium">取り込み対象の選択</p>
+                  <ul className="space-y-1">
+                    {importedAgendaItems.map((item, index) => (
+                      <li key={`${item.title}-${index}`} className="text-xs">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selectedAgendaItems[index])}
+                            onChange={(event) =>
+                              setSelectedAgendaItems((prev) => ({
+                                ...prev,
+                                [index]: event.target.checked,
+                              }))
+                            }
+                          />
+                          <span>
+                            {item.title}
+                            {item.plannedDurationMinutes
+                              ? `（${item.plannedDurationMinutes}分）`
+                              : ""}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="meeting-issue-agenda-draft">
                   アジェンダ下書き（1行: タイトル | 分）

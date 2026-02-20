@@ -19,6 +19,9 @@ interface MeetingReportActions {
   addDraftTodo: () => void;
   updateDraftTodo: (id: string, updates: Partial<MeetingReportTodo>) => void;
   removeDraftTodo: (id: string) => void;
+  setDraftTodos: (
+    todos: Array<Pick<MeetingReportTodo, "text" | "owner" | "dueDate">>,
+  ) => void;
   setDialogOpen: (open: boolean) => void;
   saveDraft: () => void;
   deleteReport: (id: string) => void;
@@ -205,6 +208,24 @@ export const useMeetingReportStore = create<
           const updatedDraft = {
             ...state.draft,
             todos: state.draft.todos.filter((todo) => todo.id !== id),
+          };
+          updatedDraft.markdown = buildReportMarkdown(updatedDraft);
+          return { draft: updatedDraft };
+        });
+      },
+
+      setDraftTodos: (todos) => {
+        set((state) => {
+          if (!state.draft) return state;
+          const updatedDraft = {
+            ...state.draft,
+            todos: todos.map((todo) => ({
+              id: generateId(),
+              text: todo.text,
+              owner: todo.owner,
+              dueDate: todo.dueDate,
+              done: false,
+            })),
           };
           updatedDraft.markdown = buildReportMarkdown(updatedDraft);
           return { draft: updatedDraft };

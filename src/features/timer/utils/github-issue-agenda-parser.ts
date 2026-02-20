@@ -3,6 +3,12 @@ export interface ParsedIssueAgendaItem {
   plannedDurationMinutes?: number;
 }
 
+export interface ParsedIssueTodoItem {
+  text: string;
+  owner?: string;
+  dueDate?: string;
+}
+
 const parseDurationMinutes = (text: string): number | undefined => {
   const englishMatch = text.match(/Duration\s*:\s*(\d+)\s*m/i);
   if (englishMatch) {
@@ -80,4 +86,41 @@ export const parseIssueAgendaItems = (body: string): ParsedIssueAgendaItem[] => 
   }
 
   return [...inAgendaSectionItems, ...checklistItems, ...bulletItems];
+};
+
+const parseTodoItem = (line: string): ParsedIssueTodoItem | null => {
+  const checklistMatch = line.match(/^- \[[ xX]\]\s+(.+)$/);
+  if (!checklistMatch?.[1]) {
+    return null;
+  }
+
+  const source = checklistMatch[1].trim();
+  const ownerMatch =
+    source.match(/@([a-zA-Z0-9_-]+)/) ?? source.match(/担当\s*[:：]\s*([^\s]+)/);
+  const dueDateMatch =
+    source.match(/(?:期限|due)\s*[:：]\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i) ?? null;
+
+  const text = source
+    .replace(/@([a-zA-Z0-9_-]+)/g, "")
+    .replace(/担当\s*[:：]\s*[^\s]+/g, "")
+    .replace(/(?:期限|due)\s*[:：]\s*[0-9]{4}-[0-9]{2}-[0-9]{2}/gi, "")
+    .trim();
+
+  if (!text) {
+    return null;
+  }
+
+  return {
+    text,
+    owner: ownerMatch?.[1],
+    dueDate: dueDateMatch?.[1],
+  };
+};
+
+export const parseIssueTodoItems = (body: string): ParsedIssueTodoItem[] => {
+  return body
+    .split("\n")
+    .map((line) => line.trim())
+    .map(parseTodoItem)
+    .filter((item): item is ParsedIssueTodoItem => item !== null);
 };
