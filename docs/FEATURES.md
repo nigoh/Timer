@@ -28,6 +28,7 @@
 - 会議設定（通知・ベル・サイレント）
 - 会議ごとの GitHub Issue 紐付け（追加/解除、Issue タイトル自動取得）
 - GitHub Issue を起点にした会議下書き生成（会議名・アジェンダ候補の自動入力、要件策定中）
+- GitHub Issue 入力用テンプレート（`docs/templates/GITHUB_MEETING_INPUT_ISSUE_TEMPLATE.md`）に準拠した取り込み
 
 ### 複数タイマー
 
@@ -40,6 +41,7 @@
 - 会議データからレポート草稿を生成
 - ToDo 管理
 - Markdown 出力
+- 会議に紐付いた GitHub Issue へのコメント投稿（要件策定中）
 
 ### ログ管理
 

@@ -165,6 +165,22 @@ src/
 - 予定時間抽出:
   - `Duration: 10m` / `所要: 10分` を検出した場合のみ候補値として反映する。
   - 未指定時は既存のデフォルト予定時間を適用する。
+- 推奨テンプレート:
+  - `docs/templates/GITHUB_MEETING_INPUT_ISSUE_TEMPLATE.md` を正本とする。
+
+## 会議レポートの GitHub Issue コメント投稿仕様（要件策定中）
+
+- 実現可否: 可能（GitHub REST API `POST /repos/{owner}/{repo}/issues/{issue_number}/comments` を利用）。
+- 認証:
+  - Public リポジトリ: `public_repo` 相当権限を持つ PAT で投稿可能。
+  - Private リポジトリ: `repo` 相当権限（または Fine-grained token の Issues: Read and write）が必要。
+- 投稿フロー:
+  1. 会議と Issue リンクが存在することを検証
+  2. ユーザーが投稿ボタンを明示的に実行
+  3. Markdown 形式で議事録をコメント投稿
+  4. 成功/失敗を通知とログで記録
+- セキュリティ:
+  - PAT は `integration-link-store` のメモリ保持のみ（永続化しない）を維持する。
 
 ## パフォーマンス仕様
 
