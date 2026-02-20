@@ -248,7 +248,7 @@ const PomodoroSettingsDialog = ({
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               キャンセル
             </Button>
@@ -463,7 +463,7 @@ export const EnhancedPomodoroTimerView = ({
             </div>
           </div>
 
-          <div className="flex justify-center pt-2 border-t">
+          <div className="flex justify-center pt-2">
             <PomodoroSettingsDialog
               settings={settings}
               isRunning={isRunning}

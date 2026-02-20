@@ -230,7 +230,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
           )}
 
           {issueStats.length > 0 && (
-            <div className="space-y-2 rounded-lg border p-3">
+            <div className="space-y-2 rounded-lg p-3">
               <h3 className="text-sm font-medium">GitHub Issue 別集計</h3>
               <div className="space-y-2">
                 {issueStats.slice(0, 5).map((stat) => (
@@ -247,7 +247,8 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
                       {stat.issueTitle}
                     </a>
                     <div className="text-xs text-muted-foreground">
-                      合計 {formatTime(stat.totalActualDuration)} / {stat.sessionCount}件
+                      合計 {formatTime(stat.totalActualDuration)} /{" "}
+                      {stat.sessionCount}件
                     </div>
                   </div>
                 ))}

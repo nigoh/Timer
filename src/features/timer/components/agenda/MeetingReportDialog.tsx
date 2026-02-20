@@ -41,16 +41,18 @@ export const MeetingReportDialog: React.FC = () => {
     saveDraft,
     reports,
   } = useMeetingReportStore();
-  const { getLinks, githubPat, aiProviderConfig, setAiProviderConfig } = useIntegrationLinkStore();
+  const { getLinks, githubPat, aiProviderConfig, setAiProviderConfig } =
+    useIntegrationLinkStore();
   const [isPosting, setIsPosting] = React.useState(false);
   const [isTodoImporting, setIsTodoImporting] = React.useState(false);
   const [isAiGenerating, setIsAiGenerating] = React.useState(false);
   const [postStatusMessage, setPostStatusMessage] = React.useState("");
   const [isDiffOnlyPost, setIsDiffOnlyPost] = React.useState(false);
-  const [postTemplate, setPostTemplate] = React.useState<PostTemplateType>(
-    "detailed",
-  );
-  const [generatedAiAssist, setGeneratedAiAssist] = React.useState<ReturnType<typeof buildMeetingAiAssist> | null>(null);
+  const [postTemplate, setPostTemplate] =
+    React.useState<PostTemplateType>("detailed");
+  const [generatedAiAssist, setGeneratedAiAssist] = React.useState<ReturnType<
+    typeof buildMeetingAiAssist
+  > | null>(null);
   const [aiConfigDraft, setAiConfigDraft] = React.useState<AiProviderConfig>({
     provider: aiProviderConfig?.provider ?? "openai",
     model: aiProviderConfig?.model ?? "gpt-4o-mini",
@@ -93,7 +95,8 @@ export const MeetingReportDialog: React.FC = () => {
 
   const primaryLink = getLinks(`meeting:${draft.meetingId}`)[0];
   const previousReportMarkdown =
-    reports.find((report) => report.meetingId === draft.meetingId)?.markdown ?? "";
+    reports.find((report) => report.meetingId === draft.meetingId)?.markdown ??
+    "";
   const postPreview = buildPostPreviewMarkdown(
     postTemplate,
     {
@@ -131,7 +134,9 @@ export const MeetingReportDialog: React.FC = () => {
       "nextActions",
       draft.nextActions.trim() ? draft.nextActions : nextActionsAssist,
     );
-    setPostStatusMessage("AIアシスト案を反映しました。必要に応じて編集してください。");
+    setPostStatusMessage(
+      "AIアシスト案を反映しました。必要に応じて編集してください。",
+    );
   };
 
   const handleAiConfigChange = <K extends keyof AiProviderConfig>(
@@ -194,7 +199,9 @@ export const MeetingReportDialog: React.FC = () => {
       setPostStatusMessage("Issue コメントへの投稿に成功しました");
     } catch (error) {
       setPostStatusMessage(
-        error instanceof Error ? error.message : "Issue コメント投稿に失敗しました",
+        error instanceof Error
+          ? error.message
+          : "Issue コメント投稿に失敗しました",
       );
     } finally {
       setIsPosting(false);
@@ -294,7 +301,7 @@ export const MeetingReportDialog: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-2 rounded-md border p-3">
+              <div className="space-y-2 rounded-md p-3">
                 <div className="flex items-center justify-between gap-2">
                   <Label>AIアシスト（会議参加者が編集して利用）</Label>
                   <div className="flex gap-2">
@@ -316,14 +323,22 @@ export const MeetingReportDialog: React.FC = () => {
                     >
                       {isAiGenerating ? "生成中..." : "AIで再生成"}
                     </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={applyAiAssist}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={applyAiAssist}
+                    >
                       下書きに反映
                     </Button>
                   </div>
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
                   <div className="space-y-1">
-                    <Label htmlFor={`${formIdPrefix}-ai-provider`} className="text-xs">
+                    <Label
+                      htmlFor={`${formIdPrefix}-ai-provider`}
+                      className="text-xs"
+                    >
                       Provider
                     </Label>
                     <select
@@ -331,7 +346,10 @@ export const MeetingReportDialog: React.FC = () => {
                       className="h-8 w-full rounded-md border bg-background px-2 text-xs"
                       value={aiConfigDraft.provider}
                       onChange={(event) =>
-                        handleAiConfigChange("provider", event.target.value as AiProviderType)
+                        handleAiConfigChange(
+                          "provider",
+                          event.target.value as AiProviderType,
+                        )
                       }
                     >
                       <option value="openai">OpenAI</option>
@@ -339,30 +357,43 @@ export const MeetingReportDialog: React.FC = () => {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`${formIdPrefix}-ai-model`} className="text-xs">
+                    <Label
+                      htmlFor={`${formIdPrefix}-ai-model`}
+                      className="text-xs"
+                    >
                       Model
                     </Label>
                     <Input
                       id={`${formIdPrefix}-ai-model`}
                       value={aiConfigDraft.model}
-                      onChange={(event) => handleAiConfigChange("model", event.target.value)}
+                      onChange={(event) =>
+                        handleAiConfigChange("model", event.target.value)
+                      }
                       className="h-8 text-xs"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`${formIdPrefix}-ai-key`} className="text-xs">
+                    <Label
+                      htmlFor={`${formIdPrefix}-ai-key`}
+                      className="text-xs"
+                    >
                       API Key（メモリのみ）
                     </Label>
                     <Input
                       id={`${formIdPrefix}-ai-key`}
                       type="password"
                       value={aiConfigDraft.apiKey}
-                      onChange={(event) => handleAiConfigChange("apiKey", event.target.value)}
+                      onChange={(event) =>
+                        handleAiConfigChange("apiKey", event.target.value)
+                      }
                       className="h-8 text-xs"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`${formIdPrefix}-ai-temperature`} className="text-xs">
+                    <Label
+                      htmlFor={`${formIdPrefix}-ai-temperature`}
+                      className="text-xs"
+                    >
                       Temperature (0-2)
                     </Label>
                     <Input
@@ -373,32 +404,42 @@ export const MeetingReportDialog: React.FC = () => {
                       step="0.1"
                       value={aiConfigDraft.temperature ?? 0.2}
                       onChange={(event) =>
-                        handleAiConfigChange("temperature", Number(event.target.value))
+                        handleAiConfigChange(
+                          "temperature",
+                          Number(event.target.value),
+                        )
                       }
                       className="h-8 text-xs"
                     />
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <Button type="button" variant="outline" size="sm" onClick={handleSaveAiConfig}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveAiConfig}
+                  >
                     設定を保存
                   </Button>
                 </div>
                 <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                   <li>議事録要約: {aiAssist.summary}</li>
                   <li>合意形成アシスト: {aiAssist.consensusAssist}</li>
-                  <li>ファシリテーションアシスト: {aiAssist.facilitationAssist}</li>
+                  <li>
+                    ファシリテーションアシスト: {aiAssist.facilitationAssist}
+                  </li>
                   <li>アジェンダ作成アシスト: {aiAssist.agendaAssist}</li>
                   <li>会議事前準備アシスト: {aiAssist.preparationAssist}</li>
                 </ul>
               </div>
 
-              <div className="space-y-2 rounded-md border p-3">
+              <div className="space-y-2 rounded-md p-3">
                 <Label>アジェンダ実績</Label>
                 <div className="overflow-x-auto text-sm">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="border-b">
+                      <tr>
                         <th className="py-2 text-left">議題</th>
                         <th className="py-2 text-right">予定(秒)</th>
                         <th className="py-2 text-right">実績(秒)</th>
@@ -407,10 +448,7 @@ export const MeetingReportDialog: React.FC = () => {
                     </thead>
                     <tbody>
                       {draft.agendaItems.map((item) => (
-                        <tr
-                          key={item.agendaId}
-                          className="border-b last:border-0"
-                        >
+                        <tr key={item.agendaId}>
                           <td className="py-2 pr-2">{item.title}</td>
                           <td className="py-2 text-right">
                             {item.plannedDurationSec}
@@ -442,32 +480,32 @@ export const MeetingReportDialog: React.FC = () => {
                 />
               </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>ToDo</Label>
-                    <div className="flex gap-2">
-                      {primaryLink && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleImportTodosFromIssue}
-                          disabled={isTodoImporting}
-                        >
-                          {isTodoImporting ? "反映中..." : "Issueから反映"}
-                        </Button>
-                      )}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>ToDo</Label>
+                  <div className="flex gap-2">
+                    {primaryLink && (
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={addDraftTodo}
+                        onClick={handleImportTodosFromIssue}
+                        disabled={isTodoImporting}
                       >
-                        <Plus className="mr-1 h-4 w-4" />
-                        追加
+                        {isTodoImporting ? "反映中..." : "Issueから反映"}
                       </Button>
-                    </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addDraftTodo}
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      追加
+                    </Button>
                   </div>
+                </div>
 
                 <div className="space-y-2">
                   {draft.todos.length === 0 && (
@@ -557,7 +595,7 @@ export const MeetingReportDialog: React.FC = () => {
             </TabsContent>
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
+          <div className="flex flex-wrap justify-end gap-2 pt-3">
             {postStatusMessage && (
               <p className="w-full text-xs text-muted-foreground">
                 {postStatusMessage}
@@ -576,7 +614,9 @@ export const MeetingReportDialog: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={isDiffOnlyPost}
-                    onChange={(event) => setIsDiffOnlyPost(event.target.checked)}
+                    onChange={(event) =>
+                      setIsDiffOnlyPost(event.target.checked)
+                    }
                   />
                   差分のみ投稿
                 </label>

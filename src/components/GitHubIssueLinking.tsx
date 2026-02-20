@@ -1,39 +1,49 @@
-import React, { useState } from 'react';
-import { Github, Link2, Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { useIntegrationLinkStore } from '@/features/timer/stores/integration-link-store';
-import { fetchGitHubIssue } from '@/features/timer/api/github-issues';
+import React, { useState } from "react";
+import {
+  Github,
+  Link2,
+  Trash2,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
+import { fetchGitHubIssue } from "@/features/timer/api/github-issues";
 
 interface GitHubIssueLinkingProps {
   timeLogId: string;
 }
 
-export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogId }) => {
-  const { getLinks, addLink, removeLink, githubPat, setGithubPat } = useIntegrationLinkStore();
+export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
+  timeLogId,
+}) => {
+  const { getLinks, addLink, removeLink, githubPat, setGithubPat } =
+    useIntegrationLinkStore();
   const links = getLinks(timeLogId);
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [ownerRepo, setOwnerRepo] = useState('');
-  const [issueNumber, setIssueNumber] = useState('');
-  const [issueTitle, setIssueTitle] = useState('');
-  const [error, setError] = useState('');
+  const [ownerRepo, setOwnerRepo] = useState("");
+  const [issueNumber, setIssueNumber] = useState("");
+  const [issueTitle, setIssueTitle] = useState("");
+  const [error, setError] = useState("");
   const [isFetchingTitle, setIsFetchingTitle] = useState(false);
 
   const handleAdd = async () => {
-    setError('');
+    setError("");
 
-    const parts = ownerRepo.trim().split('/');
+    const parts = ownerRepo.trim().split("/");
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
       setError('Owner/Repo は "owner/repo" 形式で入力してください');
       return;
     }
     const num = parseInt(issueNumber, 10);
     if (!issueNumber.trim() || isNaN(num) || num <= 0) {
-      setError('Issue 番号は正の整数を入力してください');
+      setError("Issue 番号は正の整数を入力してください");
       return;
     }
 
@@ -56,7 +66,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
         setError(
           fetchError instanceof Error
             ? fetchError.message
-            : 'Issue タイトルの取得に失敗しました',
+            : "Issue タイトルの取得に失敗しました",
         );
         return;
       } finally {
@@ -72,23 +82,23 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
       issueUrl: resolvedIssueUrl,
     });
 
-    setOwnerRepo('');
-    setIssueNumber('');
-    setIssueTitle('');
+    setOwnerRepo("");
+    setIssueNumber("");
+    setIssueTitle("");
     setIsFormOpen(false);
     setIsExpanded(true);
   };
 
   const handleCancel = () => {
-    setOwnerRepo('');
-    setIssueNumber('');
-    setIssueTitle('');
-    setError('');
+    setOwnerRepo("");
+    setIssueNumber("");
+    setIssueTitle("");
+    setError("");
     setIsFormOpen(false);
   };
 
   return (
-    <div className="mt-3 pt-3 border-t space-y-2">
+    <div className="mt-3 pt-3 space-y-2">
       {/* ヘッダー行 */}
       <button
         type="button"
@@ -120,7 +130,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
               id={`github-pat-${timeLogId}`}
               type="password"
               placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-              value={githubPat ?? ''}
+              value={githubPat ?? ""}
               onChange={(e) => setGithubPat(e.target.value || null)}
               className="h-7 text-xs"
             />
@@ -130,7 +140,10 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
           {links.length > 0 && (
             <ul className="space-y-1">
               {links.map((link) => (
-                <li key={link.id} className="flex min-w-0 items-start gap-2 text-xs">
+                <li
+                  key={link.id}
+                  className="flex min-w-0 items-start gap-2 text-xs"
+                >
                   <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />
                   <a
                     href={link.issueUrl}
@@ -140,7 +153,9 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
                   >
                     {link.owner}/{link.repo} #{link.issueNumber}
                     {link.issueTitle && (
-                      <span className="text-muted-foreground ml-1">— {link.issueTitle}</span>
+                      <span className="text-muted-foreground ml-1">
+                        — {link.issueTitle}
+                      </span>
                     )}
                   </a>
                   <Button
@@ -162,7 +177,10 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
             <div className="space-y-2 p-2 bg-muted rounded-md">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label htmlFor={`owner-repo-${timeLogId}`} className="text-xs">
+                  <Label
+                    htmlFor={`owner-repo-${timeLogId}`}
+                    className="text-xs"
+                  >
                     Owner/Repo
                   </Label>
                   <Input
@@ -202,8 +220,12 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({ timeLogI
               </div>
               {error && <p className="text-xs text-destructive">{error}</p>}
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleAdd} className="h-6 text-xs px-2">
-                  {isFetchingTitle ? '取得中...' : '紐付け'}
+                <Button
+                  size="sm"
+                  onClick={handleAdd}
+                  className="h-6 text-xs px-2"
+                >
+                  {isFetchingTitle ? "取得中..." : "紐付け"}
                 </Button>
                 <Button
                   size="sm"

@@ -376,7 +376,7 @@ const TimerCard: React.FC<{
         </div>
 
         {/* アクションボタン */}
-        <div className="flex justify-center gap-2 pt-2 border-t">
+        <div className="flex justify-center gap-2 pt-2">
           <Button
             size="sm"
             variant="ghost"
@@ -481,7 +481,7 @@ const GlobalControls: React.FC = () => {
         </div>
 
         {/* 設定 */}
-        <div className="space-y-3 pt-4 border-t">
+        <div className="space-y-3 pt-4">
           <div className="flex items-center justify-between">
             <Label className="text-sm">通知を表示</Label>
             <Switch

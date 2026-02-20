@@ -152,7 +152,7 @@ export const BasicTimerView: React.FC<BasicTimerViewProps> = ({
             </Button>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3 pt-2 border-t sm:flex-nowrap">
+          <div className="flex flex-wrap justify-center gap-3 pt-2 sm:flex-nowrap">
             <TimerSettings
               duration={duration}
               onDurationChange={onDurationChange}

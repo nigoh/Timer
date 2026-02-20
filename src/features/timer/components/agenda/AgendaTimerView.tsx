@@ -136,7 +136,8 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { createMeeting, updateMeetingTitle, addAgenda } = useAgendaTimerStore();
+  const { createMeeting, updateMeetingTitle, addAgenda } =
+    useAgendaTimerStore();
   const { githubPat } = useIntegrationLinkStore();
   const [title, setTitle] = useState(meeting?.title || "");
   const [ownerRepo, setOwnerRepo] = useState("");
@@ -222,14 +223,16 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
       if (createdMeetingId) {
         const agendaCandidates =
           importedAgendaItems.length > 0
-            ? importedAgendaItems.filter((_, index) => selectedAgendaItems[index])
+            ? importedAgendaItems.filter(
+                (_, index) => selectedAgendaItems[index],
+              )
             : parseAgendaDraftLines(agendaDraft);
         agendaCandidates.forEach((agendaItem) => {
           addAgenda(
             createdMeetingId,
             agendaItem.title,
-            (agendaItem.plannedDurationMinutes ?? DEFAULT_AGENDA_DURATION_MINUTES) *
-              60,
+            (agendaItem.plannedDurationMinutes ??
+              DEFAULT_AGENDA_DURATION_MINUTES) * 60,
           );
         });
       }
@@ -291,7 +294,7 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
           </div>
 
           {!meeting && (
-            <div className="space-y-3 rounded-md border p-3">
+            <div className="space-y-3 rounded-md p-3">
               <p className="text-sm font-medium">GitHub Issue から下書き入力</p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
@@ -315,7 +318,9 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
                   />
                 </div>
               </div>
-              {issueError && <p className="text-xs text-destructive">{issueError}</p>}
+              {issueError && (
+                <p className="text-xs text-destructive">{issueError}</p>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -696,7 +701,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
           <GitHubIssueLinking timeLogId={meetingIssueLinkId} />
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={onClose}>
               キャンセル
             </Button>
@@ -771,7 +776,7 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
   }, [agendaSlices, totalPlannedDuration]);
 
   return (
-    <div className="space-y-3 rounded-md border p-3">
+    <div className="space-y-3 rounded-md p-3">
       <div className="flex items-center justify-between">
         <h4 className="flex items-center gap-2 text-sm font-medium">
           <PieChart className="h-4 w-4" />
@@ -837,7 +842,7 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2 border-t pt-2 text-xs">
+      <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
         <div>
           <div className="text-muted-foreground">予定合計</div>
           <div className="font-mono font-semibold">
@@ -884,7 +889,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
         <CardTitle className="text-base">議事録</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 lg:min-h-0">
-        <div className="min-h-[280px] min-w-0 overflow-hidden rounded-md border bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:overflow-x-auto [&_.ql-toolbar]:whitespace-nowrap [&_.ql-toolbar]:shrink-0 [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-base">
+        <div className="agenda-minutes-editor min-h-[280px] min-w-0 overflow-visible rounded-md bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:shrink-0 [&_.ql-toolbar]:flex-wrap [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-base">
           <ReactQuill
             key={agenda.id}
             theme="snow"

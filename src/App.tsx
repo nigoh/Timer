@@ -88,7 +88,7 @@ function App() {
             className="flex h-full w-full flex-col"
           >
             <header className="mb-2 flex flex-wrap items-center gap-2">
-              <div className="hidden h-10 w-10 items-center justify-center rounded-md border bg-card md:inline-flex">
+              <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-card md:inline-flex">
                 <Timer className="h-5 w-5" />
               </div>
 
@@ -190,7 +190,7 @@ function App() {
           </Tabs>
         </div>
         <nav
-          className="fixed bottom-0 inset-x-0 z-40 border-t bg-background md:hidden"
+          className="fixed bottom-0 inset-x-0 z-40 bg-background md:hidden"
           aria-label="メインナビゲーション"
         >
           <div className="flex h-16 items-center justify-around pb-[env(safe-area-inset-bottom)]">
