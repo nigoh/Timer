@@ -68,6 +68,8 @@ const formatMinutes = (seconds: number): string => {
   return `${Math.ceil(seconds / 60)}分`;
 };
 
+const DEFAULT_AGENDA_DURATION_MINUTES = 10;
+
 const parseAgendaDraftLines = (input: string) =>
   input
     .split("\n")
@@ -79,7 +81,9 @@ const parseAgendaDraftLines = (input: string) =>
       return {
         title: rawTitle,
         plannedDurationMinutes:
-          Number.isFinite(parsedMinutes) && parsedMinutes > 0 ? parsedMinutes : 10,
+          Number.isFinite(parsedMinutes) && parsedMinutes > 0
+            ? parsedMinutes
+            : DEFAULT_AGENDA_DURATION_MINUTES,
       };
     })
     .filter((item) => item.title.length > 0);
@@ -149,7 +153,12 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
 
   const handleImportFromIssue = async () => {
     setIssueError("");
-    const [owner = "", repo = ""] = ownerRepo.trim().split("/");
+    const ownerRepoParts = ownerRepo.trim().split("/");
+    if (ownerRepoParts.length !== 2) {
+      setIssueError('Owner/Repo は "owner/repo" 形式で入力してください');
+      return;
+    }
+    const [owner = "", repo = ""] = ownerRepoParts;
     const parsedIssueNumber = Number.parseInt(issueNumber, 10);
     if (!owner || !repo) {
       setIssueError('Owner/Repo は "owner/repo" 形式で入力してください');
@@ -204,7 +213,8 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
           addAgenda(
             createdMeetingId,
             agendaItem.title,
-            agendaItem.plannedDurationMinutes * 60,
+            (agendaItem.plannedDurationMinutes ?? DEFAULT_AGENDA_DURATION_MINUTES) *
+              60,
           );
         });
       }
