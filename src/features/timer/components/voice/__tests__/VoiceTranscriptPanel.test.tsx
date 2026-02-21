@@ -82,6 +82,11 @@ vi.mock("@radix-ui/themes", () => ({
 
 vi.mock("@/lib/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  formatUnixTimestamp: (ts: number) =>
+    new Date(ts).toLocaleTimeString("ja-JP", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
 }));
 
 import { VoiceTranscriptPanel } from "../VoiceTranscriptPanel";

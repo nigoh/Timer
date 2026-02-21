@@ -7,20 +7,26 @@ export type WidgetType =
   | "time-allocation"
   | "report-history";
 
-/** 列数: S=3列(25%) / M=4列(33%) / L=6列(50%) / XL=12列(100%) */
-export type WidgetWidth = "S" | "M" | "L" | "XL";
-
-/** 高さ: S=220px / M=320px / L=420px / XL=560px */
-export type WidgetHeight = "S" | "M" | "L" | "XL";
-
+/** react-grid-layout ベースの自由配置レイアウトアイテム */
 export interface WidgetLayoutItem {
   id: string;
   type: WidgetType;
   visible: boolean;
-  order: number;
-  width: WidgetWidth;
-  height: WidgetHeight;
+  /** グリッド列 (0 origin, max 12) */
+  x: number;
+  /** グリッド行 (0 origin) */
+  y: number;
+  /** 列幅 (1–12) */
+  w: number;
+  /** 行数 (1–) */
+  h: number;
+  minW?: number;
+  minH?: number;
 }
+
+/** localStorage マイグレーション用の旧形式 */
+export type WidgetWidth = "S" | "M" | "L" | "XL";
+export type WidgetHeight = "S" | "M" | "L" | "XL";
 
 export interface LayoutPreset {
   id: string;

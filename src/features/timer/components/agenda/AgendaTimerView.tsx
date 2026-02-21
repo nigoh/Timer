@@ -1,4 +1,16 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
+import {
+  GridLayout,
+  useContainerWidth,
+  verticalCompactor,
+  type Layout,
+} from "react-grid-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,29 +36,9 @@ import {
 } from "lucide-react";
 import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
-import {
-  getWidgetLabel,
-  useMeetingLayoutStore,
-} from "@/features/timer/stores/meeting-layout-store";
+import { useMeetingLayoutStore } from "@/features/timer/stores/meeting-layout-store";
 import { AgendaItem, Meeting } from "@/types/agenda";
 import type { WidgetLayoutItem } from "@/types/layout";
-import { cn } from "@/lib/utils";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  KeyboardSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
 
 import { MeetingDialog } from "./MeetingDialog";
 import { AgendaDialog } from "./AgendaDialog";
@@ -57,7 +49,7 @@ import { TimerDisplay } from "./TimerDisplay";
 import { MeetingList } from "./MeetingList";
 import { AgendaList } from "./AgendaList";
 import { WidgetCatalogDialog } from "./WidgetCatalogDialog";
-import { SortableWidget } from "./SortableWidget";
+import { GridWidget } from "./GridWidget";
 import { VoiceTranscriptPanel } from "@/features/timer/components/voice/VoiceTranscriptPanel";
 import { VoiceTranscriptSummaryDialog } from "@/features/timer/components/voice/VoiceTranscriptSummaryDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
@@ -85,7 +77,6 @@ export const AgendaTimerView: React.FC = () => {
   const [isDeleteMeetingDialogOpen, setIsDeleteMeetingDialogOpen] =
     useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
-  const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
   const quillRef = useRef<QuillEditorHandle>(null);
   const {
     isEditMode,
@@ -94,9 +85,7 @@ export const AgendaTimerView: React.FC = () => {
     setEditMode,
     showWidget,
     toggleWidget,
-    reorderVisibleWidgets,
-    setWidth,
-    setHeight,
+    updateLayout,
     resetLayout,
     saveCurrentLayout,
     applyPreset,
@@ -121,42 +110,37 @@ export const AgendaTimerView: React.FC = () => {
 
   const currentAgenda = getCurrentAgenda();
 
-  const orderedWidgets = useMemo(
-    () =>
-      currentLayout.slice().sort((first, second) => first.order - second.order),
+  const { containerRef, width: gridWidth } = useContainerWidth();
+
+  const visibleWidgets = useMemo(
+    () => currentLayout.filter((widget) => widget.visible),
     [currentLayout],
   );
-  const visibleWidgets = useMemo(
-    () => orderedWidgets.filter((widget) => widget.visible),
-    [orderedWidgets],
-  );
   const hiddenWidgets = useMemo(
-    () => orderedWidgets.filter((widget) => !widget.visible),
-    [orderedWidgets],
+    () => currentLayout.filter((widget) => !widget.visible),
+    [currentLayout],
   );
-  const visibleWidgetIds = useMemo(
-    () => visibleWidgets.map((w) => w.id),
+
+  const rglLayout = useMemo(
+    () =>
+      visibleWidgets.map((w) => ({
+        i: w.id,
+        x: w.x,
+        y: w.y,
+        w: w.w,
+        h: w.h,
+        minW: w.minW ?? 2,
+        minH: w.minH ?? 3,
+      })),
     [visibleWidgets],
   );
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
+  const handleLayoutChange = useCallback(
+    (newLayout: Layout) => {
+      updateLayout([...newLayout]);
+    },
+    [updateLayout],
   );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveWidgetId(null);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = visibleWidgetIds.indexOf(String(active.id));
-    const newIndex = visibleWidgetIds.indexOf(String(over.id));
-    if (oldIndex < 0 || newIndex < 0) return;
-    reorderVisibleWidgets(arrayMove(visibleWidgetIds, oldIndex, newIndex));
-  };
 
   const handleSaveLayoutPreset = () => {
     if (!layoutPresetName.trim()) {
@@ -409,61 +393,43 @@ export const AgendaTimerView: React.FC = () => {
         </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={(event) => {
-          if (isEditMode) setActiveWidgetId(String(event.active.id));
-        }}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveWidgetId(null)}
-      >
-        <SortableContext
-          items={visibleWidgetIds}
-          strategy={rectSortingStrategy}
+      <div ref={containerRef as React.Ref<HTMLDivElement>} className="w-full">
+        <GridLayout
+          width={gridWidth ?? 1200}
+          layout={rglLayout}
+          gridConfig={{
+            cols: 12,
+            rowHeight: 40,
+            margin: [8, 8] as [number, number],
+            containerPadding: [0, 0] as [number, number],
+            maxRows: Infinity,
+          }}
+          dragConfig={{
+            enabled: isEditMode,
+            handle: ".widget-drag-handle",
+            bounded: false,
+            threshold: 3,
+          }}
+          resizeConfig={{
+            enabled: isEditMode,
+            handles: ["s", "w", "e", "n", "sw", "nw", "se", "ne"] as const,
+          }}
+          compactor={verticalCompactor}
+          onLayoutChange={handleLayoutChange}
         >
-          <div className="grid grid-cols-6 gap-3 lg:grid-cols-12">
-            {visibleWidgets.map((widget) => (
-              <SortableWidget
-                key={widget.id}
+          {visibleWidgets.map((widget) => (
+            <div key={widget.id}>
+              <GridWidget
                 widget={widget}
                 isEditMode={isEditMode}
-                onSetWidth={setWidth}
-                onSetHeight={setHeight}
                 onToggleWidget={toggleWidget}
               >
                 {renderWidget(widget)}
-              </SortableWidget>
-            ))}
-          </div>
-        </SortableContext>
-        <DragOverlay>
-          {activeWidgetId
-            ? (() => {
-                const w = visibleWidgets.find((x) => x.id === activeWidgetId);
-                return w ? (
-                  <div
-                    className={cn(
-                      w.width === "S" && "col-span-3",
-                      w.width === "M" && "col-span-4",
-                      w.width === "L" && "col-span-6",
-                      w.width === "XL" && "col-span-12",
-                      w.height === "S" && "h-[220px]",
-                      w.height === "M" && "h-[320px]",
-                      w.height === "L" && "h-[420px]",
-                      w.height === "XL" && "h-[560px]",
-                      "flex items-center justify-center rounded-md border-2 border-primary bg-muted/60 opacity-80",
-                    )}
-                  >
-                    <span className="text-sm text-muted-foreground">
-                      {getWidgetLabel(w.type)}
-                    </span>
-                  </div>
-                ) : null;
-              })()
-            : null}
-        </DragOverlay>
-      </DndContext>
+              </GridWidget>
+            </div>
+          ))}
+        </GridLayout>
+      </div>
 
       <Dialog
         open={isManagementDialogOpen}

@@ -161,7 +161,7 @@ export const VoiceTranscriptSummaryDialog: React.FC<
             disabled={!summaryText.trim() || isGenerating}
             onClick={handleInsert}
           >
-            議事録アジェンダタイトルを反映するに挿入して確定
+            Quill に挿入して確定
           </Button>
         </div>
 
