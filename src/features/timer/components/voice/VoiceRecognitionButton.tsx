@@ -57,7 +57,7 @@ export const VoiceRecognitionButton: React.FC<VoiceRecognitionButtonProps> = ({
       {isListening && (
         <Badge
           variant="secondary"
-          className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-[10px]"
+          className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs"
         >
           ●
         </Badge>

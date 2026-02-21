@@ -481,38 +481,30 @@ export const EnhancedPomodoroTimerView = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted rounded-lg">
               <div
-                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.running.color}`}
+                className={`stat-value ${TIMER_STATUS_CONFIG.running.color}`}
               >
                 {todayStats.completedPomodoros}
               </div>
-              <div className="text-sm text-muted-foreground">
-                完了ポモドーロ
-              </div>
+              <div className="stat-label">完了ポモドーロ</div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
               <div
-                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.completed.color}`}
+                className={`stat-value ${TIMER_STATUS_CONFIG.completed.color}`}
               >
                 {todayStats.totalFocusTime}
               </div>
-              <div className="text-sm text-muted-foreground">
-                集中時間（分）
-              </div>
+              <div className="stat-label">集中時間（分）</div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
               <div
-                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.overtime.color}`}
+                className={`stat-value ${TIMER_STATUS_CONFIG.overtime.color}`}
               >
                 {todayStats.totalBreakTime}
               </div>
-              <div className="text-sm text-muted-foreground">
-                休憩時間（分）
-              </div>
+              <div className="stat-label">休憩時間（分）</div>
             </div>
             <div className="text-center p-3 bg-muted rounded-lg">
-              <div
-                className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.paused.color}`}
-              >
+              <div className={`stat-value ${TIMER_STATUS_CONFIG.paused.color}`}>
                 {todayStats.completedPomodoros > 0
                   ? Math.round(
                       (todayStats.totalFocusTime /
@@ -523,7 +515,7 @@ export const EnhancedPomodoroTimerView = ({
                   : 0}
                 %
               </div>
-              <div className="text-sm text-muted-foreground">達成率</div>
+              <div className="stat-label">達成率</div>
             </div>
           </div>
         </CardContent>

@@ -2,7 +2,7 @@
 
 ## 目的
 
-GitHub Copilot / AI エージェントが、Timer App で一貫した安全な変更を行うための運用ルールを定義する。
+GitHub Copilot / AI エージェントが、Focuso で一貫した安全な変更を行うための運用ルールを定義する。
 
 ## 概念モデル
 

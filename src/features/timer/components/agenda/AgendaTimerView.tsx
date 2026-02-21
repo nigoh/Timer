@@ -579,7 +579,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
         <div className="space-y-6">
           {/* 基本設定 */}
           <div className="space-y-4">
-            <h4 className="font-medium">基本設定</h4>
+            <h4 className="text-sm font-semibold">基本設定</h4>
 
             <div className="flex items-center justify-between">
               <Label className="text-sm">
@@ -620,7 +620,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
           {/* ベル設定 */}
           <div className="space-y-4">
-            <h4 className="font-medium">ベル通知設定</h4>
+            <h4 className="text-sm font-semibold">ベル通知設定</h4>
 
             <div>
               <Label className="text-sm mb-2 block">ベル音の種類</Label>
@@ -649,7 +649,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">開始時</Label>
+                <Label className="text-sm">開始時</Label>
                 <Switch
                   checked={settings.bellSettings.start}
                   onCheckedChange={(checked) =>
@@ -665,7 +665,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </div>
 
               <div className="flex items-center justify-between">
-                <Label className="text-xs">残り5分</Label>
+                <Label className="text-sm">残り5分</Label>
                 <Switch
                   checked={settings.bellSettings.fiveMinWarning}
                   onCheckedChange={(checked) =>
@@ -681,7 +681,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </div>
 
               <div className="flex items-center justify-between">
-                <Label className="text-xs">終了時</Label>
+                <Label className="text-sm">終了時</Label>
                 <Switch
                   checked={settings.bellSettings.end}
                   onCheckedChange={(checked) =>
@@ -694,7 +694,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </div>
 
               <div className="flex items-center justify-between">
-                <Label className="text-xs">超過時</Label>
+                <Label className="text-sm">超過時</Label>
                 <Switch
                   checked={settings.bellSettings.overtime}
                   onCheckedChange={(checked) =>
@@ -794,7 +794,7 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
           <PieChart className="h-4 w-4" />
           会議時間配分
         </h4>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-xs">
           {agendaSlices.length}件
         </Badge>
       </div>
@@ -811,9 +811,7 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
           >
             <div className="flex h-full w-full items-center justify-center p-4">
               <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-background text-center">
-                <div className="text-[10px] text-muted-foreground">
-                  会議全体
-                </div>
+                <div className="text-xs text-muted-foreground">会議全体</div>
                 <div className="text-xs font-semibold">
                   {formatDuration(totalPlannedDuration)}
                 </div>
@@ -901,7 +899,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
     <Card className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base">議事録</CardTitle>
+          <CardTitle className="text-sm">議事録</CardTitle>
           <VoiceRecognitionButton agendaId={agenda.id} />
         </div>
       </CardHeader>
@@ -1024,7 +1022,7 @@ const TimerDisplay: React.FC = () => {
       <CardContent className="space-y-6 lg:min-h-0 lg:overflow-y-auto">
         {/* アジェンダタイトル */}
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">{currentAgenda.title}</h2>
+          <h2 className="text-xl font-bold mb-2">{currentAgenda.title}</h2>
           {currentAgenda.memo && (
             <p className="text-muted-foreground text-sm">
               {currentAgenda.memo}
@@ -1156,7 +1154,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
           <CardTitle className="flex items-center gap-1.5 text-sm">
             <Users className="h-3.5 w-3.5" />
             会議一覧
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+            <Badge variant="outline" className="h-5 px-1.5 text-xs">
               {meetings.length}件
             </Badge>
           </CardTitle>
@@ -1226,7 +1224,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
                     onClick={() => onSelectMeeting(meeting.id)}
                   >
                     <span className="truncate text-left">{meeting.title}</span>
-                    <span className="shrink-0 text-[10px] opacity-80">
+                    <span className="shrink-0 text-xs opacity-80">
                       {meeting.agenda.length}件
                     </span>
                   </Button>
@@ -1300,7 +1298,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
           <CardTitle className="flex items-center gap-1.5 text-sm">
             <Clock className="h-3.5 w-3.5" />
             アジェンダ一覧
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+            <Badge variant="outline" className="h-5 px-1.5 text-xs">
               {currentMeeting.agenda.length}件
             </Badge>
           </CardTitle>
@@ -1385,7 +1383,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
                                             .badgeVariant
                                         : TIMER_STATUS_CONFIG.idle.badgeVariant
                             }
-                            className="text-[10px]"
+                            className="text-xs"
                           >
                             {agenda.status === "pending"
                               ? TIMER_STATUS_CONFIG.idle.label

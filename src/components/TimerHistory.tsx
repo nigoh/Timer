@@ -209,22 +209,22 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
           {totalSessions > 0 && (
             <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted p-3 sm:grid-cols-4 sm:gap-4 sm:p-4">
               <div className="text-center">
-                <div className="text-lg font-bold">{totalSessions}</div>
-                <div className="text-xs text-muted-foreground">セッション</div>
+                <div className="stat-value">{totalSessions}</div>
+                <div className="stat-label">セッション</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold">{completedSessions}</div>
-                <div className="text-xs text-muted-foreground">完了</div>
+                <div className="stat-value">{completedSessions}</div>
+                <div className="stat-label">完了</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold">{formatTime(totalTime)}</div>
-                <div className="text-xs text-muted-foreground">合計時間</div>
+                <div className="stat-value">{formatTime(totalTime)}</div>
+                <div className="stat-label">合計時間</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold">
+                <div className="stat-value">
                   {formatTime(Math.round(averageTime))}
                 </div>
-                <div className="text-xs text-muted-foreground">平均時間</div>
+                <div className="stat-label">平均時間</div>
               </div>
             </div>
           )}
@@ -260,7 +260,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
           {totalSessions === 0 ? (
             <div className="text-center py-8">
               <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">履歴がありません</h3>
+              <h3 className="text-lg font-semibold mb-2">履歴がありません</h3>
               <p className="text-muted-foreground">
                 タイマーを実行すると、ここに履歴が表示されます
               </p>

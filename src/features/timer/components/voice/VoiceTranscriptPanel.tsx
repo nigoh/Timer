@@ -139,7 +139,7 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
             )}
             {confirmedEntries.map((entry) => (
               <div key={entry.id} className="flex gap-2 py-0.5 leading-snug">
-                <span className="text-muted-foreground font-mono text-[11px] shrink-0 pt-0.5">
+                <span className="text-muted-foreground font-mono text-xs shrink-0 pt-0.5">
                   {formatTimestamp(entry.timestamp)}
                 </span>
                 <span>{entry.text}</span>
@@ -147,7 +147,7 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
             ))}
             {interimTranscript && (
               <div className="flex gap-2 py-0.5 leading-snug">
-                <span className="text-muted-foreground font-mono text-[11px] shrink-0 pt-0.5">
+                <span className="text-muted-foreground font-mono text-xs shrink-0 pt-0.5">
                   …
                 </span>
                 <span className={cn("text-muted-foreground italic")}>

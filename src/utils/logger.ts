@@ -71,7 +71,7 @@ export interface LoggerConfig {
 class Logger {
   private config: LoggerConfig;
   private sessionId: string;
-  private storageKey = 'timer-app-logs';
+  private storageKey = 'focuso-logs';
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = {
@@ -85,7 +85,29 @@ class Logger {
     };
     
     this.sessionId = this.generateSessionId();
+    this.migrateStorageKey('timer-app-logs');
     this.setupErrorHandlers();
+  }
+
+  private migrateStorageKey(oldKey: string): void {
+    try {
+      const oldData = localStorage.getItem(oldKey);
+      if (!oldData) return;
+      const oldLogs: LogEntry[] = JSON.parse(oldData);
+      if (!Array.isArray(oldLogs) || oldLogs.length === 0) {
+        localStorage.removeItem(oldKey);
+        return;
+      }
+      const existing = localStorage.getItem(this.storageKey);
+      const existingLogs: LogEntry[] = existing ? JSON.parse(existing) : [];
+      const merged = [...existingLogs, ...oldLogs]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, this.config.maxStorageEntries);
+      localStorage.setItem(this.storageKey, JSON.stringify(merged));
+      localStorage.removeItem(oldKey);
+    } catch {
+      // 移行失敗時は旧データをそのまま残す
+    }
   }
 
   private generateSessionId(): string {

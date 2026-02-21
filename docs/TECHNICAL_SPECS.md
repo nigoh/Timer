@@ -55,7 +55,7 @@
 
 
 - `src/utils/logger.ts` を唯一のログ経路とする。
-- ログは LocalStorage（`timer-app-logs`）に保存する。
+- ログは LocalStorage（`focuso-logs`）に保存する。
 - グローバルエラーと Promise rejection を捕捉する。
 - ログの追加データは `unknown` として扱い、利用側で型を絞り込む。
 

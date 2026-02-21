@@ -1,6 +1,6 @@
-## Timer App 用 Copilot 実装ガイド
+## Focuso 用 Copilot 実装ガイド
 
-このファイルは、Timer App（React + TypeScript + Vite + Zustand）で
+このファイルは、Focuso（React + TypeScript + Vite + Zustand）で
 Copilot が一貫した実装を行うための最優先ガイドです。
 
 ## 現行アーキテクチャ（必須）

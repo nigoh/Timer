@@ -78,6 +78,16 @@
     line-height: 1;
   }
 
+  /* 統計値の数値: 全機能の統計数値に統一して使用 */
+  .stat-value {
+    @apply text-xl font-bold;
+  }
+
+  /* 統計値のラベル: 統計値の下に表示するキャプションに統一して使用 */
+  .stat-label {
+    @apply text-xs text-muted-foreground;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));

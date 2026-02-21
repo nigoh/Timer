@@ -3,14 +3,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BasicTimer } from "./BasicTimer";
 import { EnhancedPomodoroTimer } from "./EnhancedPomodoroTimer";
 import { MultiTimer } from "./MultiTimer";
-import { Dashboard } from "./Dashboard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const SUB_TABS = [
   { value: "basic", label: "基本タイマー" },
   { value: "pomodoro", label: "ポモドーロ" },
   { value: "multi", label: "複数タイマー" },
-  { value: "dashboard", label: "分析" },
 ] as const;
 
 type SubTabValue = (typeof SUB_TABS)[number]["value"];
@@ -68,12 +66,6 @@ export const UnifiedTimer: React.FC = () => {
       <TabsContent value="multi">
         <ErrorBoundary componentName="MultiTimer">
           <MultiTimer />
-        </ErrorBoundary>
-      </TabsContent>
-
-      <TabsContent value="dashboard">
-        <ErrorBoundary componentName="Dashboard">
-          <Dashboard />
         </ErrorBoundary>
       </TabsContent>
     </Tabs>

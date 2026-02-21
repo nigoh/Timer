@@ -10,9 +10,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  BarChart2,
 } from "lucide-react";
 import { UnifiedTimer } from "./features/timer/containers/UnifiedTimer";
 import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
+import { Dashboard } from "./features/timer/containers/Dashboard";
 import SettingsAndLogsPage from "./components/SettingsAndLogsPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
@@ -29,6 +31,7 @@ import "./globals.css";
 const NAV_ITEMS = [
   { value: "timer", Icon: Timer, label: "タイマー" },
   { value: "agenda", Icon: List, label: "会議" },
+  { value: "analytics", Icon: BarChart2, label: "分析" },
 ] as const;
 
 function App() {
@@ -98,11 +101,19 @@ function App() {
         >
           {/* ロゴ + 開閉ボタン */}
           <div className="flex h-14 shrink-0 items-center px-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Timer className="h-4 w-4" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md overflow-hidden">
+              <img
+                src={
+                  colorMode === "dark"
+                    ? "/focuso-logo-dark.svg"
+                    : "/focuso-logo-light.svg"
+                }
+                alt="Focuso"
+                className="h-8 w-8"
+              />
             </div>
             {sidebarOpen && (
-              <span className="ml-2 flex-1 font-semibold">Timer App</span>
+              <span className="ml-2 flex-1 font-semibold">Focuso</span>
             )}
             <Button
               variant="ghost"
@@ -275,6 +286,11 @@ function App() {
               <TabsContent value="agenda">
                 <ErrorBoundary componentName="AgendaTimer">
                   <AgendaTimer />
+                </ErrorBoundary>
+              </TabsContent>
+              <TabsContent value="analytics">
+                <ErrorBoundary componentName="Dashboard">
+                  <Dashboard />
                 </ErrorBoundary>
               </TabsContent>
               <TabsContent value="settings">

@@ -17,6 +17,23 @@ applyTo: "src/features/timer/components/**,src/components/**"
 - スタイルは Tailwind クラスで記述し、インラインスタイルは避ける
 - レスポンシブ対応は `sm:` / `md:` プレフィックスを使用する
 
+## 文字サイズ規約（厳守）
+
+アプリ全体で使用できる文字サイズは以下の **7種類のみ**。それ以外（`text-[10px]`、`text-3xl` など任意値・非許可ステップ）は禁止。
+
+| クラス                | サイズ             | 用途                                                        |
+| --------------------- | ------------------ | ----------------------------------------------------------- |
+| `text-xs`             | 12px               | メタ情報・補足・バッジ件数・タイムスタンプ                  |
+| `text-sm`             | 14px               | 本文・フォームラベル・ボタン・CardTitle（コンパクト）       |
+| `text-base`           | 16px               | **UI Primitive のみ**（`textarea`・Quill エディタモバイル） |
+| `text-lg`             | 18px               | 空状態見出し・セクションサブタイトル                        |
+| `text-xl`             | 20px               | `.stat-value` クラス・アジェンダ名などの強調値              |
+| `text-2xl`            | 24px               | `CardTitle` デフォルト・TimerSettings の時間プレビュー      |
+| `timer-display-digit` | clamp(2.5–5.75rem) | メインタイマー数字のみ                                      |
+
+- 統計値には `.stat-value`（`text-xl font-bold`）、そのラベルには `.stat-label`（`text-xs text-muted-foreground`）を使用する
+- `text-base` をアプリ独自コンポーネントに使うことは禁止（UI Primitive ラッパー内のみ許容）
+
 ## パフォーマンス
 
 - イベントハンドラが重い場合は `useCallback` でメモ化する

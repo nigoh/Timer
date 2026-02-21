@@ -311,7 +311,7 @@ const TimerCard: React.FC<{
       <CardContent className="space-y-4">
         {/* 時間表示 */}
         <div className="text-center">
-          <div className="text-3xl font-mono font-bold">
+          <div className="text-2xl font-mono font-bold">
             {formatDuration(timer.remainingTime)}
           </div>
           <div className="text-sm text-muted-foreground">

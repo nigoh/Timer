@@ -30,7 +30,8 @@ interface MeetingReportHistoryProps {
 export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
   className,
 }) => {
-  const { reports, postedCommentHistory, deleteReport } = useMeetingReportStore();
+  const { reports, postedCommentHistory, deleteReport } =
+    useMeetingReportStore();
   const [selectedReport, setSelectedReport] = useState<MeetingReport | null>(
     null,
   );
@@ -61,7 +62,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
             <CardTitle className="flex items-center gap-1.5 text-sm">
               <FileText className="h-3.5 w-3.5" />
               レポート履歴
-              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+              <Badge variant="outline" className="h-5 px-1.5 text-xs">
                 {reports.length}件
               </Badge>
             </CardTitle>
@@ -178,20 +179,20 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
             />
             {selectedReport && (
               <div className="space-y-1">
-                <p className="text-xs font-medium">Issue投稿履歴</p>
+                <p className="text-sm font-medium">Issue投稿履歴</p>
                 <ul className="space-y-1 text-xs">
                   {selectedReportPostedHistory.map((entry) => (
-                      <li key={entry.id}>
-                        <a
-                          href={entry.commentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline break-all"
-                        >
-                          {entry.commentUrl}
-                        </a>
-                      </li>
-                    ))}
+                    <li key={entry.id}>
+                      <a
+                        href={entry.commentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline break-all"
+                      >
+                        {entry.commentUrl}
+                      </a>
+                    </li>
+                  ))}
                 </ul>
               </div>
             )}
