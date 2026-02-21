@@ -1,3 +1,6 @@
+// PomodoroPhaseとPomodoroSettingsの正本はsrc/types/pomodoro.tsを参照
+export type { PomodoroPhase, PomodoroSettings } from './pomodoro';
+
 export interface Timer {
   id: string;
   name: string;
@@ -18,17 +21,6 @@ export interface Timer {
 
 export type TimerType = 'basic' | 'pomodoro' | 'break';
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
-export type PomodoroPhase = 'work' | 'short-break' | 'long-break';
-
-export interface PomodoroTimer extends Timer {
-  type: 'pomodoro';
-  pomodoroData: {
-    phase: PomodoroPhase;
-    cycle: number;            // 現在のサイクル数（1-4）
-    totalCycles: number;      // 完了したサイクル数
-    settings: PomodoroSettings;
-  };
-}
 
 export interface TimerTheme {
   color: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
@@ -60,20 +52,6 @@ export interface BasicTimerHistory {
   endTime: Date;
   completed: boolean;        // 完了したかどうか
   label?: string;           // ユーザーが設定したラベル
-}
-
-export interface PomodoroSettings {
-  workDuration: number;          // 作業時間（分）
-  shortBreakDuration: number;    // 短い休憩（分）
-  longBreakDuration: number;     // 長い休憩（分）
-  longBreakInterval: number;     // 長い休憩の間隔
-  autoStartBreaks: boolean;
-  autoStartWork: boolean;
-  theme: {
-    work: string;              // 作業時のテーマ色
-    shortBreak: string;        // 短休憩時のテーマ色
-    longBreak: string;         // 長休憩時のテーマ色
-  };
 }
 
 export interface NotificationSettings {

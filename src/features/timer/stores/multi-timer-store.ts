@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { MultiTimerState, MultiTimer } from '@/types/multi-timer';
 import { notificationManager } from '@/utils/notification-manager';
+import { generateId } from '@/utils/id';
 
 export interface MultiTimerStore extends MultiTimerState {
   addTimer: (
@@ -30,8 +31,6 @@ export interface MultiTimerStore extends MultiTimerState {
 }
 
 const DEFAULT_CATEGORIES = ['仕事', '勉強', '運動', '休憩', 'その他'];
-
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
 export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
   timers: [],

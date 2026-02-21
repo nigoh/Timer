@@ -11,8 +11,6 @@ interface BasicTimerState {
   sessionStartTime: Date | null;
   sessionLabel: string;
   history: BasicTimerHistory[];
-  showHistory: boolean;
-  showSettings: boolean;
 }
 
 interface BasicTimerActions {
@@ -26,8 +24,6 @@ interface BasicTimerActions {
   addToHistory: (entry: Omit<BasicTimerHistory, 'id'>) => void;
   clearHistory: () => void;
   deleteHistoryEntry: (id: string) => void;
-  toggleHistory: () => void;
-  toggleSettings: () => void;
   tick: () => void;
 }
 
@@ -42,8 +38,6 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
   sessionStartTime: null,
   sessionLabel: '',
   history: [],
-  showHistory: false,
-  showSettings: false,
 
   setDuration: (duration) => {
     set((state) => ({
@@ -170,14 +164,6 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
     set((state) => ({
       history: state.history.filter((entry) => entry.id !== id),
     }));
-  },
-
-  toggleHistory: () => {
-    set((state) => ({ showHistory: !state.showHistory }));
-  },
-
-  toggleSettings: () => {
-    set((state) => ({ showSettings: !state.showSettings }));
   },
 
   tick: () => {

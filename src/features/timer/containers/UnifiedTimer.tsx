@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BasicTimer } from "./BasicTimer";
 import { EnhancedPomodoroTimer } from "./EnhancedPomodoroTimer";
 import { MultiTimer } from "./MultiTimer";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { useUIPreferencesStore } from "@/features/timer/stores/ui-preferences-store";
 
 const SUB_TABS = [
   { value: "basic", label: "基本タイマー" },
@@ -11,36 +12,14 @@ const SUB_TABS = [
   { value: "multi", label: "複数タイマー" },
 ] as const;
 
-type SubTabValue = (typeof SUB_TABS)[number]["value"];
-
-function getInitialSubTab(): SubTabValue {
-  try {
-    const stored = localStorage.getItem("timer-sub-tab");
-    if (stored && SUB_TABS.some((t) => t.value === stored)) {
-      return stored as SubTabValue;
-    }
-  } catch {
-    /* noop */
-  }
-  return "basic";
-}
-
 export const UnifiedTimer: React.FC = () => {
-  const [subTab, setSubTab] = useState<SubTabValue>(getInitialSubTab);
-
-  const handleSubTabChange = (value: string) => {
-    setSubTab(value as SubTabValue);
-    try {
-      localStorage.setItem("timer-sub-tab", value);
-    } catch {
-      /* noop */
-    }
-  };
+  const timerSubTab = useUIPreferencesStore((s) => s.timerSubTab);
+  const setTimerSubTab = useUIPreferencesStore((s) => s.setTimerSubTab);
 
   return (
     <Tabs
-      value={subTab}
-      onValueChange={handleSubTabChange}
+      value={timerSubTab}
+      onValueChange={setTimerSubTab}
       className="flex flex-col"
     >
       <TabsList className="mb-2 w-full justify-start">

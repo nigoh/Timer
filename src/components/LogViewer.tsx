@@ -36,6 +36,7 @@ import {
   LogEntry,
   createAiAnalysisPrompt,
 } from "@/utils/logger";
+import { formatTimestamp } from "@/lib/utils";
 
 interface LogViewerProps {
   children: React.ReactNode;
@@ -170,17 +171,6 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
           "コピーに失敗しました。ブラウザの権限設定を確認してください。",
       }));
     }
-  };
-
-  const formatTimestamp = (timestamp: Date) => {
-    return new Date(timestamp).toLocaleString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
   };
 
   const LogEntryCard: React.FC<{ entry: LogEntry }> = ({ entry }) => (

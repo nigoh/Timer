@@ -11,8 +11,6 @@ const resetBasicTimerStore = () => {
     sessionStartTime: null,
     sessionLabel: '',
     history: [],
-    showHistory: false,
-    showSettings: false,
   });
 };
 
@@ -83,20 +81,7 @@ describe('useBasicTimerStore', () => {
     expect(useBasicTimerStore.getState().sessionLabel).toBe('重要作業');
   });
 
-  // TC-BS-06
-  it('toggleHistory で showHistory を切り替えられる', () => {
-    useBasicTimerStore.setState({ showHistory: false });
-    useBasicTimerStore.getState().toggleHistory();
-    expect(useBasicTimerStore.getState().showHistory).toBe(true);
-    useBasicTimerStore.getState().toggleHistory();
-    expect(useBasicTimerStore.getState().showHistory).toBe(false);
-  });
-
-  it('toggleSettings で showSettings を切り替えられる', () => {
-    useBasicTimerStore.setState({ showSettings: false });
-    useBasicTimerStore.getState().toggleSettings();
-    expect(useBasicTimerStore.getState().showSettings).toBe(true);
-  });
+  // TC-BS-06 (showHistory/showSettings は ui-preferences-store に移行済み)
 
   // TC-BS-08
   it('isRunning=false のとき tick は何もしない', () => {

@@ -1,4 +1,4 @@
-import React, { act } from "react";
+import { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRoot } from "react-dom/client";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";

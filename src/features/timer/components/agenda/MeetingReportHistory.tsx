@@ -53,7 +53,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
     <>
       <Card
         className={cn(
-          "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
+          "grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]",
           className,
         )}
       >
@@ -69,17 +69,17 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
           </div>
         </CardHeader>
 
-        <CardContent className="px-3 pb-3 pt-0 lg:min-h-0">
+        <CardContent className="px-3 pb-3 pt-0 min-h-0">
           {reports.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               レポートはまだありません
             </p>
           ) : (
-            <ul className="space-y-1 overflow-auto pr-1 lg:h-full lg:min-h-0">
+            <ul className="space-y-1 overflow-auto pr-1 h-full min-h-0">
               {reports.map((report) => (
                 <li
                   key={report.id}
-                  className="cursor-pointer rounded-sm px-2 py-2 text-xs hover:bg-muted/50"
+                  className="cursor-pointer rounded-sm px-2 py-2 text-sm hover:bg-muted/50"
                   onClick={() => setSelectedReport(report)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -96,7 +96,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                       <p className="truncate font-medium text-foreground">
                         {report.meetingTitle}
                       </p>
-                      <p className="text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {formatDateTime(report.createdAt)}
                       </p>
                     </div>

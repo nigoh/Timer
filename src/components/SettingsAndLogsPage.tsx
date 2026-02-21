@@ -37,6 +37,7 @@ import {
   LogEntry,
   createAiAnalysisPrompt,
 } from "@/utils/logger";
+import { formatTimestamp } from "@/lib/utils";
 
 const SettingsAndLogsPage: React.FC = () => {
   // ─── Settings state ───────────────────────────────────────────────────────
@@ -192,16 +193,6 @@ const SettingsAndLogsPage: React.FC = () => {
       }));
     }
   };
-
-  const formatTimestamp = (timestamp: Date) =>
-    new Date(timestamp).toLocaleString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
 
   const LogEntryCard: React.FC<{ entry: LogEntry }> = ({ entry }) => (
     <Card className="mb-2">

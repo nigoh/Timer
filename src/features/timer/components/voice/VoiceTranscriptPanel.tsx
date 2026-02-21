@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Sparkles, Trash2 } from "lucide-react";
+import { Tooltip } from "@radix-ui/themes";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { VoiceRecognitionButton } from "@/features/timer/components/voice/VoiceRecognitionButton";
 import { useVoiceRecognition } from "@/features/timer/hooks/useVoiceRecognition";
 import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
-import { cn } from "@/lib/utils";
+import { cn, formatUnixTimestamp } from "@/lib/utils";
 
 interface VoiceTranscriptPanelProps {
   meetingId: string;
@@ -12,14 +14,6 @@ interface VoiceTranscriptPanelProps {
   minutesFormat: "richtext" | "markdown";
   onRequestSummaryDialog?: () => void;
 }
-
-const formatTimestamp = (ts: number): string => {
-  const d = new Date(ts);
-  const h = d.getHours().toString().padStart(2, "0");
-  const m = d.getMinutes().toString().padStart(2, "0");
-  const s = d.getSeconds().toString().padStart(2, "0");
-  return `${h}:${m}:${s}`;
-};
 
 export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
   meetingId,
@@ -129,6 +123,34 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
       {/* パネル本体 */}
       {isOpen && (
         <div className="border-t px-3 pb-3 pt-2 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <VoiceRecognitionButton agendaId={agendaId} />
+
+            <Tooltip
+              content={
+                minutesFormat === "richtext"
+                  ? "AI要約して議事録に追加"
+                  : "議事録に追加"
+              }
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-8 w-8 p-0"
+                disabled={confirmedEntries.length === 0}
+                onClick={handleInsertToMinutes}
+                aria-label={
+                  minutesFormat === "richtext"
+                    ? "AI要約して議事録に追加"
+                    : "議事録に追加"
+                }
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            </Tooltip>
+          </div>
+
           <ScrollArea className="h-40 rounded-md bg-background border px-2 py-2 text-sm">
             {confirmedEntries.length === 0 && !interimTranscript && (
               <p className="text-muted-foreground text-xs py-2 text-center">
@@ -140,7 +162,7 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
             {confirmedEntries.map((entry) => (
               <div key={entry.id} className="flex gap-2 py-1 leading-snug">
                 <span className="text-muted-foreground font-mono text-xs shrink-0 pt-1">
-                  {formatTimestamp(entry.timestamp)}
+                  {formatUnixTimestamp(entry.timestamp)}
                 </span>
                 <span>{entry.text}</span>
               </div>
@@ -157,20 +179,6 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
             )}
             <div ref={bottomRef} />
           </ScrollArea>
-
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              disabled={confirmedEntries.length === 0}
-              onClick={handleInsertToMinutes}
-            >
-              {minutesFormat === "richtext"
-                ? "AI要約して議事録に追加"
-                : "議事録に追加"}
-            </Button>
-          </div>
         </div>
       )}
     </div>

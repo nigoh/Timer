@@ -10,6 +10,7 @@ import DOMPurify from "dompurify";
 import Quill from "quill";
 import type { QuillOptions } from "quill";
 import "quill/dist/quill.snow.css";
+import { cn } from "@/lib/utils";
 
 /**
  * Quill の HTML 出力を DOMPurify でサニタイズする。
@@ -145,7 +146,9 @@ const QuillEditor = forwardRef<QuillEditorHandle, QuillEditorProps>(
       }
     }, [value]);
 
-    return <div ref={containerRef} className={className} />;
+    return (
+      <div ref={containerRef} className={cn("flex flex-col", className)} />
+    );
   },
 );
 

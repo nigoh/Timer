@@ -1,12 +1,24 @@
-import React, { useCallback } from 'react';
-import { AnalyticsFilter, AnalyticsResult, Granularity, TimerKind } from '@/types/analytics';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import KpiCard from './KpiCard';
-import TrendChart from './TrendChart';
-import HeatmapChart from './HeatmapChart';
-import DonutChart from './DonutChart';
-import { Download } from 'lucide-react';
+import React, { useCallback } from "react";
+import {
+  AnalyticsFilter,
+  AnalyticsResult,
+  Granularity,
+  TimerKind,
+} from "@/types/analytics";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import KpiCard from "./KpiCard";
+import TrendChart from "./TrendChart";
+import HeatmapChart from "./HeatmapChart";
+import DonutChart from "./DonutChart";
+import { Download } from "lucide-react";
+import { formatMinutesValue } from "@/lib/utils";
 
 interface DashboardViewProps {
   filter: AnalyticsFilter;
@@ -18,30 +30,23 @@ interface DashboardViewProps {
 }
 
 const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
-  { value: 'day', label: '日次' },
-  { value: 'week', label: '週次' },
-  { value: 'month', label: '月次' },
+  { value: "day", label: "日次" },
+  { value: "week", label: "週次" },
+  { value: "month", label: "月次" },
 ];
 
-const KIND_OPTIONS: { value: TimerKind | 'all'; label: string }[] = [
-  { value: 'all', label: 'すべて' },
-  { value: 'basic', label: '基本タイマー' },
-  { value: 'pomodoro', label: 'ポモドーロ' },
-  { value: 'multi', label: '複数タイマー' },
+const KIND_OPTIONS: { value: TimerKind | "all"; label: string }[] = [
+  { value: "all", label: "すべて" },
+  { value: "basic", label: "基本タイマー" },
+  { value: "pomodoro", label: "ポモドーロ" },
+  { value: "multi", label: "複数タイマー" },
 ];
 
 const RANGE_OPTIONS: { label: string; days: number }[] = [
-  { label: '直近7日', days: 7 },
-  { label: '直近30日', days: 30 },
-  { label: '直近90日', days: 90 },
+  { label: "直近7日", days: 7 },
+  { label: "直近30日", days: 30 },
+  { label: "直近90日", days: 90 },
 ];
-
-function formatMinutes(mins: number): string {
-  if (mins < 60) return `${mins}分`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
 
 const DashboardView: React.FC<DashboardViewProps> = ({
   filter,
@@ -66,7 +71,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   );
 
   const completionRate =
-    kpi.sessions > 0 ? Math.round((kpi.completedSessions / kpi.sessions) * 100) : 0;
+    kpi.sessions > 0
+      ? Math.round((kpi.completedSessions / kpi.sessions) * 100)
+      : 0;
 
   return (
     <div className="space-y-4 py-2">
@@ -110,8 +117,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Timer kind filter */}
         <Select
-          value={filter.timerKind ?? 'all'}
-          onValueChange={(v) => onSetTimerKind(v === 'all' ? undefined : (v as TimerKind))}
+          value={filter.timerKind ?? "all"}
+          onValueChange={(v) =>
+            onSetTimerKind(v === "all" ? undefined : (v as TimerKind))
+          }
         >
           <SelectTrigger className="h-8 w-36 text-xs" aria-label="タイマー種別">
             <SelectValue />
@@ -142,7 +151,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard
           label="集中時間"
-          value={formatMinutes(kpi.focusMinutes)}
+          value={formatMinutesValue(kpi.focusMinutes)}
           sub={`${kpi.sessions}セッション`}
         />
         <KpiCard
@@ -154,10 +163,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           label="ポモドーロ達成率"
           value={`${kpi.pomodoroAchievementRate}%`}
         />
-        <KpiCard
-          label="会議超過率"
-          value={`${kpi.meetingOvertimeRate}%`}
-        />
+        <KpiCard label="会議超過率" value={`${kpi.meetingOvertimeRate}%`} />
       </div>
 
       {/* ── Trend chart ── */}

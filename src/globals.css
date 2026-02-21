@@ -64,10 +64,11 @@
     @apply border-border;
   }
   html {
-    scrollbar-gutter: stable both-edges;
+    overflow: hidden;
   }
   body {
     @apply bg-background text-foreground;
+    overflow: hidden;
   }
 }
 

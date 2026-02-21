@@ -3,9 +3,9 @@ import { useVoiceStore } from '@/features/timer/stores/voice-store';
 import { voiceRecognitionService } from '@/features/timer/services/voice-recognition-service';
 import { VoiceTranscriptEntry } from '@/types/voice';
 import { logger } from '@/utils/logger';
+import { generateId } from '@/utils/id';
 
-const generateId = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2);
+
 
 export function useVoiceRecognition() {
   const {

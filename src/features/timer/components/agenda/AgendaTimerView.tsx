@@ -1,1479 +1,67 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertDialog, Tooltip } from "@radix-ui/themes";
-import QuillEditor, {
-  type QuillEditorHandle,
-} from "@/components/ui/quill-editor";
+import { AlertDialog } from "@radix-ui/themes";
+import type { QuillEditorHandle } from "@/components/ui/quill-editor";
 import {
-  Play,
-  Pause,
-  Clock,
-  CheckCircle2,
-  Circle,
-  Square,
   Plus,
-  Edit,
-  Trash2,
+  Clock,
   Settings,
   Users,
-  Timer,
-  AlertCircle,
-  CircleHelp,
-  ChevronRight,
+  PlusCircle,
   Volume2,
-  VolumeX,
-  PanelRightClose,
-  PanelRightOpen,
   FileText,
   X,
-  PieChart,
 } from "lucide-react";
 import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
-import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
-import { fetchGitHubIssue } from "@/features/timer/api/github-issues";
 import {
-  parseAndValidateOwnerRepo,
-  validateIssueNumber,
-  meetingTitleSchema,
-} from "@/features/timer/utils/input-validators";
-import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingReportDialog";
-import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
-import { parseIssueAgendaItems } from "@/features/timer/utils/github-issue-agenda-parser";
-import { GitHubIssueLinking } from "@/components/GitHubIssueLinking";
+  getWidgetLabel,
+  useMeetingLayoutStore,
+} from "@/features/timer/stores/meeting-layout-store";
+import { AgendaItem, Meeting } from "@/types/agenda";
+import type { WidgetLayoutItem } from "@/types/layout";
+import { cn } from "@/lib/utils";
 import {
-  AGENDA_MINUTES_MOBILE_QUERY,
-  AGENDA_MINUTES_QUILL_FORMATS,
-  getAgendaMinutesQuillModules,
-} from "@/features/timer/components/agenda/agenda-minutes-quill";
-import { VoiceRecognitionButton } from "@/features/timer/components/voice/VoiceRecognitionButton";
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+
+import { MeetingDialog } from "./MeetingDialog";
+import { AgendaDialog } from "./AgendaDialog";
+import { AgendaSettingsDialog } from "./AgendaSettingsDialog";
+import { MeetingOverviewChart } from "./MeetingOverviewChart";
+import { MinutesEditor } from "./MinutesEditor";
+import { TimerDisplay } from "./TimerDisplay";
+import { MeetingList } from "./MeetingList";
+import { AgendaList } from "./AgendaList";
+import { WidgetCatalogDialog } from "./WidgetCatalogDialog";
+import { SortableWidget } from "./SortableWidget";
 import { VoiceTranscriptPanel } from "@/features/timer/components/voice/VoiceTranscriptPanel";
 import { VoiceTranscriptSummaryDialog } from "@/features/timer/components/voice/VoiceTranscriptSummaryDialog";
-import { AgendaItem, Meeting } from "@/types/agenda";
-import { cn, formatDuration } from "@/lib/utils";
-import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
+import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
 
-const formatMinutes = (seconds: number): string => {
-  return `${Math.ceil(seconds / 60)}分`;
-};
-
-const DEFAULT_AGENDA_DURATION_MINUTES = 10;
-const createAgendaSelectionMap = (size: number): Record<number, boolean> =>
-  Object.fromEntries(Array.from({ length: size }, (_, index) => [index, true]));
-
-const parseAgendaDraftLines = (input: string) =>
-  input
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [rawTitle, rawMinutes] = line.split("|").map((item) => item.trim());
-      const parsedMinutes = Number.parseInt(rawMinutes ?? "", 10);
-      return {
-        title: rawTitle,
-        plannedDurationMinutes:
-          Number.isFinite(parsedMinutes) && parsedMinutes > 0
-            ? parsedMinutes
-            : DEFAULT_AGENDA_DURATION_MINUTES,
-      };
-    })
-    .filter((item) => item.title.length > 0);
-
-// 進捗に応じた色とアイコンを取得
-const getProgressDisplay = (percentage: number) => {
-  if (percentage <= 70) {
-    return {
-      color: TIMER_STATUS_CONFIG.completed.color,
-      bgColor: TIMER_STATUS_CONFIG.completed.bgColor,
-      icon: <Clock className="w-4 h-4" />,
-      label: "余裕",
-    };
-  }
-  if (percentage <= 90) {
-    return {
-      color: TIMER_STATUS_CONFIG.paused.color,
-      bgColor: TIMER_STATUS_CONFIG.paused.bgColor,
-      icon: <AlertCircle className="w-4 h-4" />,
-      label: "残り少",
-    };
-  }
-  if (percentage <= 100) {
-    return {
-      color: TIMER_STATUS_CONFIG.warning.color,
-      bgColor: TIMER_STATUS_CONFIG.warning.bgColor,
-      icon: <Timer className="w-4 h-4" />,
-      label: "終了間近",
-    };
-  }
-  return {
-    color: TIMER_STATUS_CONFIG.overtime.color,
-    bgColor: TIMER_STATUS_CONFIG.overtime.bgColor,
-    icon: <AlertCircle className="w-4 h-4" />,
-    label: "超過中",
-  };
-};
-
-// 会議作成/編集ダイアログ
-interface MeetingDialogProps {
-  meeting?: Meeting | null;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const MeetingDialog: React.FC<MeetingDialogProps> = ({
-  meeting,
-  isOpen,
-  onClose,
-}) => {
-  const { createMeeting, updateMeetingTitle, addAgenda } =
-    useAgendaTimerStore();
-  const { githubPat } = useIntegrationLinkStore();
-  const [title, setTitle] = useState(meeting?.title || "");
-  const [ownerRepo, setOwnerRepo] = useState("");
-  const [issueNumber, setIssueNumber] = useState("");
-  const [agendaDraft, setAgendaDraft] = useState("");
-  const [issueError, setIssueError] = useState("");
-  const [isImportingIssue, setIsImportingIssue] = useState(false);
-  const [importedAgendaItems, setImportedAgendaItems] = useState<
-    ReturnType<typeof parseIssueAgendaItems>
-  >([]);
-  const [selectedAgendaItems, setSelectedAgendaItems] = useState<
-    Record<number, boolean>
-  >({});
-
-  useEffect(() => {
-    setTitle(meeting?.title || "");
-    setOwnerRepo("");
-    setIssueNumber("");
-    setAgendaDraft("");
-    setIssueError("");
-    setImportedAgendaItems([]);
-    setSelectedAgendaItems({});
-  }, [meeting]);
-
-  const handleImportFromIssue = async () => {
-    setIssueError("");
-    const ownerRepoResult = parseAndValidateOwnerRepo(ownerRepo);
-    if ("error" in ownerRepoResult) {
-      setIssueError(ownerRepoResult.error);
-      return;
-    }
-    const issueNumResult = validateIssueNumber(issueNumber);
-    if ("error" in issueNumResult) {
-      setIssueError(issueNumResult.error);
-      return;
-    }
-    const { owner, repo } = ownerRepoResult;
-    const parsedIssueNumber = issueNumResult.value;
-
-    setIsImportingIssue(true);
-    try {
-      const issue = await fetchGitHubIssue({
-        owner,
-        repo,
-        issueNumber: parsedIssueNumber,
-        pat: githubPat ?? undefined,
-      });
-      setTitle(issue.title);
-      const parsedAgendas = parseIssueAgendaItems(issue.body);
-      setImportedAgendaItems(parsedAgendas);
-      setSelectedAgendaItems(createAgendaSelectionMap(parsedAgendas.length));
-      setAgendaDraft(
-        parsedAgendas
-          .map((agenda) =>
-            agenda.plannedDurationMinutes
-              ? `${agenda.title} | ${agenda.plannedDurationMinutes}`
-              : agenda.title,
-          )
-          .join("\n"),
-      );
-    } catch (error) {
-      setIssueError(
-        error instanceof Error
-          ? error.message
-          : "Issue からの下書き生成に失敗しました",
-      );
-    } finally {
-      setIsImportingIssue(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const titleResult = meetingTitleSchema.safeParse(title.trim());
-    if (!titleResult.success) return;
-
-    if (meeting) {
-      updateMeetingTitle(meeting.id, titleResult.data);
-    } else {
-      const createdMeetingId = createMeeting(titleResult.data);
-      if (createdMeetingId) {
-        const agendaCandidates =
-          importedAgendaItems.length > 0
-            ? importedAgendaItems.filter(
-                (_, index) => selectedAgendaItems[index],
-              )
-            : parseAgendaDraftLines(agendaDraft);
-        agendaCandidates.forEach((agendaItem) => {
-          addAgenda(
-            createdMeetingId,
-            agendaItem.title,
-            (agendaItem.plannedDurationMinutes ??
-              DEFAULT_AGENDA_DURATION_MINUTES) * 60,
-          );
-        });
-      }
-    }
-
-    setTitle("");
-    setAgendaDraft("");
-    setOwnerRepo("");
-    setIssueNumber("");
-    setIssueError("");
-    setImportedAgendaItems([]);
-    setSelectedAgendaItems({});
-    onClose();
-  };
-
-  return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
-      <DialogContent
-        className="sm:max-w-md [&>button]:hidden"
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-        }}
-      >
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              {meeting ? "会議を編集" : "新しい会議を作成"}
-            </DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              aria-label="ダイアログを閉じる"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="meeting-title">会議名</Label>
-            <Input
-              id="meeting-title"
-              placeholder="例: プロジェクト進捗会議、部門ミーティング"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              maxLength={200}
-            />
-          </div>
-
-          {!meeting && (
-            <div className="space-y-3 rounded-md p-3">
-              <p className="text-sm font-medium">GitHub Issue から下書き入力</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label htmlFor="meeting-issue-owner-repo">Owner/Repo</Label>
-                  <Input
-                    id="meeting-issue-owner-repo"
-                    placeholder="owner/repo"
-                    value={ownerRepo}
-                    onChange={(event) => setOwnerRepo(event.target.value)}
-                    maxLength={141}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="meeting-issue-number">Issue #</Label>
-                  <Input
-                    id="meeting-issue-number"
-                    type="number"
-                    min="1"
-                    max="999999"
-                    placeholder="36"
-                    value={issueNumber}
-                    onChange={(event) => setIssueNumber(event.target.value)}
-                  />
-                </div>
-              </div>
-              {issueError && (
-                <p className="text-xs text-destructive">{issueError}</p>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleImportFromIssue}
-                disabled={isImportingIssue}
-              >
-                {isImportingIssue ? "取得中..." : "Issue から反映"}
-              </Button>
-              {importedAgendaItems.length > 0 && (
-                <div className="space-y-1 rounded-md bg-muted/50 p-2">
-                  <p className="text-xs font-medium">取り込み対象の選択</p>
-                  <ul className="space-y-1">
-                    {importedAgendaItems.map((item, index) => (
-                      <li key={`${item.title}-${index}`} className="text-xs">
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(selectedAgendaItems[index])}
-                            onChange={(event) =>
-                              setSelectedAgendaItems((prev) => ({
-                                ...prev,
-                                [index]: event.target.checked,
-                              }))
-                            }
-                          />
-                          <span>
-                            {item.title}
-                            {item.plannedDurationMinutes
-                              ? `（${item.plannedDurationMinutes}分）`
-                              : ""}
-                          </span>
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div className="space-y-1">
-                <Label htmlFor="meeting-issue-agenda-draft">
-                  アジェンダ下書き（1行: タイトル | 分）
-                </Label>
-                <Textarea
-                  id="meeting-issue-agenda-draft"
-                  rows={6}
-                  placeholder={"例: オープニング | 5\n課題整理 | 15"}
-                  value={agendaDraft}
-                  onChange={(event) => setAgendaDraft(event.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button type="submit">{meeting ? "更新" : "作成"}</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// アジェンダ追加/編集ダイアログ
-interface AgendaDialogProps {
-  meetingId: string;
-  agenda?: AgendaItem | null;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const AgendaDialog: React.FC<AgendaDialogProps> = ({
-  meetingId,
-  agenda,
-  isOpen,
-  onClose,
-}) => {
-  const { addAgenda, updateAgenda } = useAgendaTimerStore();
-  const [title, setTitle] = useState(agenda?.title || "");
-  const [duration, setDuration] = useState(
-    agenda ? Math.ceil(agenda.plannedDuration / 60) : 10,
-  );
-  const [memo, setMemo] = useState(agenda?.memo || "");
-
-  useEffect(() => {
-    setTitle(agenda?.title || "");
-    setDuration(agenda ? Math.ceil(agenda.plannedDuration / 60) : 10);
-    setMemo(agenda?.memo || "");
-  }, [agenda]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const titleResult = meetingTitleSchema.safeParse(title.trim());
-    if (!titleResult.success) return;
-
-    const durationSeconds = duration * 60;
-
-    if (agenda) {
-      updateAgenda(meetingId, agenda.id, {
-        title: titleResult.data,
-        plannedDuration: durationSeconds,
-        memo,
-        remainingTime: durationSeconds - agenda.actualDuration,
-      });
-    } else {
-      addAgenda(meetingId, titleResult.data, durationSeconds, memo);
-    }
-
-    setTitle("");
-    setDuration(10);
-    setMemo("");
-    onClose();
-  };
-
-  return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
-      <DialogContent className="sm:max-w-md [&>button]:hidden">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              {agenda ? "アジェンダを編集" : "新しいアジェンダを追加"}
-            </DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              aria-label="ダイアログを閉じる"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="agenda-title">アジェンダタイトル</Label>
-            <Input
-              id="agenda-title"
-              placeholder="例: 進捗報告、課題検討、次回予定"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              maxLength={200}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="agenda-duration">予定時間（分）</Label>
-            <Input
-              id="agenda-duration"
-              type="number"
-              min="1"
-              max="180"
-              value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value) || 10)}
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="agenda-memo">メモ（任意）</Label>
-            <Textarea
-              id="agenda-memo"
-              placeholder="議論のポイント、準備資料、参加者への連絡事項など"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button type="submit">{agenda ? "更新" : "追加"}</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// 設定ダイアログ
-interface SettingsDialogProps {
-  meeting: Meeting;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const SettingsDialog: React.FC<SettingsDialogProps> = ({
-  meeting,
-  isOpen,
-  onClose,
-}) => {
-  const { updateMeetingSettings } = useAgendaTimerStore();
-  const [settings, setSettings] = useState(meeting.settings);
-  const meetingIssueLinkId = `meeting:${meeting.id}`;
-
-  useEffect(() => {
-    setSettings(meeting.settings);
-  }, [meeting.settings]);
-
-  const handleSave = () => {
-    updateMeetingSettings(meeting.id, settings);
-    onClose();
-  };
-
-  return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
-      <DialogContent className="sm:max-w-md [&>button]:hidden">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              会議設定
-            </DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              aria-label="ダイアログを閉じる"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* 基本設定 */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold">基本設定</h4>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">
-                自動遷移
-                <div className="text-xs text-muted-foreground">
-                  アジェンダが終了したら自動で次へ
-                </div>
-              </Label>
-              <Switch
-                checked={settings.autoTransition}
-                onCheckedChange={(checked) =>
-                  setSettings({
-                    ...settings,
-                    autoTransition: checked,
-                  })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">
-                サイレントモード
-                <div className="text-xs text-muted-foreground">
-                  音を鳴らさずバイブのみ
-                </div>
-              </Label>
-              <Switch
-                checked={settings.silentMode}
-                onCheckedChange={(checked) =>
-                  setSettings({
-                    ...settings,
-                    silentMode: checked,
-                  })
-                }
-              />
-            </div>
-          </div>
-
-          {/* ベル設定 */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold">ベル通知設定</h4>
-
-            <div>
-              <Label className="text-sm mb-2 block">ベル音の種類</Label>
-              <Select
-                value={settings.bellSettings.soundType}
-                onValueChange={(value: "single" | "double" | "loop") =>
-                  setSettings({
-                    ...settings,
-                    bellSettings: {
-                      ...settings.bellSettings,
-                      soundType: value,
-                    },
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">単発ベル</SelectItem>
-                  <SelectItem value="double">二打ベル</SelectItem>
-                  <SelectItem value="loop">ループベル</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">開始時</Label>
-                <Switch
-                  checked={settings.bellSettings.start}
-                  onCheckedChange={(checked) =>
-                    setSettings({
-                      ...settings,
-                      bellSettings: {
-                        ...settings.bellSettings,
-                        start: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">残り5分</Label>
-                <Switch
-                  checked={settings.bellSettings.fiveMinWarning}
-                  onCheckedChange={(checked) =>
-                    setSettings({
-                      ...settings,
-                      bellSettings: {
-                        ...settings.bellSettings,
-                        fiveMinWarning: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">終了時</Label>
-                <Switch
-                  checked={settings.bellSettings.end}
-                  onCheckedChange={(checked) =>
-                    setSettings({
-                      ...settings,
-                      bellSettings: { ...settings.bellSettings, end: checked },
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">超過時</Label>
-                <Switch
-                  checked={settings.bellSettings.overtime}
-                  onCheckedChange={(checked) =>
-                    setSettings({
-                      ...settings,
-                      bellSettings: {
-                        ...settings.bellSettings,
-                        overtime: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          <GitHubIssueLinking timeLogId={meetingIssueLinkId} />
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button onClick={handleSave}>設定を保存</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-interface MinutesEditorProps {
-  meetingId: string;
-  agenda: AgendaItem;
-}
-
-const CHART_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-];
-
-interface MeetingOverviewChartProps {
-  meeting: Meeting;
-}
-
-const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
-  meeting,
-}) => {
-  const agendaSlices = useMemo(() => {
-    return [...meeting.agenda]
-      .sort((first, second) => first.order - second.order)
-      .map((agenda) => ({
-        id: agenda.id,
-        title: agenda.title,
-        plannedDuration: agenda.plannedDuration,
-      }))
-      .filter((agenda) => agenda.plannedDuration > 0);
-  }, [meeting.agenda]);
-
-  const totalPlannedDuration = useMemo(() => {
-    return agendaSlices.reduce(
-      (sum, agenda) => sum + agenda.plannedDuration,
-      0,
-    );
-  }, [agendaSlices]);
-
-  const totalActualDuration = useMemo(() => {
-    return meeting.agenda.reduce(
-      (sum, agenda) => sum + agenda.actualDuration,
-      0,
-    );
-  }, [meeting.agenda]);
-
-  const donutBackground = useMemo(() => {
-    if (agendaSlices.length === 0 || totalPlannedDuration <= 0) {
-      return "hsl(var(--muted))";
-    }
-
-    let cumulativeRatio = 0;
-    const stops = agendaSlices.map((agenda, index) => {
-      const start = cumulativeRatio * 100;
-      cumulativeRatio += agenda.plannedDuration / totalPlannedDuration;
-      const end = cumulativeRatio * 100;
-      const color = CHART_COLORS[index % CHART_COLORS.length];
-      return `${color} ${start}% ${end}%`;
-    });
-
-    return `conic-gradient(${stops.join(", ")})`;
-  }, [agendaSlices, totalPlannedDuration]);
-
-  return (
-    <div className="space-y-3 rounded-md p-3">
-      <div className="flex items-center justify-between">
-        <h4 className="flex items-center gap-2 text-sm font-medium">
-          <PieChart className="h-4 w-4" />
-          会議時間配分
-        </h4>
-        <Badge variant="outline" className="text-xs">
-          {agendaSlices.length}件
-        </Badge>
-      </div>
-
-      {agendaSlices.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          アジェンダを追加すると時間配分を表示します
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
-          <div
-            className="mx-auto h-32 w-32 rounded-full"
-            style={{ background: donutBackground }}
-          >
-            <div className="flex h-full w-full items-center justify-center p-4">
-              <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-background text-center">
-                <div className="text-xs text-muted-foreground">会議全体</div>
-                <div className="text-xs font-semibold">
-                  {formatDuration(totalPlannedDuration)}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="max-h-28 space-y-1 overflow-y-auto pr-1 text-xs">
-            {agendaSlices.map((agenda, index) => {
-              const ratio =
-                totalPlannedDuration > 0
-                  ? (agenda.plannedDuration / totalPlannedDuration) * 100
-                  : 0;
-              return (
-                <div
-                  key={agenda.id}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{
-                        backgroundColor:
-                          CHART_COLORS[index % CHART_COLORS.length],
-                      }}
-                    />
-                    <span className="truncate text-muted-foreground">
-                      {agenda.title}
-                    </span>
-                  </div>
-                  <div className="shrink-0 font-mono text-foreground">
-                    {Math.round(ratio)}%
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
-        <div>
-          <div className="text-muted-foreground">予定合計</div>
-          <div className="font-mono font-semibold">
-            {formatDuration(totalPlannedDuration)}
-          </div>
-        </div>
-        <div>
-          <div className="text-muted-foreground">実績合計</div>
-          <div className="font-mono font-semibold">
-            {formatDuration(totalActualDuration)}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
-  const { updateAgendaMinutes } = useAgendaTimerStore();
-  const quillRef = useRef<QuillEditorHandle>(null);
-  const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-    return window.matchMedia(AGENDA_MINUTES_MOBILE_QUERY).matches;
-  });
-  const quillModules = useMemo(
-    () => getAgendaMinutesQuillModules(isMobile),
-    [isMobile],
-  );
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(AGENDA_MINUTES_MOBILE_QUERY);
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsMobile(event.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  return (
-    <Card className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-sm">議事録</CardTitle>
-          <VoiceRecognitionButton agendaId={agenda.id} />
-        </div>
-      </CardHeader>
-      <CardContent className="p-3 pt-0 lg:min-h-0 space-y-2">
-        <VoiceTranscriptPanel
-          meetingId={meetingId}
-          agendaId={agenda.id}
-          minutesFormat={agenda.minutesFormat}
-          onRequestSummaryDialog={() => setIsSummaryDialogOpen(true)}
-        />
-        <VoiceTranscriptSummaryDialog
-          isOpen={isSummaryDialogOpen}
-          onClose={() => setIsSummaryDialogOpen(false)}
-          quillRef={quillRef}
-          onInserted={() => setIsSummaryDialogOpen(false)}
-        />
-        <div className="agenda-minutes-editor min-h-[280px] min-w-0 overflow-visible rounded-md bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:shrink-0 [&_.ql-toolbar]:flex-wrap [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-base">
-          <QuillEditor
-            ref={quillRef}
-            key={agenda.id}
-            theme="snow"
-            className="h-full"
-            value={agenda.minutesContent}
-            onChange={(value) => {
-              if (value === agenda.minutesContent) {
-                return;
-              }
-
-              updateAgendaMinutes(meetingId, agenda.id, {
-                minutesContent: value,
-                minutesFormat: "richtext",
-              });
-            }}
-            modules={quillModules}
-            formats={AGENDA_MINUTES_QUILL_FORMATS}
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-// メインタイマー表示
-const TimerDisplay: React.FC = () => {
-  const [isHelpTooltipOpen, setIsHelpTooltipOpen] = useState(false);
-
-  const {
-    currentMeeting,
-    isRunning,
-    getCurrentAgenda,
-    getProgressPercentage,
-    startTimer,
-    pauseTimer,
-    stopTimer,
-    syncTime,
-  } = useAgendaTimerStore();
-
-  const currentAgenda = getCurrentAgenda();
-  const progress = getProgressPercentage();
-  const progressDisplay = getProgressDisplay(progress);
-  const isPaused = currentAgenda?.status === "paused";
-  const canCompleteSession =
-    currentAgenda?.status === "running" ||
-    currentAgenda?.status === "paused" ||
-    currentAgenda?.status === "overtime";
-
-  // バックグラウンド復帰時の時間同期
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        syncTime();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [syncTime]);
-
-  if (!currentMeeting || !currentAgenda) {
-    return (
-      <Card className="text-center py-8">
-        <CardContent>
-          <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">アジェンダがありません</h3>
-          <p className="text-muted-foreground">
-            会議にアジェンダを追加してタイマーを開始してください
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card
-      className={cn(
-        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
-        isRunning && "ring-2 ring-ring shadow-lg",
-      )}
-    >
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            {progressDisplay.icon}
-            現在のアジェンダ
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={progressDisplay.color}>
-              {progressDisplay.label}
-            </Badge>
-            {currentMeeting.settings.silentMode ? (
-              <VolumeX className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <Volume2 className="w-4 h-4 text-muted-foreground" />
-            )}
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6 lg:min-h-0 lg:overflow-y-auto">
-        {/* アジェンダタイトル */}
-        <div className="text-center">
-          <h2 className="text-xl font-bold mb-2">{currentAgenda.title}</h2>
-          {currentAgenda.memo && (
-            <p className="text-muted-foreground text-sm">
-              {currentAgenda.memo}
-            </p>
-          )}
-        </div>
-
-        {/* 時間表示 */}
-        <div className="text-center space-y-4">
-          <div className="space-y-2">
-            <div className="timer-display-digit font-mono font-bold">
-              {formatDuration(currentAgenda.remainingTime)}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              予定時間: {formatDuration(currentAgenda.plannedDuration)}
-            </div>
-          </div>
-
-          {/* 進捗バー */}
-          <div className="space-y-2">
-            <Progress
-              value={Math.min(progress, 100)}
-              className="h-4"
-              indicatorClassName={progressDisplay.bgColor}
-            />
-            <div className="flex justify-between text-sm">
-              <span className={progressDisplay.color}>
-                {progress.toFixed(1)}% 経過
-              </span>
-              <span className="text-muted-foreground">
-                {progress > 100 ? `+${(progress - 100).toFixed(1)}% 超過` : ""}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-center gap-2">
-          <Tooltip
-            content="開始/一時停止で進行を調整し、区切りがついたらセッション完了で次のセッションへ進めます。"
-            side="top"
-            open={isHelpTooltipOpen}
-            onOpenChange={setIsHelpTooltipOpen}
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => setIsHelpTooltipOpen((prev) => !prev)}
-              aria-label={
-                isHelpTooltipOpen ? "操作説明を閉じる" : "操作説明を表示"
-              }
-            >
-              <CircleHelp className="h-4 w-4" />
-            </Button>
-          </Tooltip>
-          {!isRunning ? (
-            <Button onClick={startTimer} size="sm">
-              <Play className="mr-1.5 h-4 w-4" />
-              {isPaused ? "再開" : "開始"}
-            </Button>
-          ) : (
-            <Button onClick={pauseTimer} variant="outline" size="sm">
-              <Pause className="mr-1.5 h-4 w-4" />
-              一時停止
-            </Button>
-          )}
-
-          <Button
-            onClick={stopTimer}
-            variant="destructive"
-            size="sm"
-            disabled={!canCompleteSession}
-          >
-            <Square className="w-4 h-4 mr-1.5" />
-            セッション完了
-          </Button>
-        </div>
-
-        <MeetingOverviewChart meeting={currentMeeting} />
-      </CardContent>
-    </Card>
-  );
-};
-
-// アジェンダ一覧
-interface AgendaListProps {
-  className?: string;
-  onAddAgenda: () => void;
-  onEditAgenda: (agenda: AgendaItem) => void;
-}
-
-interface MeetingListProps {
-  meetings: Meeting[];
-  currentMeetingId?: string;
-  isSidePanelOpen: boolean;
-  className?: string;
-  onSelectMeeting: (meetingId: string) => void;
-  onCreateMeeting: () => void;
-  onEditMeeting: (meeting: Meeting) => void;
-  onDeleteMeeting: (meeting: Meeting) => void;
-  onSaveReport: (meeting: Meeting) => void;
-  onOpenSettings: () => void;
-  onToggleSidePanel: () => void;
-}
-
-const MeetingList: React.FC<MeetingListProps> = ({
-  meetings,
-  currentMeetingId,
-  isSidePanelOpen,
-  className,
-  onSelectMeeting,
-  onCreateMeeting,
-  onEditMeeting,
-  onDeleteMeeting,
-  onSaveReport,
-  onOpenSettings,
-  onToggleSidePanel,
-}) => {
-  return (
-    <Card
-      className={cn(
-        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
-        className,
-      )}
-    >
-      <CardHeader className="px-3 py-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-1.5 text-sm">
-            <Users className="h-3.5 w-3.5" />
-            会議一覧
-            <Badge variant="outline" className="h-5 px-1.5 text-xs">
-              {meetings.length}件
-            </Badge>
-          </CardTitle>
-          <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:justify-start">
-            <Tooltip content="新しい会議を作成" side="top">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-7 w-7 p-0 sm:h-7 sm:w-auto sm:px-2 sm:text-xs"
-                onClick={onCreateMeeting}
-                aria-label="新しい会議を作成"
-              >
-                <Plus className="h-3.5 w-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">新しい会議</span>
-              </Button>
-            </Tooltip>
-            <Tooltip content="会議設定を開く" side="top">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={onOpenSettings}
-                disabled={!currentMeetingId}
-              >
-                <Settings className="mr-1.5 h-3.5 w-3.5" />
-              </Button>
-            </Tooltip>
-            <Tooltip
-              content={isSidePanelOpen ? "会議一覧を閉じる" : "会議一覧を開く"}
-              side="top"
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 w-7 p-0"
-                onClick={onToggleSidePanel}
-                aria-label={isSidePanelOpen ? "一覧を閉じる" : "一覧を開く"}
-              >
-                {isSidePanelOpen ? (
-                  <PanelRightClose className="h-3.5 w-3.5" />
-                ) : (
-                  <PanelRightOpen className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </Tooltip>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="px-3 pb-3 pt-0 lg:min-h-0 lg:overflow-y-auto">
-        {meetings.length === 0 ? (
-          <p className="text-xs text-muted-foreground">会議がありません</p>
-        ) : (
-          <div className="space-y-1">
-            {meetings.map((meeting) => (
-              <div key={meeting.id} className="px-1 py-1">
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant={
-                      meeting.id === currentMeetingId ? "default" : "ghost"
-                    }
-                    size="sm"
-                    className="h-8 flex-1 justify-between px-2 text-xs"
-                    onClick={() => onSelectMeeting(meeting.id)}
-                  >
-                    <span className="truncate text-left">{meeting.title}</span>
-                    <span className="shrink-0 text-xs opacity-80">
-                      {meeting.agenda.length}件
-                    </span>
-                  </Button>
-                  <Tooltip content="会議名を編集" side="top">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => onEditMeeting(meeting)}
-                      aria-label="会議名を編集"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                  </Tooltip>
-                  <Tooltip content="会議レポートを作成" side="top">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-blue-600 hover:text-blue-700"
-                      onClick={() => onSaveReport(meeting)}
-                      aria-label="レポートを保存"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                    </Button>
-                  </Tooltip>
-                  <Tooltip content="会議を削除" side="top">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-500 hover:text-red-700"
-                      onClick={() => onDeleteMeeting(meeting)}
-                      aria-label="会議を削除"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </Tooltip>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-const AgendaList: React.FC<AgendaListProps> = ({
-  className,
-  onAddAgenda,
-  onEditAgenda,
-}) => {
-  const { currentMeeting, deleteAgenda, getCurrentAgenda, selectAgenda } =
-    useAgendaTimerStore();
-
-  const currentAgenda = getCurrentAgenda();
-
-  if (!currentMeeting) return null;
-
-  return (
-    <Card
-      className={cn(
-        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full",
-        className,
-      )}
-    >
-      <CardHeader className="px-3 py-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-1.5 text-sm">
-            <Clock className="h-3.5 w-3.5" />
-            アジェンダ一覧
-            <Badge variant="outline" className="h-5 px-1.5 text-xs">
-              {currentMeeting.agenda.length}件
-            </Badge>
-          </CardTitle>
-          <Button
-            onClick={() => {
-              onAddAgenda();
-            }}
-            variant="secondary"
-            size="sm"
-            className="h-7 w-7 p-0"
-            aria-label="アジェンダを追加"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="px-3 pb-3 pt-0 lg:min-h-0">
-        <div className="space-y-1.5 overflow-auto pr-1 lg:h-full lg:min-h-0">
-          {currentMeeting.agenda.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>アジェンダを追加してください</p>
-            </div>
-          ) : (
-            [...currentMeeting.agenda]
-              .sort((a, b) => a.order - b.order)
-              .map((agenda) => {
-                const isActive = currentAgenda?.id === agenda.id;
-                const progress =
-                  agenda.plannedDuration > 0
-                    ? (agenda.actualDuration / agenda.plannedDuration) * 100
-                    : 0;
-                const progressDisplay = getProgressDisplay(progress);
-
-                return (
-                  <div
-                    key={agenda.id}
-                    className={cn(
-                      "cursor-pointer px-2 py-2",
-                      isActive && TIMER_STATUS_CONFIG.running.surfaceClass,
-                      agenda.status === "completed" &&
-                        TIMER_STATUS_CONFIG.completed.surfaceClass,
-                      agenda.status === "overtime" &&
-                        TIMER_STATUS_CONFIG.overtime.surfaceClass,
-                    )}
-                    onClick={() => selectAgenda(currentMeeting.id, agenda.id)}
-                  >
-                    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                          {agenda.status === "completed" ? (
-                            <CheckCircle2
-                              className={`w-3.5 h-3.5 ${TIMER_STATUS_CONFIG.completed.color}`}
-                            />
-                          ) : isActive ? (
-                            progressDisplay.icon
-                          ) : (
-                            <Circle className="w-3.5 h-3.5 text-muted-foreground" />
-                          )}
-                          <h4 className="min-w-0 flex-1 text-sm font-medium break-words sm:truncate">
-                            {agenda.title}
-                          </h4>
-                          {isActive && (
-                            <ChevronRight
-                              className={`w-3.5 h-3.5 ${TIMER_STATUS_CONFIG.running.color}`}
-                            />
-                          )}
-                          <Badge
-                            variant={
-                              agenda.status === "pending"
-                                ? TIMER_STATUS_CONFIG.idle.badgeVariant
-                                : agenda.status === "running"
-                                  ? TIMER_STATUS_CONFIG.running.badgeVariant
-                                  : agenda.status === "paused"
-                                    ? TIMER_STATUS_CONFIG.paused.badgeVariant
-                                    : agenda.status === "completed"
-                                      ? TIMER_STATUS_CONFIG.completed
-                                          .badgeVariant
-                                      : agenda.status === "overtime"
-                                        ? TIMER_STATUS_CONFIG.overtime
-                                            .badgeVariant
-                                        : TIMER_STATUS_CONFIG.idle.badgeVariant
-                            }
-                            className="text-xs"
-                          >
-                            {agenda.status === "pending"
-                              ? TIMER_STATUS_CONFIG.idle.label
-                              : agenda.status === "running"
-                                ? TIMER_STATUS_CONFIG.running.label
-                                : agenda.status === "paused"
-                                  ? TIMER_STATUS_CONFIG.paused.label
-                                  : agenda.status === "completed"
-                                    ? TIMER_STATUS_CONFIG.completed.label
-                                    : agenda.status === "overtime"
-                                      ? TIMER_STATUS_CONFIG.overtime.label
-                                      : TIMER_STATUS_CONFIG.idle.label}
-                          </Badge>
-                        </div>
-
-                        {agenda.memo && (
-                          <p className="mb-1 text-xs text-muted-foreground line-clamp-2">
-                            {agenda.memo}
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between gap-1.5 text-xs">
-                          <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-3">
-                            <span className="break-all sm:break-normal">
-                              予定: {formatMinutes(agenda.plannedDuration)}
-                            </span>
-                            {agenda.actualDuration > 0 && (
-                              <span
-                                className={cn(
-                                  "break-all sm:break-normal",
-                                  progressDisplay.color,
-                                )}
-                              >
-                                実績: {formatMinutes(agenda.actualDuration)}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex shrink-0 gap-0.5">
-                            <Tooltip content="アジェンダを編集" side="top">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onEditAgenda(agenda);
-                                }}
-                                aria-label="アジェンダを編集"
-                              >
-                                <Edit className="h-3.5 w-3.5" />
-                              </Button>
-                            </Tooltip>
-                            <Tooltip content="アジェンダを削除" side="top">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  deleteAgenda(currentMeeting.id, agenda.id);
-                                }}
-                                aria-label="アジェンダを削除"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </Tooltip>
-                          </div>
-                        </div>
-
-                        <div className="mt-1">
-                          <Progress
-                            value={Math.min(progress, 100)}
-                            className="h-1.5"
-                            indicatorClassName={progressDisplay.bgColor}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-// メインコンポーネント
 export const AgendaTimerView: React.FC = () => {
   const {
     currentMeeting,
@@ -1490,16 +78,30 @@ export const AgendaTimerView: React.FC = () => {
   const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
   const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [isMobileManagementOpen, setIsMobileManagementOpen] = useState(false);
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-    return window.matchMedia("(min-width: 1024px)").matches;
-  });
+  const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
+  const [isWidgetCatalogOpen, setIsWidgetCatalogOpen] = useState(false);
+  const [layoutPresetName, setLayoutPresetName] = useState("");
   const [meetingToDelete, setMeetingToDelete] = useState<Meeting | null>(null);
   const [isDeleteMeetingDialogOpen, setIsDeleteMeetingDialogOpen] =
     useState(false);
+  const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
+  const quillRef = useRef<QuillEditorHandle>(null);
+  const {
+    isEditMode,
+    currentLayout,
+    presets,
+    setEditMode,
+    showWidget,
+    toggleWidget,
+    reorderVisibleWidgets,
+    setWidth,
+    setHeight,
+    resetLayout,
+    saveCurrentLayout,
+    applyPreset,
+    deletePreset,
+  } = useMeetingLayoutStore();
 
   const { createDraftFromMeeting, setDialogOpen: setReportDialogOpen } =
     useMeetingReportStore();
@@ -1517,189 +119,355 @@ export const AgendaTimerView: React.FC = () => {
     }
   }, [meetings.length, createMeeting]);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 1024px)");
-    const syncSidePanel = (isDesktop: boolean) => {
-      setIsSidePanelOpen(isDesktop);
-    };
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      syncSidePanel(event.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
   const currentAgenda = getCurrentAgenda();
 
-  const sidebarContent = (
-    <div
-      className={cn(
-        "h-full min-h-0",
-        isSidePanelOpen
-          ? "space-y-2 lg:space-y-0 lg:grid lg:grid-rows-[repeat(3,minmax(0,1fr))] lg:gap-2 lg:pr-1"
-          : "flex items-start justify-center",
-      )}
-    >
-      {isSidePanelOpen && (
-        <>
-          <MeetingList
-            meetings={meetings}
-            currentMeetingId={currentMeeting?.id}
-            isSidePanelOpen={isSidePanelOpen}
-            className="min-h-0"
-            onSelectMeeting={setCurrentMeeting}
-            onCreateMeeting={() => {
+  const orderedWidgets = useMemo(
+    () =>
+      currentLayout.slice().sort((first, second) => first.order - second.order),
+    [currentLayout],
+  );
+  const visibleWidgets = useMemo(
+    () => orderedWidgets.filter((widget) => widget.visible),
+    [orderedWidgets],
+  );
+  const hiddenWidgets = useMemo(
+    () => orderedWidgets.filter((widget) => !widget.visible),
+    [orderedWidgets],
+  );
+  const visibleWidgetIds = useMemo(
+    () => visibleWidgets.map((w) => w.id),
+    [visibleWidgets],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveWidgetId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = visibleWidgetIds.indexOf(String(active.id));
+    const newIndex = visibleWidgetIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    reorderVisibleWidgets(arrayMove(visibleWidgetIds, oldIndex, newIndex));
+  };
+
+  const handleSaveLayoutPreset = () => {
+    if (!layoutPresetName.trim()) {
+      return;
+    }
+    saveCurrentLayout(layoutPresetName);
+    setLayoutPresetName("");
+  };
+
+  const renderWidget = (widget: WidgetLayoutItem) => {
+    if (widget.type === "timer") {
+      return <TimerDisplay />;
+    }
+
+    if (widget.type === "agenda") {
+      if (!currentMeeting) {
+        return (
+          <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
+            <CardHeader className="px-3 py-2">
+              <CardTitle className="flex items-center gap-1.5 text-sm">
+                <Clock className="h-3.5 w-3.5" />
+                アジェンダ一覧
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center p-3 pt-0">
+              <p className="text-center text-sm text-muted-foreground">
+                会議を作成するとアジェンダ一覧が表示されます
+              </p>
+            </CardContent>
+          </Card>
+        );
+      }
+
+      return (
+        <AgendaList
+          className="h-full"
+          onAddAgenda={() => {
+            setEditingAgenda(null);
+            setIsAgendaDialogOpen(true);
+          }}
+          onEditAgenda={(agenda) => {
+            setEditingAgenda(agenda);
+            setIsAgendaDialogOpen(true);
+          }}
+        />
+      );
+    }
+
+    if (widget.type === "minutes") {
+      if (!currentMeeting || !currentAgenda) {
+        return (
+          <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
+            <CardHeader className="px-3 py-2">
+              <CardTitle className="flex items-center gap-1.5 text-sm">
+                <FileText className="h-3.5 w-3.5" />
+                議事録
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center p-3 pt-0">
+              <p className="text-center text-sm text-muted-foreground">
+                アジェンダを選択すると議事録を表示できます
+              </p>
+            </CardContent>
+          </Card>
+        );
+      }
+
+      return (
+        <MinutesEditor
+          meetingId={currentMeeting.id}
+          agenda={currentAgenda}
+          quillRef={quillRef}
+        />
+      );
+    }
+
+    if (widget.type === "transcript") {
+      if (!currentMeeting || !currentAgenda) {
+        return (
+          <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
+            <CardHeader className="px-3 py-2">
+              <CardTitle className="flex items-center gap-1.5 text-sm">
+                <Volume2 className="h-3.5 w-3.5" />
+                文字起こし
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center p-3 pt-0">
+              <p className="text-center text-sm text-muted-foreground">
+                アジェンダを選択すると文字起こしを表示できます
+              </p>
+            </CardContent>
+          </Card>
+        );
+      }
+
+      return (
+        <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
+          <CardHeader className="px-3 py-2">
+            <CardTitle className="flex items-center gap-1.5 text-sm">
+              <Volume2 className="h-3.5 w-3.5" />
+              文字起こし
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="min-h-0 overflow-hidden p-3 pt-0">
+            <VoiceTranscriptPanel
+              meetingId={currentMeeting.id}
+              agendaId={currentAgenda.id}
+              minutesFormat={currentAgenda.minutesFormat}
+              onRequestSummaryDialog={() => setIsSummaryDialogOpen(true)}
+            />
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (widget.type === "time-allocation") {
+      if (!currentMeeting) {
+        return (
+          <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
+            <CardHeader className="px-3 py-2">
+              <CardTitle className="flex items-center gap-1.5 text-sm">
+                <Clock className="h-3.5 w-3.5" />
+                会議時間配分
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center p-3 pt-0">
+              <p className="text-center text-sm text-muted-foreground">
+                会議を作成すると時間配分を表示できます
+              </p>
+            </CardContent>
+          </Card>
+        );
+      }
+
+      return (
+        <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
+          <CardHeader className="px-3 py-2">
+            <CardTitle className="flex items-center gap-1.5 text-sm">
+              <Clock className="h-3.5 w-3.5" />
+              会議時間配分
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 min-h-0 overflow-hidden">
+            <MeetingOverviewChart meeting={currentMeeting} />
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (widget.type === "report-history") {
+      return <MeetingReportHistory className="h-full" />;
+    }
+
+    return (
+      <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
+        <CardHeader className="px-3 py-2">
+          <CardTitle className="flex items-center gap-1.5 text-sm">
+            <Settings className="h-3.5 w-3.5" />
+            会議管理ショートカット
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 p-3 pt-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsManagementDialogOpen(true)}
+          >
+            <Users className="mr-1.5 h-3.5 w-3.5" />
+            会議一覧を開く
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
               setEditingMeeting(null);
               setIsMeetingDialogOpen(true);
             }}
-            onEditMeeting={(meeting) => {
-              setEditingMeeting(meeting);
-              setIsMeetingDialogOpen(true);
-            }}
-            onDeleteMeeting={(meeting) => {
-              setMeetingToDelete(meeting);
-              setIsDeleteMeetingDialogOpen(true);
-            }}
-            onSaveReport={(meeting) => {
-              setCurrentMeeting(meeting.id);
-              createDraftFromMeeting(meeting);
-              setReportDialogOpen(true);
-            }}
-            onOpenSettings={() => setIsSettingsDialogOpen(true)}
-            onToggleSidePanel={() => setIsSidePanelOpen((prev) => !prev)}
-          />
-          <AgendaList
-            className="min-h-0"
-            onAddAgenda={() => {
-              setEditingAgenda(null);
-              setIsAgendaDialogOpen(true);
-            }}
-            onEditAgenda={(agenda) => {
-              setEditingAgenda(agenda);
-              setIsAgendaDialogOpen(true);
-            }}
-          />
-          <MeetingReportHistory className="min-h-0" />
-        </>
-      )}
-
-      {!isSidePanelOpen && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => setIsSidePanelOpen(true)}
-          aria-label="一覧を開く"
-        >
-          <PanelRightOpen className="h-3.5 w-3.5" />
-        </Button>
-      )}
-    </div>
-  );
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            新しい会議
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSettingsDialogOpen(true)}
+            disabled={!currentMeeting}
+          >
+            <Settings className="mr-1.5 h-3.5 w-3.5" />
+            会議設定
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="w-full">
-      {/* Mobile layout (< lg): Timer first, then AgendaList; management via dialog */}
-      <div className="lg:hidden flex flex-col gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2 pb-3">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setIsManagementDialogOpen(true)}
+        >
+          <Users className="mr-1.5 h-4 w-4" />
+          会議管理
+        </Button>
+        {currentMeeting && (
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setIsMobileManagementOpen(true)}
+            onClick={() => setIsSettingsDialogOpen(true)}
           >
-            <Users className="w-4 h-4 mr-1.5" />
-            会議管理
+            <Settings className="mr-1.5 h-4 w-4" />
+            設定
           </Button>
-          {currentMeeting && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsSettingsDialogOpen(true)}
-            >
-              <Settings className="w-4 h-4 mr-1.5" />
-              設定
-            </Button>
-          )}
-        </div>
-        <TimerDisplay />
-        {currentMeeting && (
-          <AgendaList
-            onAddAgenda={() => {
-              setEditingAgenda(null);
-              setIsAgendaDialogOpen(true);
-            }}
-            onEditAgenda={(agenda) => {
-              setEditingAgenda(agenda);
-              setIsAgendaDialogOpen(true);
-            }}
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <Label htmlFor="widget-edit-mode" className="text-sm">
+            編集モード
+          </Label>
+          <Switch
+            id="widget-edit-mode"
+            checked={isEditMode}
+            onCheckedChange={setEditMode}
           />
-        )}
-        {currentMeeting && currentAgenda && (
-          <MinutesEditor meetingId={currentMeeting.id} agenda={currentAgenda} />
-        )}
+          {isEditMode && (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setIsWidgetCatalogOpen(true)}
+              >
+                <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
+                ウィジェット追加
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={resetLayout}
+              >
+                リセット
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Desktop layout (lg+): existing grid layout */}
-      <div
-        className={cn(
-          "hidden lg:grid lg:h-[calc(100dvh-160px)] lg:min-h-[560px] gap-4",
-          isSidePanelOpen
-            ? "lg:grid-cols-12"
-            : "lg:grid-cols-[minmax(0,44px)_minmax(0,3fr)_minmax(0,6fr)]",
-        )}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={(event) => {
+          if (isEditMode) setActiveWidgetId(String(event.active.id));
+        }}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveWidgetId(null)}
       >
-        <div
-          className={cn(
-            "min-h-0 min-w-0",
-            isSidePanelOpen ? "lg:col-span-3" : "lg:col-span-1",
-          )}
+        <SortableContext
+          items={visibleWidgetIds}
+          strategy={rectSortingStrategy}
         >
-          {sidebarContent}
-        </div>
+          <div className="grid grid-cols-6 gap-3 lg:grid-cols-12">
+            {visibleWidgets.map((widget) => (
+              <SortableWidget
+                key={widget.id}
+                widget={widget}
+                isEditMode={isEditMode}
+                onSetWidth={setWidth}
+                onSetHeight={setHeight}
+                onToggleWidget={toggleWidget}
+              >
+                {renderWidget(widget)}
+              </SortableWidget>
+            ))}
+          </div>
+        </SortableContext>
+        <DragOverlay>
+          {activeWidgetId
+            ? (() => {
+                const w = visibleWidgets.find((x) => x.id === activeWidgetId);
+                return w ? (
+                  <div
+                    className={cn(
+                      w.width === "S" && "col-span-3",
+                      w.width === "M" && "col-span-4",
+                      w.width === "L" && "col-span-6",
+                      w.width === "XL" && "col-span-12",
+                      w.height === "S" && "h-[220px]",
+                      w.height === "M" && "h-[320px]",
+                      w.height === "L" && "h-[420px]",
+                      w.height === "XL" && "h-[560px]",
+                      "flex items-center justify-center rounded-md border-2 border-primary bg-muted/60 opacity-80",
+                    )}
+                  >
+                    <span className="text-sm text-muted-foreground">
+                      {getWidgetLabel(w.type)}
+                    </span>
+                  </div>
+                ) : null;
+              })()
+            : null}
+        </DragOverlay>
+      </DndContext>
 
-        <div
-          className={cn(
-            "min-h-0 min-w-0",
-            isSidePanelOpen ? "lg:col-span-3" : "lg:col-span-1",
-          )}
-        >
-          <TimerDisplay />
-        </div>
-
-        <div
-          className={cn(
-            "min-h-0 min-w-0",
-            isSidePanelOpen ? "lg:col-span-6" : "lg:col-span-1",
-          )}
-        >
-          {currentMeeting && currentAgenda ? (
-            <MinutesEditor
-              meetingId={currentMeeting.id}
-              agenda={currentAgenda}
-            />
-          ) : (
-            <Card className="h-full text-center py-8">
-              <CardContent>
-                <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  議事録を準備中です
-                </h3>
-                <p className="text-muted-foreground">
-                  アジェンダを選択すると議事録を編集できます
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile management dialog: meeting list + report history */}
       <Dialog
-        open={isMobileManagementOpen}
-        onOpenChange={setIsMobileManagementOpen}
+        open={isManagementDialogOpen}
+        onOpenChange={setIsManagementDialogOpen}
       >
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto [&>button]:hidden">
           <DialogHeader>
@@ -1712,7 +480,7 @@ export const AgendaTimerView: React.FC = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsMobileManagementOpen(false)}
+                onClick={() => setIsManagementDialogOpen(false)}
                 aria-label="閉じる"
               >
                 <X className="h-4 w-4" />
@@ -1723,10 +491,9 @@ export const AgendaTimerView: React.FC = () => {
             <MeetingList
               meetings={meetings}
               currentMeetingId={currentMeeting?.id}
-              isSidePanelOpen={true}
               onSelectMeeting={(id) => {
                 setCurrentMeeting(id);
-                setIsMobileManagementOpen(false);
+                setIsManagementDialogOpen(false);
               }}
               onCreateMeeting={() => {
                 setEditingMeeting(null);
@@ -1747,14 +514,99 @@ export const AgendaTimerView: React.FC = () => {
               }}
               onOpenSettings={() => {
                 setIsSettingsDialogOpen(true);
-                setIsMobileManagementOpen(false);
+                setIsManagementDialogOpen(false);
               }}
-              onToggleSidePanel={() => setIsMobileManagementOpen(false)}
             />
-            <MeetingReportHistory />
+
+            <Card>
+              <CardHeader className="px-3 py-2">
+                <CardTitle className="text-sm">画面レイアウト</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 px-3 pb-3 pt-0">
+                <div className="space-y-2 border-t pt-2">
+                  <Label htmlFor="layout-preset-name">レイアウトを保存</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="layout-preset-name"
+                      value={layoutPresetName}
+                      onChange={(event) =>
+                        setLayoutPresetName(event.target.value)
+                      }
+                      placeholder="例: 議事録重視"
+                      maxLength={40}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleSaveLayoutPreset}
+                      disabled={!layoutPresetName.trim()}
+                    >
+                      保存
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-t pt-2">
+                  <div className="text-sm font-medium">保存済みレイアウト</div>
+                  {presets.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      まだ保存されたレイアウトはありません
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {presets.map((preset) => (
+                        <div
+                          key={preset.id}
+                          className="flex items-center justify-between gap-2 rounded-sm border px-2 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {preset.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(preset.updatedAt).toLocaleString(
+                                "ja-JP",
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => applyPreset(preset.id)}
+                            >
+                              適用
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deletePreset(preset.id)}
+                            >
+                              削除
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </DialogContent>
       </Dialog>
+
+      <WidgetCatalogDialog
+        open={isWidgetCatalogOpen}
+        hiddenWidgets={hiddenWidgets}
+        onOpenChange={setIsWidgetCatalogOpen}
+        onAddWidget={(widgetId) => {
+          showWidget(widgetId);
+          setIsWidgetCatalogOpen(false);
+        }}
+      />
 
       {currentMeeting && (
         <AgendaDialog
@@ -1778,12 +630,19 @@ export const AgendaTimerView: React.FC = () => {
       />
 
       {currentMeeting && (
-        <SettingsDialog
+        <AgendaSettingsDialog
           meeting={currentMeeting}
           isOpen={isSettingsDialogOpen}
           onClose={() => setIsSettingsDialogOpen(false)}
         />
       )}
+
+      <VoiceTranscriptSummaryDialog
+        isOpen={isSummaryDialogOpen}
+        onClose={() => setIsSummaryDialogOpen(false)}
+        quillRef={quillRef}
+        onInserted={() => setIsSummaryDialogOpen(false)}
+      />
 
       <AlertDialog.Root
         open={isDeleteMeetingDialogOpen}
@@ -1827,8 +686,6 @@ export const AgendaTimerView: React.FC = () => {
           </div>
         </AlertDialog.Content>
       </AlertDialog.Root>
-
-      <MeetingReportDialog />
     </div>
   );
 };

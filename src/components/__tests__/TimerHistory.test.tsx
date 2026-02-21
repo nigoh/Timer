@@ -1,4 +1,4 @@
-import React, { act } from "react";
+import { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRoot } from "react-dom/client";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";

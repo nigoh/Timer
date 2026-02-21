@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { AgendaTimerState, Meeting, AgendaItem } from "@/types/agenda";
 import { notificationManager, SoundType } from "@/utils/notification-manager";
 import { logger } from "@/utils/logger";
+import { generateId } from "@/utils/id";
+import { getProgressColor } from "@/constants/timer-theme";
 
 export interface AgendaTimerStore extends AgendaTimerState {
   createMeeting: (title: string) => string;
@@ -43,16 +45,6 @@ export interface AgendaTimerStore extends AgendaTimerState {
   calculateTimeColor: (percentage: number) => string;
   syncTime: () => void;
 }
-
-const generateId = () =>
-  Date.now().toString(36) + Math.random().toString(36).substr(2);
-
-const getProgressColor = (percentage: number): string => {
-  if (percentage <= 70) return "bg-green-500";
-  if (percentage <= 90) return "bg-orange-500";
-  if (percentage <= 100) return "bg-red-500";
-  return "bg-purple-500";
-};
 
 const syncMeetingCurrentAgendaId = (
   state: AgendaTimerStore,
@@ -717,7 +709,7 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
       },
 
       calculateTimeColor: (percentage: number) => {
-        return getProgressColor(percentage);
+        return getProgressColor(percentage).bgColor;
       },
 
       syncTime: () => {

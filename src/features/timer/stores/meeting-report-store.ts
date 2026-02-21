@@ -6,6 +6,8 @@ import {
   MeetingReportTodo,
   PostedIssueCommentHistory,
 } from "@/types/meetingReport";
+import { generateId } from "@/utils/id";
+import { formatDurationShort } from "@/lib/utils";
 
 interface MeetingReportState {
   reports: MeetingReport[];
@@ -37,9 +39,6 @@ interface MeetingReportActions {
   deleteReport: (id: string) => void;
 }
 
-const generateId = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2);
-
 const toIsoStringSafe = (value: unknown): string => {
   if (value instanceof Date) {
     return value.toISOString();
@@ -55,20 +54,13 @@ const toIsoStringSafe = (value: unknown): string => {
   return new Date().toISOString();
 };
 
-const formatDuration = (seconds: number) => {
-  const absSeconds = Math.abs(seconds);
-  const mins = Math.floor(absSeconds / 60);
-  const secs = absSeconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
-
 const buildReportMarkdown = (report: MeetingReport): string => {
   const agendaRows = report.agendaItems
     .map((item) => {
       const variancePrefix = item.varianceSec >= 0 ? "+" : "-";
-      return `| ${item.title} | ${formatDuration(
+      return `| ${item.title} | ${formatDurationShort(
         item.plannedDurationSec,
-      )} | ${formatDuration(item.actualDurationSec)} | ${variancePrefix}${formatDuration(
+      )} | ${formatDurationShort(item.actualDurationSec)} | ${variancePrefix}${formatDurationShort(
         Math.abs(item.varianceSec),
       )} |`;
     })

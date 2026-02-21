@@ -14,6 +14,7 @@ import { useIntegrationLinkStore } from "@/features/timer/stores/integration-lin
 import { summarizeVoiceTranscript } from "@/features/timer/services/meeting-ai-assist-service";
 import { logger } from "@/utils/logger";
 import type { QuillEditorHandle } from "@/components/ui/quill-editor";
+import { formatUnixTimestamp } from "@/lib/utils";
 
 interface VoiceTranscriptSummaryDialogProps {
   isOpen: boolean;
@@ -21,14 +22,6 @@ interface VoiceTranscriptSummaryDialogProps {
   quillRef: React.RefObject<QuillEditorHandle>;
   onInserted: () => void;
 }
-
-const formatTimestamp = (ts: number): string => {
-  const d = new Date(ts);
-  const h = d.getHours().toString().padStart(2, "0");
-  const m = d.getMinutes().toString().padStart(2, "0");
-  const s = d.getSeconds().toString().padStart(2, "0");
-  return `${h}:${m}:${s}`;
-};
 
 export const VoiceTranscriptSummaryDialog: React.FC<
   VoiceTranscriptSummaryDialogProps
@@ -110,7 +103,7 @@ export const VoiceTranscriptSummaryDialog: React.FC<
               confirmedEntries.map((entry) => (
                 <div key={entry.id} className="flex gap-2 py-1 leading-snug">
                   <span className="text-muted-foreground font-mono text-xs shrink-0 pt-1">
-                    {formatTimestamp(entry.timestamp)}
+                    {formatUnixTimestamp(entry.timestamp)}
                   </span>
                   <span>{entry.text}</span>
                 </div>
@@ -168,7 +161,7 @@ export const VoiceTranscriptSummaryDialog: React.FC<
             disabled={!summaryText.trim() || isGenerating}
             onClick={handleInsert}
           >
-            Quill に挿入して確定
+            議事録アジェンダタイトルを反映するに挿入して確定
           </Button>
         </div>
 

@@ -5,6 +5,7 @@ import { Theme, Tooltip } from "@radix-ui/themes";
 import {
   Timer,
   List,
+  FileText,
   Moon,
   Sun,
   PanelLeftClose,
@@ -15,6 +16,8 @@ import {
 import { UnifiedTimer } from "./features/timer/containers/UnifiedTimer";
 import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
 import { Dashboard } from "./features/timer/containers/Dashboard";
+import { MeetingReports } from "./features/timer/containers/MeetingReports";
+import { MeetingReportDialog } from "./features/timer/components/agenda/MeetingReportDialog";
 import SettingsAndLogsPage from "./components/SettingsAndLogsPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
@@ -26,35 +29,22 @@ import {
   getInitialColorMode,
   persistColorMode,
 } from "./utils/color-mode";
+import { useUIPreferencesStore } from "./features/timer/stores/ui-preferences-store";
 import "./globals.css";
 
 const NAV_ITEMS = [
   { value: "timer", Icon: Timer, label: "タイマー" },
   { value: "agenda", Icon: List, label: "会議" },
+  { value: "reports", Icon: FileText, label: "会議レポート" },
   { value: "analytics", Icon: BarChart2, label: "分析" },
 ] as const;
 
 function App() {
   const [activeTab, setActiveTab] = useState("timer");
   const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    try {
-      return localStorage.getItem("sidebar-open") === "true";
-    } catch {
-      return false;
-    }
-  });
-  const handleSidebarToggle = () => {
-    setSidebarOpen((v) => {
-      const next = !v;
-      try {
-        localStorage.setItem("sidebar-open", String(next));
-      } catch {
-        /* noop */
-      }
-      return next;
-    });
-  };
+  const sidebarOpen = useUIPreferencesStore((s) => s.sidebarOpen);
+  const toggleSidebar = useUIPreferencesStore((s) => s.toggleSidebar);
+  const handleSidebarToggle = toggleSidebar;
 
   React.useEffect(() => {
     logger.info(
@@ -91,7 +81,7 @@ function App() {
 
   return (
     <Theme appearance={colorMode}>
-      <div className="flex min-h-[100svh] bg-background text-foreground">
+      <div className="flex h-[100svh] overflow-hidden bg-background text-foreground">
         {/* ── 左サイドバー ── */}
         <aside
           className={cn(
@@ -271,13 +261,13 @@ function App() {
         </aside>
 
         {/* ── メインコンテンツ ── */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Tabs
             value={activeTab}
             onValueChange={handleTabChange}
-            className="flex flex-1 flex-col"
+            className="flex flex-1 flex-col overflow-hidden"
           >
-            <main className="flex-1 p-2 md:p-3">
+            <main className="flex-1 overflow-y-auto p-2 md:p-3">
               <TabsContent value="timer">
                 <ErrorBoundary componentName="UnifiedTimer">
                   <UnifiedTimer />
@@ -293,6 +283,11 @@ function App() {
                   <Dashboard />
                 </ErrorBoundary>
               </TabsContent>
+              <TabsContent value="reports">
+                <ErrorBoundary componentName="MeetingReports">
+                  <MeetingReports />
+                </ErrorBoundary>
+              </TabsContent>
               <TabsContent value="settings">
                 <SettingsAndLogsPage />
               </TabsContent>
@@ -301,6 +296,7 @@ function App() {
           <Footer />
         </div>
       </div>
+      <MeetingReportDialog />
     </Theme>
   );
 }

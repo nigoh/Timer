@@ -39,30 +39,32 @@ export const VoiceRecognitionButton: React.FC<VoiceRecognitionButtonProps> = ({
   };
 
   const button = (
-    <Button
-      type="button"
-      variant={isListening ? "destructive" : "outline"}
-      size="sm"
-      disabled={!isSupported}
-      onClick={handleToggle}
-      aria-label={isListening ? "録音停止" : "録音開始"}
-      className={cn("relative gap-1.5", isListening && "animate-pulse")}
-    >
-      {isListening ? (
-        <MicOff className="h-4 w-4" />
-      ) : (
-        <Mic className="h-4 w-4" />
-      )}
-      {isListening ? "停止" : "録音"}
-      {isListening && (
-        <Badge
-          variant="secondary"
-          className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs"
-        >
-          ●
-        </Badge>
-      )}
-    </Button>
+    <Tooltip content={isListening ? "録音を停止" : "録音を開始"}>
+      <Button
+        type="button"
+        variant={isListening ? "destructive" : "outline"}
+        size="sm"
+        disabled={!isSupported}
+        onClick={handleToggle}
+        aria-label={isListening ? "録音停止" : "録音開始"}
+        className={cn("relative h-8 w-8 p-0", isListening && "animate-pulse")}
+      >
+        {isListening ? (
+          <MicOff className="h-4 w-4" />
+        ) : (
+          <Mic className="h-4 w-4" />
+        )}
+        <span className="sr-only">{isListening ? "停止" : "録音"}</span>
+        {isListening && (
+          <Badge
+            variant="secondary"
+            className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs"
+          >
+            ●
+          </Badge>
+        )}
+      </Button>
+    </Tooltip>
   );
 
   return (
