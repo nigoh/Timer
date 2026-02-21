@@ -27,7 +27,6 @@ const KIND_OPTIONS: { value: TimerKind | 'all'; label: string }[] = [
   { value: 'all', label: 'すべて' },
   { value: 'basic', label: '基本タイマー' },
   { value: 'pomodoro', label: 'ポモドーロ' },
-  { value: 'agenda', label: 'アジェンダ' },
   { value: 'multi', label: '複数タイマー' },
 ];
 

@@ -408,11 +408,11 @@ describe('LocalAnalyticsService', () => {
       expect(result.kpi.focusMinutes).toBe(25);
     });
 
-    it('filters to only agenda when timerKind=agenda', () => {
-      const filter: AnalyticsFilter = { ...makeFilter(6), timerKind: 'agenda' };
+    it('includes agenda data in all-view when timerKind is undefined', () => {
+      const filter: AnalyticsFilter = makeFilter(6);
       const result = service.compute(filter, fullData);
-      // Only agenda ~8 min (500s)
-      expect(result.kpi.focusMinutes).toBe(8);
+      // agenda (500s ≈ 8min) is included in the total
+      expect(result.kpi.focusMinutes).toBeGreaterThanOrEqual(8);
     });
 
     it('shows all when timerKind is undefined', () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -60,6 +60,9 @@ import {
   AGENDA_MINUTES_QUILL_FORMATS,
   getAgendaMinutesQuillModules,
 } from "@/features/timer/components/agenda/agenda-minutes-quill";
+import { VoiceRecognitionButton } from "@/features/timer/components/voice/VoiceRecognitionButton";
+import { VoiceTranscriptPanel } from "@/features/timer/components/voice/VoiceTranscriptPanel";
+import { VoiceTranscriptSummaryDialog } from "@/features/timer/components/voice/VoiceTranscriptSummaryDialog";
 import { AgendaItem, Meeting } from "@/types/agenda";
 import { cn, formatDuration } from "@/lib/utils";
 import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
@@ -862,6 +865,8 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
 
 const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   const { updateAgendaMinutes } = useAgendaTimerStore();
+  const quillRef = useRef<ReactQuill>(null);
+  const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") {
       return false;
@@ -886,11 +891,27 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   return (
     <Card className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] lg:h-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">議事録</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">議事録</CardTitle>
+          <VoiceRecognitionButton agendaId={agenda.id} />
+        </div>
       </CardHeader>
-      <CardContent className="p-3 pt-0 lg:min-h-0">
+      <CardContent className="p-3 pt-0 lg:min-h-0 space-y-2">
+        <VoiceTranscriptPanel
+          meetingId={meetingId}
+          agendaId={agenda.id}
+          minutesFormat={agenda.minutesFormat}
+          onRequestSummaryDialog={() => setIsSummaryDialogOpen(true)}
+        />
+        <VoiceTranscriptSummaryDialog
+          isOpen={isSummaryDialogOpen}
+          onClose={() => setIsSummaryDialogOpen(false)}
+          quillRef={quillRef}
+          onInserted={() => setIsSummaryDialogOpen(false)}
+        />
         <div className="agenda-minutes-editor min-h-[280px] min-w-0 overflow-visible rounded-md bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:shrink-0 [&_.ql-toolbar]:flex-wrap [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-base">
           <ReactQuill
+            ref={quillRef}
             key={agenda.id}
             theme="snow"
             className="h-full"

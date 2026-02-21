@@ -21,7 +21,7 @@ interface GitHubIssueLinkingProps {
 export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
   timeLogId,
 }) => {
-  const { getLinks, addLink, removeLink, githubPat, setGithubPat } =
+  const { getLinks, addLink, removeLink, githubPat } =
     useIntegrationLinkStore();
   const links = getLinks(timeLogId);
 
@@ -122,19 +122,12 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
 
       {isExpanded && (
         <div className="space-y-2">
-          <div className="space-y-1 rounded-md bg-muted/60 p-2">
-            <Label htmlFor={`github-pat-${timeLogId}`} className="text-xs">
-              GitHub PAT（Private リポジトリ用 / メモリのみ保持）
-            </Label>
-            <Input
-              id={`github-pat-${timeLogId}`}
-              type="password"
-              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-              value={githubPat ?? ""}
-              onChange={(e) => setGithubPat(e.target.value || null)}
-              className="h-7 text-xs"
-            />
-          </div>
+          {!githubPat && (
+            <p className="text-xs text-muted-foreground">
+              プライベートリポジトリには、サイドバーの「設定」から GitHub PAT
+              を設定してください。
+            </p>
+          )}
 
           {/* 連携済みリスト */}
           {links.length > 0 && (

@@ -3,6 +3,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { MeetingReport } from "@/types/meetingReport";
 import { AiProviderConfig } from "@/types/aiAssist";
+import { VoiceTranscriptEntry } from "@/types/voice";
 import { MeetingAiAssist, buildMeetingAiAssist } from "@/features/timer/utils/meeting-ai-assist";
 import { validateAiProviderConfig } from "@/features/timer/utils/ai-provider-config";
 import { logger } from "@/utils/logger";
@@ -131,5 +132,71 @@ export const generateMeetingAiAssist = async (
       "agenda",
     );
     return { assist: fallback, usedFallback: true };
+  }
+};
+
+/**
+ * 文字起こしエントリを AI で要約して短文テキストを返す。
+ * config が null / 未構成の場合は原文をそのまま結合して返す（usedFallback: true）。
+ */
+export const summarizeVoiceTranscript = async (
+  entries: VoiceTranscriptEntry[],
+  config: AiProviderConfig | null,
+): Promise<{ summary: string; usedFallback: boolean }> => {
+  const rawText = entries.map((e) => e.text).join("\n");
+  const validation = validateAiProviderConfig(config ?? {});
+
+  if (!validation.valid || !config) {
+    return { summary: rawText, usedFallback: true };
+  }
+
+  const prompt = PromptTemplate.fromTemplate(
+    [
+      "あなたは会議議事録のアシスタントです。",
+      "以下の会議中の発言録を簡潔に要約してください。",
+      "箇条書きで主要な論点・決定事項・アクションを3〜7行にまとめてください。",
+      "余計な前置きや後書きは不要です。日本語で回答してください。",
+      "",
+      "発言録:",
+      "{transcript}",
+    ].join("\n"),
+  );
+
+  try {
+    const model =
+      config.provider === "openai"
+        ? new ChatOpenAI({
+            apiKey: config.apiKey,
+            model: config.model,
+            temperature: config.temperature ?? 0.2,
+          })
+        : new ChatAnthropic({
+            apiKey: config.apiKey,
+            model: config.model,
+            temperature: config.temperature ?? 0.2,
+          });
+
+    const chain = prompt.pipe(model);
+    const message = await chain.invoke({ transcript: rawText });
+    const summary = extractTextContent(message.content).trim();
+
+    logger.info(
+      "Voice transcript summarized via AI",
+      { provider: config.provider, model: config.model, entryCount: entries.length },
+      "voice",
+    );
+
+    return { summary, usedFallback: false };
+  } catch (error) {
+    logger.warn(
+      "Voice transcript AI summarize fallback activated",
+      {
+        provider: config.provider,
+        model: config.model,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "voice",
+    );
+    return { summary: rawText, usedFallback: true };
   }
 };

@@ -1,7 +1,6 @@
 {
   "files.encoding": "utf8",
   "files.autoGuessEncoding": false,
-  "chat.mcp.autoStart": true,
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.markdownlint": "explicit"

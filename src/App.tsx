@@ -1,23 +1,19 @@
 import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { Tabs, TabsContent } from "./components/ui/tabs";
 import { Button } from "./components/ui/button";
-import { Theme } from "@radix-ui/themes";
+import { Theme, Tooltip } from "@radix-ui/themes";
 import {
   Timer,
   List,
-  Target,
-  Clock,
-  Bug,
   Moon,
   Sun,
-  BarChart2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Settings,
 } from "lucide-react";
-import { BasicTimer } from "./features/timer/containers/BasicTimer";
+import { UnifiedTimer } from "./features/timer/containers/UnifiedTimer";
 import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
-import { EnhancedPomodoroTimer } from "./features/timer/containers/EnhancedPomodoroTimer";
-import { MultiTimer } from "./features/timer/containers/MultiTimer";
-import { Dashboard } from "./features/timer/containers/Dashboard";
-import LogViewer from "./components/LogViewer";
+import SettingsAndLogsPage from "./components/SettingsAndLogsPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import { logger } from "./utils/logger";
@@ -30,24 +26,40 @@ import {
 } from "./utils/color-mode";
 import "./globals.css";
 
-function App() {
-  const [activeTab, setActiveTab] = useState("basic");
-  const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
+const NAV_ITEMS = [
+  { value: "timer", Icon: Timer, label: "タイマー" },
+  { value: "agenda", Icon: List, label: "会議" },
+] as const;
 
-  // アプリケーション開始ログ
+function App() {
+  const [activeTab, setActiveTab] = useState("timer");
+  const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try {
+      return localStorage.getItem("sidebar-open") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const handleSidebarToggle = () => {
+    setSidebarOpen((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("sidebar-open", String(next));
+      } catch {
+        /* noop */
+      }
+      return next;
+    });
+  };
+
   React.useEffect(() => {
     logger.info(
       "Application started",
       {
         userAgent: navigator.userAgent,
-        screen: {
-          width: window.screen.width,
-          height: window.screen.height,
-        },
-        viewport: {
-          width: window.innerWidth,
-          height: window.innerHeight,
-        },
+        screen: { width: window.screen.width, height: window.screen.height },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
       },
       "app",
     );
@@ -58,12 +70,8 @@ function App() {
     persistColorMode(colorMode);
   }, [colorMode]);
 
-  // タブ切り替えログ
   const handleTabChange = (value: string) => {
-    logger.userAction("Tab switched", {
-      from: activeTab,
-      to: value,
-    });
+    logger.userAction("Tab switched", { from: activeTab, to: value });
     setActiveTab(value);
   };
 
@@ -80,22 +88,134 @@ function App() {
 
   return (
     <Theme appearance={colorMode}>
-      <div className="min-h-[100svh] bg-background text-foreground flex flex-col md:min-h-screen">
-        <div className="w-full flex-1 px-2 md:px-3">
-          <Tabs
-            value={activeTab}
-            onValueChange={handleTabChange}
-            className="flex h-full w-full flex-col"
-          >
-            <header className="mb-2 flex flex-wrap items-center gap-2">
-              <div className="hidden h-10 w-10 items-center justify-center rounded-md bg-card md:inline-flex">
-                <Timer className="h-5 w-5" />
-              </div>
+      <div className="flex min-h-[100svh] bg-background text-foreground">
+        {/* ── 左サイドバー ── */}
+        <aside
+          className={cn(
+            "flex shrink-0 flex-col border-r border-border bg-card transition-all duration-200",
+            sidebarOpen ? "w-48" : "w-14",
+          )}
+        >
+          {/* ロゴ + 開閉ボタン */}
+          <div className="flex h-14 shrink-0 items-center px-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Timer className="h-4 w-4" />
+            </div>
+            {sidebarOpen && (
+              <span className="ml-2 flex-1 font-semibold">Timer App</span>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8 shrink-0",
+                sidebarOpen ? "ml-auto" : "ml-auto",
+              )}
+              onClick={() => handleSidebarToggle()}
+              aria-label={sidebarOpen ? "メニューを閉じる" : "メニューを開く"}
+            >
+              {sidebarOpen ? (
+                <PanelLeftClose className="h-4 w-4" />
+              ) : (
+                <PanelLeftOpen className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
 
+          {/* ナビゲーション */}
+          <nav className="flex-1 py-1" aria-label="メインナビゲーション">
+            {NAV_ITEMS.map(({ value, Icon, label }) => {
+              const isActive = activeTab === value;
+              const btnOpen = (
+                <button
+                  key={value}
+                  onClick={() => handleTabChange(value)}
+                  aria-label={label}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "relative flex w-full items-center gap-3 px-2 py-2.5 text-sm transition-colors",
+                    isActive
+                      ? "bg-accent font-semibold text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-primary" />
+                  )}
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span>{label}</span>
+                </button>
+              );
+              const btnClosed = (
+                <button
+                  onClick={() => handleTabChange(value)}
+                  aria-label={label}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "relative flex w-full items-center justify-center py-3 text-sm transition-colors",
+                    isActive
+                      ? "bg-accent font-semibold text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-primary" />
+                  )}
+                  <Icon className="h-5 w-5 shrink-0" />
+                </button>
+              );
+              return sidebarOpen ? (
+                <React.Fragment key={value}>{btnOpen}</React.Fragment>
+              ) : (
+                <Tooltip key={value} content={label} side="right">
+                  {btnClosed}
+                </Tooltip>
+              );
+            })}
+          </nav>
+
+          {/* ダークモード・設定 */}
+          <div
+            className={cn(
+              "flex shrink-0 flex-col gap-1 border-t border-border p-2",
+              sidebarOpen ? "items-stretch" : "items-center",
+            )}
+          >
+            {sidebarOpen ? (
               <Button
-                variant="outline"
-                size="icon"
-                className="ml-auto order-1 md:order-none"
+                variant="ghost"
+                className={cn(
+                  "h-9 w-full justify-start gap-3 px-2 shrink-0",
+                  activeTab === "settings" &&
+                    "bg-accent text-accent-foreground",
+                )}
+                onClick={() => handleTabChange("settings")}
+                aria-label="設定・ログを開く"
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                <span className="text-sm">設定・ログ</span>
+              </Button>
+            ) : (
+              <Tooltip content="設定・ログ" side="right">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 shrink-0",
+                    activeTab === "settings" &&
+                      "bg-accent text-accent-foreground",
+                  )}
+                  onClick={() => handleTabChange("settings")}
+                  aria-label="設定・ログを開く"
+                >
+                  <Settings className="h-4 w-4 shrink-0" />
+                </Button>
+              </Tooltip>
+            )}
+            {sidebarOpen ? (
+              <Button
+                variant="ghost"
+                className="h-9 w-full justify-start gap-3 px-2 shrink-0"
                 onClick={handleColorModeToggle}
                 aria-label={
                   colorMode === "dark"
@@ -104,123 +224,66 @@ function App() {
                 }
               >
                 {colorMode === "dark" ? (
-                  <Sun className="h-4 w-4" />
+                  <Sun className="h-4 w-4 shrink-0" />
                 ) : (
-                  <Moon className="h-4 w-4" />
+                  <Moon className="h-4 w-4 shrink-0" />
                 )}
+                <span className="text-sm">
+                  {colorMode === "dark" ? "ライト" : "ダーク"}
+                </span>
               </Button>
-
-              <LogViewer>
+            ) : (
+              <Tooltip
+                content={colorMode === "dark" ? "ライトモード" : "ダークモード"}
+                side="right"
+              >
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="order-1 md:order-none"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={handleColorModeToggle}
+                  aria-label={
+                    colorMode === "dark"
+                      ? "ライトモードに切り替え"
+                      : "ダークモードに切り替え"
+                  }
                 >
-                  <Bug className="w-4 h-4 md:mr-2" />
-                  <span className="inline">ログ</span>
+                  {colorMode === "dark" ? (
+                    <Sun className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <Moon className="h-4 w-4 shrink-0" />
+                  )}
                 </Button>
-              </LogViewer>
+              </Tooltip>
+            )}
+          </div>
+        </aside>
 
-              <TabsList className="order-2 hidden md:grid h-10 w-full grid-cols-5 md:order-none md:flex-1">
-                <TabsTrigger value="basic" className="flex items-center gap-2">
-                  <Timer className="w-4 h-4" />
-                  <span className="inline text-xs md:hidden">基本</span>
-                  <span className="hidden md:inline">基本タイマー</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="pomodoro"
-                  className="flex items-center gap-2"
-                >
-                  <Target className="w-4 h-4" />
-                  <span className="inline text-xs md:hidden">ポモ</span>
-                  <span className="hidden md:inline">ポモドーロ</span>
-                </TabsTrigger>
-                <TabsTrigger value="agenda" className="flex items-center gap-2">
-                  <List className="w-4 h-4" />
-                  <span className="inline text-xs md:hidden">会議</span>
-                  <span className="hidden md:inline">会議</span>
-                </TabsTrigger>
-                <TabsTrigger value="multi" className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span className="inline text-xs md:hidden">複数</span>
-                  <span className="hidden md:inline">複数タイマー</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="dashboard"
-                  className="flex items-center gap-2"
-                >
-                  <BarChart2 className="w-4 h-4" />
-                  <span className="inline text-xs md:hidden">分析</span>
-                  <span className="hidden md:inline">分析</span>
-                </TabsTrigger>
-              </TabsList>
-            </header>
-
-            <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-              <TabsContent value="basic">
-                <ErrorBoundary componentName="BasicTimer">
-                  <BasicTimer />
+        {/* ── メインコンテンツ ── */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Tabs
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className="flex flex-1 flex-col"
+          >
+            <main className="flex-1 p-2 md:p-3">
+              <TabsContent value="timer">
+                <ErrorBoundary componentName="UnifiedTimer">
+                  <UnifiedTimer />
                 </ErrorBoundary>
               </TabsContent>
-
-              <TabsContent value="pomodoro">
-                <ErrorBoundary componentName="EnhancedPomodoroTimer">
-                  <EnhancedPomodoroTimer />
-                </ErrorBoundary>
-              </TabsContent>
-
               <TabsContent value="agenda">
                 <ErrorBoundary componentName="AgendaTimer">
                   <AgendaTimer />
                 </ErrorBoundary>
               </TabsContent>
-
-              <TabsContent value="multi">
-                <ErrorBoundary componentName="MultiTimer">
-                  <MultiTimer />
-                </ErrorBoundary>
-              </TabsContent>
-
-              <TabsContent value="dashboard">
-                <ErrorBoundary componentName="Dashboard">
-                  <Dashboard />
-                </ErrorBoundary>
+              <TabsContent value="settings">
+                <SettingsAndLogsPage />
               </TabsContent>
             </main>
           </Tabs>
+          <Footer />
         </div>
-        <nav
-          className="fixed bottom-0 inset-x-0 z-40 bg-background md:hidden"
-          aria-label="メインナビゲーション"
-        >
-          <div className="flex h-16 items-center justify-around pb-[env(safe-area-inset-bottom)]">
-            {(
-              [
-                { value: "basic", Icon: Timer, label: "基本" },
-                { value: "pomodoro", Icon: Target, label: "ポモ" },
-                { value: "agenda", Icon: List, label: "会議" },
-                { value: "multi", Icon: Clock, label: "複数" },
-                { value: "dashboard", Icon: BarChart2, label: "分析" },
-              ] as const
-            ).map(({ value, Icon, label }) => (
-              <button
-                key={value}
-                onClick={() => handleTabChange(value)}
-                className={cn(
-                  "flex flex-col items-center gap-1 px-4 py-2 text-xs",
-                  activeTab === value
-                    ? "text-primary"
-                    : "text-muted-foreground",
-                )}
-                aria-current={activeTab === value ? "page" : undefined}
-              >
-                <Icon className="h-5 w-5" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-        <Footer />
       </div>
     </Theme>
   );

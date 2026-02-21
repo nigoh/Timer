@@ -137,7 +137,8 @@ export class LocalAnalyticsService implements IAnalyticsService {
     }
 
     // ── Agenda (meetings) ─────────────────────────
-    const includeAgenda = !filter.timerKind || filter.timerKind === 'agenda';
+    // 会議メニューはタイマーと独立しているためフィルタ対象外（全表示時のみ含む）
+    const includeAgenda = !filter.timerKind;
     let overtimeAgendas = 0;
     let totalAgendas = 0;
     if (includeAgenda) {
@@ -230,12 +231,12 @@ function buildDonut(filter: AnalyticsFilter, data: RawData): DonutSegment[] {
     if (mins > 0) segments.push({ name: 'ポモドーロ', value: mins });
   }
 
-  if (!filter.timerKind || filter.timerKind === 'agenda') {
+  if (!filter.timerKind) {
     const mins = data.meetings
       .flatMap((m) => m.agenda)
       .filter((a) => a.startTime && inRange(new Date(a.startTime), filter))
       .reduce((sum, a) => sum + secondsToMinutes(a.actualDuration), 0);
-    if (mins > 0) segments.push({ name: 'アジェンダ', value: mins });
+    if (mins > 0) segments.push({ name: '会議', value: mins });
   }
 
   // Multi-timer categories

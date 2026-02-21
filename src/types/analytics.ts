@@ -1,5 +1,5 @@
 export type Granularity = 'day' | 'week' | 'month';
-export type TimerKind = 'basic' | 'pomodoro' | 'multi' | 'agenda';
+export type TimerKind = 'basic' | 'pomodoro' | 'multi';
 
 export interface AnalyticsFilter {
   since: Date;

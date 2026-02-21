@@ -24,7 +24,6 @@ import {
 } from "@/features/timer/utils/meeting-report-post-template";
 import { buildMeetingAiAssist } from "@/features/timer/utils/meeting-ai-assist";
 import { generateMeetingAiAssist } from "@/features/timer/services/meeting-ai-assist-service";
-import { AiProviderConfig, AiProviderType } from "@/types/aiAssist";
 
 export const MeetingReportDialog: React.FC = () => {
   const {
@@ -41,7 +40,7 @@ export const MeetingReportDialog: React.FC = () => {
     saveDraft,
     reports,
   } = useMeetingReportStore();
-  const { getLinks, githubPat, aiProviderConfig, setAiProviderConfig } =
+  const { getLinks, githubPat, aiProviderConfig } =
     useIntegrationLinkStore();
   const [isPosting, setIsPosting] = React.useState(false);
   const [isTodoImporting, setIsTodoImporting] = React.useState(false);
@@ -53,12 +52,6 @@ export const MeetingReportDialog: React.FC = () => {
   const [generatedAiAssist, setGeneratedAiAssist] = React.useState<ReturnType<
     typeof buildMeetingAiAssist
   > | null>(null);
-  const [aiConfigDraft, setAiConfigDraft] = React.useState<AiProviderConfig>({
-    provider: aiProviderConfig?.provider ?? "openai",
-    model: aiProviderConfig?.model ?? "gpt-4o-mini",
-    apiKey: aiProviderConfig?.apiKey ?? "",
-    temperature: aiProviderConfig?.temperature ?? 0.2,
-  });
 
   React.useEffect(() => {
     if (!isDialogOpen) {
@@ -139,22 +132,15 @@ export const MeetingReportDialog: React.FC = () => {
     );
   };
 
-  const handleAiConfigChange = <K extends keyof AiProviderConfig>(
-    key: K,
-    value: AiProviderConfig[K],
-  ) => {
-    setAiConfigDraft((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveAiConfig = () => {
-    setAiProviderConfig(aiConfigDraft);
-    setPostStatusMessage("AI API設定を保存しました（メモリのみ保持）");
-  };
-
   const handleGenerateAssist = async (testOnly = false) => {
     setIsAiGenerating(true);
     try {
-      const result = await generateMeetingAiAssist(draft, aiConfigDraft);
+      const result = await generateMeetingAiAssist(draft, aiProviderConfig ?? {
+        provider: "openai",
+        model: "gpt-4o-mini",
+        apiKey: "",
+        temperature: 0.2,
+      });
       if (!testOnly) {
         setGeneratedAiAssist(result.assist);
       }
@@ -333,96 +319,11 @@ export const MeetingReportDialog: React.FC = () => {
                     </Button>
                   </div>
                 </div>
-                <div className="grid gap-2 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor={`${formIdPrefix}-ai-provider`}
-                      className="text-xs"
-                    >
-                      Provider
-                    </Label>
-                    <select
-                      id={`${formIdPrefix}-ai-provider`}
-                      className="h-8 w-full rounded-md border bg-background px-2 text-xs"
-                      value={aiConfigDraft.provider}
-                      onChange={(event) =>
-                        handleAiConfigChange(
-                          "provider",
-                          event.target.value as AiProviderType,
-                        )
-                      }
-                    >
-                      <option value="openai">OpenAI</option>
-                      <option value="anthropic">Anthropic</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor={`${formIdPrefix}-ai-model`}
-                      className="text-xs"
-                    >
-                      Model
-                    </Label>
-                    <Input
-                      id={`${formIdPrefix}-ai-model`}
-                      value={aiConfigDraft.model}
-                      onChange={(event) =>
-                        handleAiConfigChange("model", event.target.value)
-                      }
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor={`${formIdPrefix}-ai-key`}
-                      className="text-xs"
-                    >
-                      API Key（メモリのみ）
-                    </Label>
-                    <Input
-                      id={`${formIdPrefix}-ai-key`}
-                      type="password"
-                      value={aiConfigDraft.apiKey}
-                      onChange={(event) =>
-                        handleAiConfigChange("apiKey", event.target.value)
-                      }
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor={`${formIdPrefix}-ai-temperature`}
-                      className="text-xs"
-                    >
-                      Temperature (0-2)
-                    </Label>
-                    <Input
-                      id={`${formIdPrefix}-ai-temperature`}
-                      type="number"
-                      min="0"
-                      max="2"
-                      step="0.1"
-                      value={aiConfigDraft.temperature ?? 0.2}
-                      onChange={(event) =>
-                        handleAiConfigChange(
-                          "temperature",
-                          Number(event.target.value),
-                        )
-                      }
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSaveAiConfig}
-                  >
-                    設定を保存
-                  </Button>
-                </div>
+                {!aiProviderConfig?.apiKey && (
+                  <p className="text-xs text-muted-foreground">
+                    AI機能を使用するには、サイドバーの「設定」からAI APIキーを設定してください。
+                  </p>
+                )}
                 <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                   <li>議事録要約: {aiAssist.summary}</li>
                   <li>合意形成アシスト: {aiAssist.consensusAssist}</li>
