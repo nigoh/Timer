@@ -133,7 +133,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           onClick={onExportCsv}
           aria-label="CSVエクスポート"
         >
-          <Download className="w-3 h-3 mr-1" />
+          <Download className="w-3 h-3 mr-1.5" />
           CSV
         </Button>
       </div>

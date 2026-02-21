@@ -79,7 +79,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
               {reports.map((report) => (
                 <li
                   key={report.id}
-                  className="cursor-pointer rounded-sm px-1.5 py-1.5 text-xs hover:bg-muted/50"
+                  className="cursor-pointer rounded-sm px-2 py-2 text-xs hover:bg-muted/50"
                   onClick={() => setSelectedReport(report)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -206,7 +206,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                     : undefined
                 }
               >
-                <ClipboardCopy className="mr-1 h-4 w-4" />
+                <ClipboardCopy className="mr-1.5 h-4 w-4" />
                 コピー
               </Button>
             </div>

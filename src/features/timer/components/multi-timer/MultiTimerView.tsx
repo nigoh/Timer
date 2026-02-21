@@ -341,7 +341,7 @@ const TimerCard: React.FC<{
               onClick={() => startTimer(timer.id)}
               disabled={timer.isCompleted}
             >
-              <Play className="w-4 h-4 mr-1" />
+              <Play className="w-4 h-4 mr-1.5" />
               開始
             </Button>
           ) : timer.isRunning ? (
@@ -350,7 +350,7 @@ const TimerCard: React.FC<{
               variant="outline"
               onClick={() => pauseTimer(timer.id)}
             >
-              <Pause className="w-4 h-4 mr-1" />
+              <Pause className="w-4 h-4 mr-1.5" />
               一時停止
             </Button>
           ) : null}
@@ -361,16 +361,16 @@ const TimerCard: React.FC<{
             onClick={() => stopTimer(timer.id)}
             disabled={!timer.isRunning && !timer.isPaused}
           >
-            <Square className="w-4 h-4 mr-1" />
+            <Square className="w-4 h-4 mr-1.5" />
             停止
-          </Button>
+            </Button>
 
           <Button
             size="sm"
             variant="outline"
             onClick={() => resetTimer(timer.id)}
           >
-            <RotateCcw className="w-4 h-4 mr-1" />
+            <RotateCcw className="w-4 h-4 mr-1.5" />
             リセット
           </Button>
         </div>
@@ -382,7 +382,7 @@ const TimerCard: React.FC<{
             variant="ghost"
             onClick={() => duplicateTimer(timer.id)}
           >
-            <Copy className="w-4 h-4 mr-1" />
+            <Copy className="w-4 h-4 mr-1.5" />
             複製
           </Button>
           <Button
@@ -397,7 +397,7 @@ const TimerCard: React.FC<{
               }
             }}
           >
-            <Trash2 className="w-4 h-4 mr-1" />
+            <Trash2 className="w-4 h-4 mr-1.5" />
             削除
           </Button>
         </div>
@@ -445,7 +445,7 @@ const GlobalControls: React.FC = () => {
             disabled={!hasIncompleteTimers}
             size="sm"
           >
-            <PlayCircle className="w-4 h-4 mr-1" />
+            <PlayCircle className="w-4 h-4 mr-1.5" />
             すべて開始
           </Button>
 
@@ -455,7 +455,7 @@ const GlobalControls: React.FC = () => {
             disabled={!isAnyRunning}
             size="sm"
           >
-            <PauseCircle className="w-4 h-4 mr-1" />
+            <PauseCircle className="w-4 h-4 mr-1.5" />
             すべて一時停止
           </Button>
 
@@ -465,7 +465,7 @@ const GlobalControls: React.FC = () => {
             disabled={!hasTimers}
             size="sm"
           >
-            <Square className="w-4 h-4 mr-1" />
+            <Square className="w-4 h-4 mr-1.5" />
             すべて停止
           </Button>
 
@@ -475,7 +475,7 @@ const GlobalControls: React.FC = () => {
             disabled={!hasTimers}
             size="sm"
           >
-            <RotateCcw className="w-4 h-4 mr-1" />
+            <RotateCcw className="w-4 h-4 mr-1.5" />
             すべてリセット
           </Button>
         </div>
@@ -577,7 +577,7 @@ export const MultiTimerView: React.FC = () => {
 
       {/* タイマー一覧 */}
       {timers.length === 0 ? (
-        <Card className="text-center py-12">
+        <Card className="text-center py-8">
           <CardContent>
             <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">タイマーがありません</h3>

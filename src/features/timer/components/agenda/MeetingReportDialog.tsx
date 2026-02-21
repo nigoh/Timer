@@ -324,7 +324,7 @@ export const MeetingReportDialog: React.FC = () => {
                     AI機能を使用するには、サイドバーの「設定」からAI APIキーを設定してください。
                   </p>
                 )}
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
                   <li>議事録要約: {aiAssist.summary}</li>
                   <li>合意形成アシスト: {aiAssist.consensusAssist}</li>
                   <li>
@@ -402,7 +402,7 @@ export const MeetingReportDialog: React.FC = () => {
                       size="sm"
                       onClick={addDraftTodo}
                     >
-                      <Plus className="mr-1 h-4 w-4" />
+                      <Plus className="mr-1.5 h-4 w-4" />
                       追加
                     </Button>
                   </div>
@@ -532,11 +532,11 @@ export const MeetingReportDialog: React.FC = () => {
               </>
             )}
             <Button type="button" variant="outline" onClick={handleCopyAndSave}>
-              <Copy className="mr-1 h-4 w-4" />
+              <Copy className="mr-1.5 h-4 w-4" />
               コピーして保存
             </Button>
             <Button type="button" onClick={saveDraft}>
-              <Save className="mr-1 h-4 w-4" />
+              <Save className="mr-1.5 h-4 w-4" />
               保存
             </Button>
           </div>

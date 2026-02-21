@@ -197,7 +197,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
                 onClick={onClearHistory}
                 className="text-destructive hover:text-destructive"
               >
-                <Trash2 className="w-4 h-4 mr-1" />
+                <Trash2 className="w-4 h-4 mr-1.5" />
                 全削除
               </Button>
             )}

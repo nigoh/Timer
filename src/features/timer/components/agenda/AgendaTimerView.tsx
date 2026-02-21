@@ -1081,12 +1081,12 @@ const TimerDisplay: React.FC = () => {
           </Tooltip>
           {!isRunning ? (
             <Button onClick={startTimer} size="sm">
-              <Play className="mr-1 h-4 w-4" />
+              <Play className="mr-1.5 h-4 w-4" />
               {isPaused ? "再開" : "開始"}
             </Button>
           ) : (
             <Button onClick={pauseTimer} variant="outline" size="sm">
-              <Pause className="mr-1 h-4 w-4" />
+              <Pause className="mr-1.5 h-4 w-4" />
               一時停止
             </Button>
           )}
@@ -1097,7 +1097,7 @@ const TimerDisplay: React.FC = () => {
             size="sm"
             disabled={!canCompleteSession}
           >
-            <Square className="w-4 h-4 mr-1" />
+            <Square className="w-4 h-4 mr-1.5" />
             セッション完了
           </Button>
         </div>
@@ -1168,7 +1168,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
                 onClick={onCreateMeeting}
                 aria-label="新しい会議を作成"
               >
-                <Plus className="h-3.5 w-3.5 sm:mr-1" />
+                <Plus className="h-3.5 w-3.5 sm:mr-1.5" />
                 <span className="hidden sm:inline">新しい会議</span>
               </Button>
             </Tooltip>
@@ -1181,7 +1181,7 @@ const MeetingList: React.FC<MeetingListProps> = ({
                 onClick={onOpenSettings}
                 disabled={!currentMeetingId}
               >
-                <Settings className="mr-1 h-3.5 w-3.5" />
+                <Settings className="mr-1.5 h-3.5 w-3.5" />
               </Button>
             </Tooltip>
             <Tooltip
@@ -1338,7 +1338,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
                   <div
                     key={agenda.id}
                     className={cn(
-                      "cursor-pointer px-2 py-1.5",
+                      "cursor-pointer px-2 py-2",
                       isActive && TIMER_STATUS_CONFIG.running.surfaceClass,
                       agenda.status === "completed" &&
                         TIMER_STATUS_CONFIG.completed.surfaceClass,
@@ -1349,7 +1349,7 @@ const AgendaList: React.FC<AgendaListProps> = ({
                   >
                     <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="mb-0.5 flex flex-wrap items-center gap-1.5">
+                        <div className="mb-1 flex flex-wrap items-center gap-1.5">
                           {agenda.status === "completed" ? (
                             <CheckCircle2
                               className={`w-3.5 h-3.5 ${TIMER_STATUS_CONFIG.completed.color}`}

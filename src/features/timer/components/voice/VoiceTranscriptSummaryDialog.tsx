@@ -108,8 +108,8 @@ export const VoiceTranscriptSummaryDialog: React.FC<
               </p>
             ) : (
               confirmedEntries.map((entry) => (
-                <div key={entry.id} className="flex gap-2 py-0.5 leading-snug">
-                  <span className="text-muted-foreground font-mono text-xs shrink-0 pt-0.5">
+                <div key={entry.id} className="flex gap-2 py-1 leading-snug">
+                  <span className="text-muted-foreground font-mono text-xs shrink-0 pt-1">
                     {formatTimestamp(entry.timestamp)}
                   </span>
                   <span>{entry.text}</span>

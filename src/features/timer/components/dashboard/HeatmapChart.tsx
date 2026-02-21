@@ -38,7 +38,7 @@ const HeatmapChart: React.FC<HeatmapChartProps> = ({ data }) => {
       <CardContent className="pt-0 overflow-x-auto">
         <div className="min-w-[480px]">
           {/* Hour header */}
-          <div className="flex ml-6 mb-0.5">
+          <div className="flex ml-6 mb-1">
             {HOURS.map((h) => (
               <div
                 key={h}
@@ -50,7 +50,7 @@ const HeatmapChart: React.FC<HeatmapChartProps> = ({ data }) => {
           </div>
           {/* Weekday rows */}
           {WEEKDAYS.map((day, wd) => (
-            <div key={wd} className="flex items-center mb-0.5">
+            <div key={wd} className="flex items-center mb-1">
               <span className="w-6 text-xs text-muted-foreground text-right pr-1 shrink-0">
                 {day}
               </span>

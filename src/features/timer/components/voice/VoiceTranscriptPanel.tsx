@@ -129,7 +129,7 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
       {/* パネル本体 */}
       {isOpen && (
         <div className="border-t px-3 pb-3 pt-2 space-y-2">
-          <ScrollArea className="h-40 rounded-md bg-background border px-2 py-1.5 text-sm">
+          <ScrollArea className="h-40 rounded-md bg-background border px-2 py-2 text-sm">
             {confirmedEntries.length === 0 && !interimTranscript && (
               <p className="text-muted-foreground text-xs py-2 text-center">
                 {isListening
@@ -138,16 +138,16 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
               </p>
             )}
             {confirmedEntries.map((entry) => (
-              <div key={entry.id} className="flex gap-2 py-0.5 leading-snug">
-                <span className="text-muted-foreground font-mono text-xs shrink-0 pt-0.5">
+              <div key={entry.id} className="flex gap-2 py-1 leading-snug">
+                <span className="text-muted-foreground font-mono text-xs shrink-0 pt-1">
                   {formatTimestamp(entry.timestamp)}
                 </span>
                 <span>{entry.text}</span>
               </div>
             ))}
             {interimTranscript && (
-              <div className="flex gap-2 py-0.5 leading-snug">
-                <span className="text-muted-foreground font-mono text-xs shrink-0 pt-0.5">
+              <div className="flex gap-2 py-1 leading-snug">
+                <span className="text-muted-foreground font-mono text-xs shrink-0 pt-1">
                   …
                 </span>
                 <span className={cn("text-muted-foreground italic")}>

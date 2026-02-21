@@ -246,7 +246,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
               className="h-6 text-xs px-2 text-muted-foreground hover:text-foreground"
               disabled={isFetchingTitle}
             >
-              <Plus className="w-3 h-3 mr-1" />
+              <Plus className="w-3 h-3 mr-1.5" />
               GitHub Issue を紐付ける
             </Button>
           )}
