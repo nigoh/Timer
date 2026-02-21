@@ -244,7 +244,7 @@ export const AgendaTimerView: React.FC = () => {
               文字起こし
             </CardTitle>
           </CardHeader>
-          <CardContent className="min-h-0 overflow-hidden p-3 pt-0">
+          <CardContent className="min-h-0 overflow-hidden flex flex-col p-3 pt-0">
             <VoiceTranscriptPanel
               meetingId={currentMeeting.id}
               agendaId={currentAgenda.id}

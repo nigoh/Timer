@@ -31,17 +31,19 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
           <span className="min-w-0 truncate text-[11px] text-muted-foreground">
             {getWidgetLabel(widget.type)}
           </span>
-          <Tooltip content="ウィジェットを非表示" side="top">
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => onToggleWidget(widget.id)}
-              className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              aria-label="ウィジェットを非表示"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </Tooltip>
+          {widget.type !== "transcript" && (
+            <Tooltip content="ウィジェットを非表示" side="top">
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => onToggleWidget(widget.id)}
+                className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                aria-label="ウィジェットを非表示"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </Tooltip>
+          )}
         </div>
       )}
       <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
