@@ -214,7 +214,7 @@ class NotificationManager {
           icon: options?.icon || '/timer-icon.png',
           silent: true, // Audio is handled via WebAudio
         });
-      } catch (e) {
+      } catch {
         // Ignored
       }
     }

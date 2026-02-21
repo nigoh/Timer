@@ -311,8 +311,8 @@ describe('LocalAnalyticsService', () => {
     });
 
     it('generates monthly labels for month granularity', () => {
-      const since = new Date('2025-01-01T00:00:00Z');
-      const until = new Date('2025-03-31T23:59:59Z');
+      const since = new Date(2025, 0, 1, 0, 0, 0);
+      const until = new Date(2025, 2, 31, 23, 59, 59);
       const filter: AnalyticsFilter = { since, until, granularity: 'month' };
       const result = service.compute(filter, EMPTY_DATA);
       expect(result.trend.map((p) => p.label)).toEqual(['2025-01', '2025-02', '2025-03']);
@@ -420,6 +420,51 @@ describe('LocalAnalyticsService', () => {
       const result = service.compute(filter, fullData);
       expect(result.kpi.focusMinutes).toBeGreaterThan(0);
       expect(result.donut.length).toBeGreaterThanOrEqual(3);
+    });
+
+    // TC-AN-25: timerKind=basic のとき agenda データが meetingOvertimeRate に含まれない
+    it('timerKind=basic のとき agenda が除外されまた meetingOvertimeRate は 0', () => {
+      const filter: AnalyticsFilter = { ...makeFilter(6), timerKind: 'basic' };
+      const data: RawData = {
+        ...EMPTY_DATA,
+        basicHistory: [basicHistoryEntry(0, 1800, true)],
+        meetings: [makeMeeting(0, [{ planned: 600, actual: 700, completed: false }])],
+      };
+      const result = service.compute(filter, data);
+      // basic (1800s = 30min) のみ対象; agenda は includeAgenda = !timerKind なので除外
+      expect(result.kpi.focusMinutes).toBe(30);
+      expect(result.kpi.meetingOvertimeRate).toBe(0);
+    });
+
+    // TC-AN-26: timerKind=multi のとき basic/pomodoro データが KPI に含まれない
+    it('timerKind=multi のとき basic/pomodoro の sessions が 0 になる', () => {
+      const filter: AnalyticsFilter = { ...makeFilter(6), timerKind: 'multi' };
+      const data: RawData = {
+        ...EMPTY_DATA,
+        basicHistory: [basicHistoryEntry(0, 1800, true)],
+        pomodoroSessions: [pomodoroSession(0, 1500, true, 'work')],
+        multiCategoryMap: { '仕事': 30 },
+      };
+      const result = service.compute(filter, data);
+      // timerKind='multi' 時, includeBasic=false, includePomodoro=false
+      expect(result.kpi.sessions).toBe(0);
+      expect(result.kpi.focusMinutes).toBe(0);
+      // donut には multi カテゴリデータが含まれる
+      expect(result.donut.some((d) => d.name === '仕事' && d.value === 30)).toBe(true);
+    });
+  });
+
+  describe('trend granularity', () => {
+    // TC-AN-27: 月次粒度で同一月内の範囲では trend が 1 件になる
+    it('月次粒度で同一月内の範囲では trend が 1 件になる', () => {
+      const filter: AnalyticsFilter = {
+        since: new Date(2025, 2, 1, 0, 0, 0),
+        until: new Date(2025, 2, 31, 23, 59, 59),
+        granularity: 'month',
+      };
+      const result = service.compute(filter, EMPTY_DATA);
+      expect(result.trend).toHaveLength(1);
+      expect(result.trend[0].label).toBe('2025-03');
     });
   });
 });

@@ -178,7 +178,7 @@ describe("LogViewer", () => {
       newestLog: new Date("2024-01-01T00:00:01Z"),
     });
     mockLogger.clearLogs.mockReset();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: {

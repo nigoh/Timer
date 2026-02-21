@@ -13,6 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
 import { fetchGitHubIssue } from "@/features/timer/api/github-issues";
+import {
+  parseAndValidateOwnerRepo,
+  validateIssueNumber,
+} from "@/features/timer/utils/input-validators";
 
 interface GitHubIssueLinkingProps {
   timeLogId: string;
@@ -36,18 +40,19 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
   const handleAdd = async () => {
     setError("");
 
-    const parts = ownerRepo.trim().split("/");
-    if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      setError('Owner/Repo は "owner/repo" 形式で入力してください');
+    const ownerRepoResult = parseAndValidateOwnerRepo(ownerRepo);
+    if ("error" in ownerRepoResult) {
+      setError(ownerRepoResult.error);
       return;
     }
-    const num = parseInt(issueNumber, 10);
-    if (!issueNumber.trim() || isNaN(num) || num <= 0) {
-      setError("Issue 番号は正の整数を入力してください");
+    const issueNumResult = validateIssueNumber(issueNumber);
+    if ("error" in issueNumResult) {
+      setError(issueNumResult.error);
       return;
     }
 
-    const [owner, repo] = parts;
+    const { owner, repo } = ownerRepoResult;
+    const num = issueNumResult.value;
     let resolvedTitle = issueTitle.trim() || undefined;
     let resolvedIssueUrl = `https://github.com/${owner}/${repo}/issues/${num}`;
 
@@ -182,6 +187,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
                     value={ownerRepo}
                     onChange={(e) => setOwnerRepo(e.target.value)}
                     className="h-7 text-xs"
+                    maxLength={141}
                   />
                 </div>
                 <div className="space-y-1">
@@ -195,6 +201,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
                     onChange={(e) => setIssueNumber(e.target.value)}
                     type="number"
                     min="1"
+                    max="999999"
                     className="h-7 text-xs"
                   />
                 </div>

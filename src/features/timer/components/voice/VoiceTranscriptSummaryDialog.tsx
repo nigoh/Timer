@@ -13,12 +13,12 @@ import { useVoiceRecognition } from "@/features/timer/hooks/useVoiceRecognition"
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
 import { summarizeVoiceTranscript } from "@/features/timer/services/meeting-ai-assist-service";
 import { logger } from "@/utils/logger";
-import type ReactQuill from "react-quill";
+import type { QuillEditorHandle } from "@/components/ui/quill-editor";
 
 interface VoiceTranscriptSummaryDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  quillRef: React.RefObject<ReactQuill>;
+  quillRef: React.RefObject<QuillEditorHandle>;
   onInserted: () => void;
 }
 

@@ -5,6 +5,37 @@
     <link rel="icon" type="image/svg+xml" href="/timer-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="業務効率化を目的とした多機能タイマーアプリケーション" />
+    <!--
+      Content-Security-Policy (GitHub Pages ・静的ホスティング共通)
+      GitHub Pages は HTTP レスポンスヘッダーのカスタマイズ不可のため、この <meta> タグで CSP を適用する。
+
+      script-src 'unsafe-inline':
+        Vite の本番ビルドがインジェクトする modulepreload ポリフィルの
+        インラインスクリプトに対応するため必要。
+        XSS 対策の本体は Phase 2 の DOMPurify と Phase 3 の入力バリデーションで担保する。
+
+      style-src 'unsafe-inline':
+        Quill Editor が動的にインラインスタイルを挿入するため必要。
+
+      connect-src:
+        GitHub API / Anthropic API / OpenAI API へのフェッチを許可する。
+        許可した以外の外部サーバーへの通信はブロックされる。
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        connect-src 'self' https://api.github.com https://api.anthropic.com https://api.openai.com;
+        img-src 'self' data: blob:;
+        font-src 'self' data:;
+        worker-src 'self' blob:;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+      "
+    />
     <title>Timer App</title>
   </head>
   <body>

@@ -127,4 +127,156 @@ describe('usePomodoroStore', () => {
     expect(state.cycle).toBe(1);
     expect(state.isRunning).toBe(false);
   });
+
+  // TC-PO-05
+  it('cycle が longBreakInterval に達した work 完了後は long-break へ遷移する', () => {
+    usePomodoroStore.setState({
+      currentPhase: 'work',
+      cycle: 4,
+      timeRemaining: 1,
+      isRunning: true,
+      settings: {
+        workDuration: 1,
+        shortBreakDuration: 1,
+        longBreakDuration: 15,
+        longBreakInterval: 4,
+        autoStartBreaks: false,
+        autoStartWork: false,
+      },
+      sessions: [],
+      todayStats: { completedPomodoros: 0, totalFocusTime: 0, totalBreakTime: 0, efficiency: 0 },
+    });
+    usePomodoroStore.getState().tick();
+    expect(usePomodoroStore.getState().currentPhase).toBe('long-break');
+  });
+
+  // TC-PO-06
+  it('autoStartWork=true のとき休憩完了後に work が自動開始される', () => {
+    vi.useFakeTimers();
+    try {
+      usePomodoroStore.setState({
+        currentPhase: 'short-break',
+        cycle: 1,
+        timeRemaining: 1,
+        isRunning: true,
+        settings: {
+          workDuration: 25,
+          shortBreakDuration: 1,
+          longBreakDuration: 15,
+          longBreakInterval: 4,
+          autoStartBreaks: false,
+          autoStartWork: true,
+        },
+        sessions: [],
+        todayStats: { completedPomodoros: 0, totalFocusTime: 0, totalBreakTime: 0, efficiency: 0 },
+      });
+
+      usePomodoroStore.getState().tick();
+
+      // タイムアウト前: まだ short-break で停止中
+      const before = usePomodoroStore.getState();
+      expect(before.isRunning).toBe(false);
+      expect(before.currentPhase).toBe('short-break');
+
+      vi.advanceTimersByTime(1000);
+
+      // タイムアウト後: work フェーズで自動開始
+      const after = usePomodoroStore.getState();
+      expect(after.currentPhase).toBe('work');
+      expect(after.isRunning).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // TC-PO-07
+  it('work 完了時に todayStats.completedPomodoros が増加する', () => {
+    usePomodoroStore.setState({
+      currentPhase: 'work',
+      cycle: 1,
+      timeRemaining: 1,
+      isRunning: true,
+      settings: {
+        workDuration: 25,
+        shortBreakDuration: 5,
+        longBreakDuration: 15,
+        longBreakInterval: 4,
+        autoStartBreaks: false,
+        autoStartWork: false,
+      },
+      sessions: [],
+      todayStats: { completedPomodoros: 0, totalFocusTime: 0, totalBreakTime: 0, efficiency: 0 },
+    });
+    usePomodoroStore.getState().tick();
+    expect(usePomodoroStore.getState().todayStats.completedPomodoros).toBe(1);
+  });
+
+  // TC-PO-08
+  it('work 完了時に todayStats.totalFocusTime に workDuration 分が累計される', () => {
+    usePomodoroStore.setState({
+      currentPhase: 'work',
+      cycle: 1,
+      timeRemaining: 1,
+      isRunning: true,
+      settings: {
+        workDuration: 25,
+        shortBreakDuration: 5,
+        longBreakDuration: 15,
+        longBreakInterval: 4,
+        autoStartBreaks: false,
+        autoStartWork: false,
+      },
+      sessions: [],
+      todayStats: { completedPomodoros: 0, totalFocusTime: 0, totalBreakTime: 0, efficiency: 0 },
+    });
+    usePomodoroStore.getState().tick();
+    expect(usePomodoroStore.getState().todayStats.totalFocusTime).toBe(25);
+  });
+
+  // TC-PO-09
+  it('work 完了時に sessions に完了セッションが追加される', () => {
+    usePomodoroStore.setState({
+      currentPhase: 'work',
+      cycle: 1,
+      timeRemaining: 1,
+      isRunning: true,
+      taskName: 'テストタスク',
+      settings: {
+        workDuration: 25,
+        shortBreakDuration: 5,
+        longBreakDuration: 15,
+        longBreakInterval: 4,
+        autoStartBreaks: false,
+        autoStartWork: false,
+      },
+      sessions: [],
+      todayStats: { completedPomodoros: 0, totalFocusTime: 0, totalBreakTime: 0, efficiency: 0 },
+    });
+    usePomodoroStore.getState().tick();
+    const { sessions } = usePomodoroStore.getState();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].phase).toBe('work');
+    expect(sessions[0].completed).toBe(true);
+    expect(sessions[0].taskName).toBe('テストタスク');
+    expect(sessions[0].id).toBeTruthy();
+    expect(sessions[0].startTime).toBeInstanceOf(Date);
+    expect(sessions[0].endTime).toBeInstanceOf(Date);
+  });
+
+  // TC-PO-10
+  it('skip() で work → short-break へスキップできる', () => {
+    usePomodoroStore.setState({ currentPhase: 'work', cycle: 1 });
+    usePomodoroStore.getState().skip();
+    expect(usePomodoroStore.getState().currentPhase).toBe('short-break');
+  });
+
+  it('skip() で short-break → work へスキップできる', () => {
+    usePomodoroStore.setState({
+      currentPhase: 'short-break',
+      cycle: 1,
+      settings: usePomodoroStore.getState().settings,
+    });
+    usePomodoroStore.getState().skip();
+    expect(usePomodoroStore.getState().currentPhase).toBe('work');
+  });
 });

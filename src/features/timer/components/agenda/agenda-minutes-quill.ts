@@ -16,6 +16,7 @@ export const AGENDA_MINUTES_QUILL_FORMATS = [
 export const getAgendaMinutesQuillModules = (isMobile: boolean) => ({
   toolbar: isMobile
     ? [
+        [{ header: [1, 2, 3, false] }],
         ["bold", "italic", "underline"],
         ["image", "code-block"],
         [{ list: "ordered" }, { list: "bullet" }],

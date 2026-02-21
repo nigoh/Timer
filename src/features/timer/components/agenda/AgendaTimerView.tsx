@@ -21,8 +21,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, Tooltip } from "@radix-ui/themes";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import QuillEditor, {
+  type QuillEditorHandle,
+} from "@/components/ui/quill-editor";
 import {
   Play,
   Pause,
@@ -51,6 +52,11 @@ import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store"
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
 import { fetchGitHubIssue } from "@/features/timer/api/github-issues";
+import {
+  parseAndValidateOwnerRepo,
+  validateIssueNumber,
+  meetingTitleSchema,
+} from "@/features/timer/utils/input-validators";
 import { MeetingReportDialog } from "@/features/timer/components/agenda/MeetingReportDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
 import { parseIssueAgendaItems } from "@/features/timer/utils/github-issue-agenda-parser";
@@ -167,21 +173,18 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
 
   const handleImportFromIssue = async () => {
     setIssueError("");
-    const ownerRepoParts = ownerRepo.trim().split("/");
-    if (ownerRepoParts.length !== 2) {
-      setIssueError('Owner/Repo は "owner/repo" 形式で入力してください');
+    const ownerRepoResult = parseAndValidateOwnerRepo(ownerRepo);
+    if ("error" in ownerRepoResult) {
+      setIssueError(ownerRepoResult.error);
       return;
     }
-    const [owner = "", repo = ""] = ownerRepoParts;
-    const parsedIssueNumber = Number.parseInt(issueNumber, 10);
-    if (!owner || !repo) {
-      setIssueError('Owner/Repo は "owner/repo" 形式で入力してください');
+    const issueNumResult = validateIssueNumber(issueNumber);
+    if ("error" in issueNumResult) {
+      setIssueError(issueNumResult.error);
       return;
     }
-    if (!Number.isFinite(parsedIssueNumber) || parsedIssueNumber <= 0) {
-      setIssueError("Issue 番号は正の整数を入力してください");
-      return;
-    }
+    const { owner, repo } = ownerRepoResult;
+    const parsedIssueNumber = issueNumResult.value;
 
     setIsImportingIssue(true);
     try {
@@ -217,12 +220,13 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    const titleResult = meetingTitleSchema.safeParse(title.trim());
+    if (!titleResult.success) return;
 
     if (meeting) {
-      updateMeetingTitle(meeting.id, title);
+      updateMeetingTitle(meeting.id, titleResult.data);
     } else {
-      const createdMeetingId = createMeeting(title);
+      const createdMeetingId = createMeeting(titleResult.data);
       if (createdMeetingId) {
         const agendaCandidates =
           importedAgendaItems.length > 0
@@ -293,6 +297,7 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
+              maxLength={200}
             />
           </div>
 
@@ -307,6 +312,7 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
                     placeholder="owner/repo"
                     value={ownerRepo}
                     onChange={(event) => setOwnerRepo(event.target.value)}
+                    maxLength={141}
                   />
                 </div>
                 <div className="space-y-1">
@@ -315,6 +321,7 @@ const MeetingDialog: React.FC<MeetingDialogProps> = ({
                     id="meeting-issue-number"
                     type="number"
                     min="1"
+                    max="999999"
                     placeholder="36"
                     value={issueNumber}
                     onChange={(event) => setIssueNumber(event.target.value)}
@@ -417,19 +424,20 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    const titleResult = meetingTitleSchema.safeParse(title.trim());
+    if (!titleResult.success) return;
 
     const durationSeconds = duration * 60;
 
     if (agenda) {
       updateAgenda(meetingId, agenda.id, {
-        title,
+        title: titleResult.data,
         plannedDuration: durationSeconds,
         memo,
         remainingTime: durationSeconds - agenda.actualDuration,
       });
     } else {
-      addAgenda(meetingId, title, durationSeconds, memo);
+      addAgenda(meetingId, titleResult.data, durationSeconds, memo);
     }
 
     setTitle("");
@@ -475,6 +483,7 @@ const AgendaDialog: React.FC<AgendaDialogProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
+              maxLength={200}
             />
           </div>
 
@@ -865,7 +874,7 @@ const MeetingOverviewChart: React.FC<MeetingOverviewChartProps> = ({
 
 const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
   const { updateAgendaMinutes } = useAgendaTimerStore();
-  const quillRef = useRef<ReactQuill>(null);
+  const quillRef = useRef<QuillEditorHandle>(null);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") {
@@ -910,7 +919,7 @@ const MinutesEditor: React.FC<MinutesEditorProps> = ({ meetingId, agenda }) => {
           onInserted={() => setIsSummaryDialogOpen(false)}
         />
         <div className="agenda-minutes-editor min-h-[280px] min-w-0 overflow-visible rounded-md bg-background lg:h-full lg:min-h-0 [&_.ql-toolbar]:shrink-0 [&_.ql-toolbar]:flex-wrap [&_.ql-container]:h-[calc(100%-42px)] [&_.ql-container]:min-w-0 [&_.ql-editor]:min-h-[220px] [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-base">
-          <ReactQuill
+          <QuillEditor
             ref={quillRef}
             key={agenda.id}
             theme="snow"

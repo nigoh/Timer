@@ -43,4 +43,29 @@ describe("buildMeetingAiAssist", () => {
     expect(assist.agendaAssist).toContain("次回アジェンダ案");
     expect(assist.preparationAssist).toContain("事前準備案");
   });
+
+  // TC-MA-02: 全アジェンダが予定内のとき facilitationAssist に「進行は良好」が含まれる
+  it("全アジェンダが予定内のとき facilitationAssist に「進行は良好」が含まれる", () => {
+    const noOvertimeReport: MeetingReport = {
+      ...baseReport,
+      agendaItems: [
+        { agendaId: "a1", title: "進捗共有", plannedDurationSec: 600, actualDurationSec: 600, varianceSec: 0 },
+        { agendaId: "a2", title: "課題整理", plannedDurationSec: 900, actualDurationSec: 900, varianceSec: 0 },
+      ],
+    };
+    const assist = buildMeetingAiAssist(noOvertimeReport);
+    expect(assist.facilitationAssist).toContain("進行は良好でした");
+  });
+
+  // TC-MA-03: 参加者 0 人のとき例外を投げずデフォルト文を返す
+  it("参加者 0 人のとき例外を投げず preparationAssist に未設定と表示される", () => {
+    const noParticipantsReport: MeetingReport = {
+      ...baseReport,
+      participants: [],
+    };
+    expect(() => buildMeetingAiAssist(noParticipantsReport)).not.toThrow();
+    const assist = buildMeetingAiAssist(noParticipantsReport);
+    // participants.length = 0 → 0 || "未設定" → "未設定"となる
+    expect(assist.preparationAssist).toContain("未設定");
+  });
 });

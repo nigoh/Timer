@@ -6,7 +6,9 @@ describe("agenda minutes quill config", () => {
     const modules = getAgendaMinutesQuillModules(true);
 
     expect(modules.toolbar).toEqual([
+      [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline"],
+      ["image", "code-block"],
       [{ list: "ordered" }, { list: "bullet" }],
       ["link", "clean"],
     ]);
@@ -18,8 +20,9 @@ describe("agenda minutes quill config", () => {
     expect(modules.toolbar).toEqual([
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
+      ["image", "code-block"],
       [{ list: "ordered" }, { list: "bullet" }],
-      ["blockquote", "code-block"],
+      ["blockquote"],
       ["link"],
       ["clean"],
     ]);

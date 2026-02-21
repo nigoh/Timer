@@ -1,3 +1,1 @@
 /// <reference types="vite/client" />
-
-declare module "react-quill/dist/*.css";
