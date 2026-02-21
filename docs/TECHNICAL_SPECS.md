@@ -17,8 +17,21 @@
 - `src/features/timer/components`: 機能別 View
 - `src/features/timer/containers`: コンテナ（配線）
 - `src/features/timer/stores`: ドメイン状態（Zustand）
+  - `agenda-timer-store.ts` / `new-agenda-timer-store.ts`: アジェンダタイマー
+  - `basic-timer-store.ts`: 基本タイマー
+  - `dashboard-store.ts`: ダッシュボードフィルタ永続化
+  - `integration-link-store.ts`: GitHub 連携リンク・PAT・AI API 設定（メモリ保持）
+  - `meeting-report-store.ts`: 会議レポート・投稿履歴
+  - `multi-timer-store.ts`: 複数タイマー
+  - `pomodoro-store.ts`: ポモドーロ
+  - `voice-store.ts`: 音声文字起こし状態（録音中/確定エントリ/言語）
 - `src/features/timer/api`: 外部 API クライアント（GitHub 連携）
-- `src/features/timer/utils`: 機能ユーティリティ（Issue別集計ロジックなど）
+- `src/features/timer/services`: 外部連携サービス
+  - `analytics.ts`: 分析集計ロジック
+  - `meeting-ai-assist-service.ts`: AI API 連携（LangChain 経由 / OpenAI・Anthropic）
+  - `voice-recognition-service.ts`: Web Speech API ラッパー
+- `src/features/timer/hooks`: カスタムフック（`useVoiceRecognition.ts`）
+- `src/features/timer/utils`: 機能ユーティリティ（Issue別集計・AIアシスト・議題パーサーなど）
 - `src/types`: ドメイン型
 - `src/utils`: 通知/ログユーティリティ
 
@@ -75,15 +88,15 @@
 
 #### カード定義
 
-| # | カード名 | 指標 | グラフ種別 |
-|---|---------|------|-----------|
-| 1 | 集中時間 | 当期間合計（分/時間） | KPI + 前期比スパークライン |
-| 2 | 完了セッション数 | 完了数 / 開始数 | KPI + 前期比スパークライン |
-| 3 | ポモドーロ達成率 | 作業フェーズ完了 / 開始 % | KPI + 目標進捗バー |
-| 4 | 会議超過率 | 超過議題数 / 全議題数 % | KPI + 前期比スパークライン |
-| 5 | トレンドチャート | 集中時間の時系列推移 | 折れ線 / 棒グラフ切替 |
-| 6 | ヒートマップ | 曜日 × 時間帯の集中分数 | ヒートマップ |
-| 7 | 内訳ドーナツ | 種別・カテゴリ比率 | ドーナツチャート |
+| #   | カード名         | 指標                      | グラフ種別                 |
+| --- | ---------------- | ------------------------- | -------------------------- |
+| 1   | 集中時間         | 当期間合計（分/時間）     | KPI + 前期比スパークライン |
+| 2   | 完了セッション数 | 完了数 / 開始数           | KPI + 前期比スパークライン |
+| 3   | ポモドーロ達成率 | 作業フェーズ完了 / 開始 % | KPI + 目標進捗バー         |
+| 4   | 会議超過率       | 超過議題数 / 全議題数 %   | KPI + 前期比スパークライン |
+| 5   | トレンドチャート | 集中時間の時系列推移      | 折れ線 / 棒グラフ切替      |
+| 6   | ヒートマップ     | 曜日 × 時間帯の集中分数   | ヒートマップ               |
+| 7   | 内訳ドーナツ     | 種別・カテゴリ比率        | ドーナツチャート           |
 
 ### チャートライブラリ
 
@@ -199,20 +212,20 @@ src/
 - 会議レポート確認ダイアログで提案を表示し、ユーザー明示操作で下書きへ反映する（既存入力がある項目は上書きしない）。
 - AIアシストは参加者の意思決定を補助する位置づけであり、自動確定や自動投稿は行わない。
 
-## 会議 AI API 連携仕様（設計フェーズ）
+## 会議 AI API 連携仕様（実装済み）
 
-- 方針: 実装は段階導入とし、初期段階では UI 変更を伴わないスケルトンを先行配置する。
-- 依存方針: LangChain を採用予定とし、プロバイダ固有差分を adapter 層で吸収する。
-- 初期スケルトン:
-  - 型定義: `src/types/aiAssist.ts`
-  - 設定検証: `src/features/timer/utils/ai-provider-config.ts`
-- 設定項目:
+- 依存: LangChain（`@langchain/core` / `@langchain/openai` / `@langchain/anthropic`）を採用し、プロバイダ固有差分を service 層で吸収する。
+- 実装: `src/features/timer/services/meeting-ai-assist-service.ts`
+  - `generateMeetingAiAssist()`: 会議レポート草稿から議事録要約/合意形成/進行/アジェンダ/事前準備の支援文を生成
+  - `summarizeVoiceTranscript()`: 音声文字起こしエントリから議事録サマリーを生成
+- ユーティリティ: `src/features/timer/utils/meeting-ai-assist.ts`（ルールベースフォールバック）
+- 設定項目（`integration-link-store.aiProviderConfig`、メモリ保持・非永続）:
   - `provider`: `openai | anthropic`
   - `model`: モデル識別子
   - `apiKey`: メモリ保持（永続化しない）
   - `temperature`: 0〜2
 - 失敗時挙動:
-  - API未設定・接続失敗時は既存 `meeting-ai-assist.ts` のルールベース生成へフォールバックする。
+  - API未設定・接続失敗時は `meeting-ai-assist.ts` のルールベース生成へフォールバックする。
 
 ## パフォーマンス仕様
 

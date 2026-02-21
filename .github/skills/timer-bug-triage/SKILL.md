@@ -16,14 +16,18 @@ license: MIT
 - Store 更新時の不整合
 - タイマー tick 系処理の不具合
 - 通知/ログ周辺の副作用エラー
+- AI API 連携・音声認識サービスのエラー（`services/`）
+- `useVoiceRecognition` などフックの不具合（`hooks/`）
 
 ## Required project context
 
 1. `src/features/timer/components`
 2. `src/features/timer/containers`
 3. `src/features/timer/stores`
-4. `src/utils/logger.ts`
-5. `src/utils/notification-manager.ts`
+4. `src/features/timer/services` （`meeting-ai-assist-service.ts`, `voice-recognition-service.ts`, `analytics.ts`）
+5. `src/features/timer/hooks` （`useVoiceRecognition.ts`）
+6. `src/utils/logger.ts`
+7. `src/utils/notification-manager.ts`
 
 ## Procedure
 

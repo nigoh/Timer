@@ -10,6 +10,8 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 - 配線層: `src/features/timer/containers`
 - 状態層: `src/features/timer/stores`
 - ドメイン型: `src/types`
+- サービス層: `src/features/timer/services`（AI API / 音声認識 / 分析集計）
+- フック層: `src/features/timer/hooks`（`useVoiceRecognition` など）
 - 副作用層: `src/utils/logger.ts`, `src/utils/notification-manager.ts`
 
 ## 変更ルール
@@ -23,14 +25,14 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 
 ## AI 向け実装手順（推奨）
 
-1. 影響範囲を特定（コンテナ・View・ストア・型）。
+1. 影響範囲を特定（コンテナ・View・ストア・型・サービス・フック）。
 2. ストア API を設計（State/Actions interface）。
 3. UI は既存 `ui/*` コンポーネントを優先利用。
 4. 追加した副作用ポイントにログを埋める。
 5. `type-check` と必要最小限のテストで検証。
 6. 外部入力（GitHub Issue など）で初期値を生成する場合は、下書きレビュー後の明示確定でのみ store へ保存する。
-7. AI API 連携を導入する場合は、最初に provider 非依存 interface を定義し、その後に LangChain adapter を追加する。
-8. APIキーはメモリ保持を既定とし、永続化の必要性はセキュリティレビュー後に判断する。
+7. AI API 連携を追加・変更する場合は、`src/features/timer/services/meeting-ai-assist-service.ts` の既存インターフェースを再利用し、API 未設定時は `meeting-ai-assist.ts` のルールベース処理へフォールバックさせる。
+8. API キーはメモリ保持を既定とし、`integration-link-store.aiProviderConfig` 経由で管理する（永続化禁止）。
 
 ## 禁止事項
 
@@ -46,6 +48,40 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 - 影響範囲
 - 検証手順
 - 未解決事項
+
+## Copilot カスタマイズ設定
+
+### カスタム指示ファイル (`.github/instructions/`)
+
+パス指定でコンテキストが自動付与される。ファイル編集中に Copilot チャットへ自動挿入される。
+
+| ファイル                         | 適用パス                          | 内容                                                 |
+| -------------------------------- | --------------------------------- | ---------------------------------------------------- |
+| `code-review.instructions.md`    | `**`                              | 型安全性・ストア責務分離のレビュー観点               |
+| `commit-message.instructions.md` | `**`                              | プレフィックス・文字数のコミットメッセージ規則       |
+| `stores.instructions.md`         | `src/**/stores/**`                | State/Actions interface 必須・set 最小差分・any 禁止 |
+| `testing.instructions.md`        | `src/**/__tests__/**`, `*.test.*` | Vitest/happy-dom・vi.fn・AAA パターン                |
+| `components.instructions.md`     | `src/**/components/**`            | Container/View 分離・Tailwind・performance hooks     |
+
+### プロンプトファイル (`.github/prompts/`)
+
+Copilot Chat の「📎 → Prompt...」から呼び出せる再利用プロンプト。
+
+| ファイル                | 用途                                                             |
+| ----------------------- | ---------------------------------------------------------------- |
+| `add-feature.prompt.md` | 新機能追加の型→Store→View→Container→テスト順の実装チェックリスト |
+| `fix-bug.prompt.md`     | バグ調査・修正・検証の定型フロー                                 |
+
+### MCP サーバー (`.vscode/mcp.json`)
+
+| サーバー              | 役割                                               |
+| --------------------- | -------------------------------------------------- |
+| `playwright`          | ブラウザ操作・UI動作目視確認                       |
+| `context7`            | Zustand/Radix UI等ライブラリの最新ドキュメント取得 |
+| `github`              | Issue/PR操作（`GITHUB_TOKEN` 環境変数必要）        |
+| `sequential-thinking` | 複雑な設計・リファクタ時の思考分解                 |
+| `filesystem`          | `D:\Timer` 配下のファイル直接操作                  |
+| `memory`              | セッションをまたいだメモリ保持                     |
 
 ## Agent Skills 運用
 
@@ -107,6 +143,7 @@ GitHub Copilot / AI エージェントが、Timer App で一貫した安全な�
 - [ ] ドメイン状態を store に集約した（UIローカル状態の過剰保持なし）
 - [ ] 通知/ログを既存 utility 経由で実装した
 - [ ] 変更に対応する Skill を選定した
+- [ ] `.github/prompts/` の該当プロンプトファイルを参照した（`add-feature` / `fix-bug`）
 - [ ] npm run type-check を実行して成功した
 - [ ] 必要に応じて npm run test / npm run build を実行した
 - [ ] 仕様変更がある場合 docs を同一変更で更新した

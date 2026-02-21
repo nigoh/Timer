@@ -37,6 +37,8 @@ license: MIT
 - pause/resume/reset の状態遷移
 - persist 対象の保存/復元整合
 - ErrorBoundary とログ記録の最低動作
+- 音声認識: `useVoiceRecognition` の開始/停止/エラー状態遮移（Web Speech API は `vi.mock` でスタブ化）
+- AI サービス: `meeting-ai-assist-service` のフォールバックパス（API 未設定時にルールベース出力を返すか）
 
 ## Output format
 
