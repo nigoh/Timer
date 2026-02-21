@@ -7,5 +7,13 @@
   },
   "[markdown]": {
     "editor.defaultFormatter": "yzhang.markdown-all-in-one"
-  }
+  },
+
+  // GitHub Copilot: カスタム指示ファイルを有効化
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+
+  // GitHub Copilot: プロンプトファイル機能を有効化 (.github/prompts/)
+  "chat.promptFiles": true,
+
+  // GitHub Copilot: 命令ファイルを使用してください。詳細については、https://aka.ms/vscode-ghcp-custom-instructions を参照してください。
 }
