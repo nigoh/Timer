@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent } from "./components/ui/tabs";
 import { Button } from "./components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./components/ui/dialog";
 import { Theme, Tooltip } from "@radix-ui/themes";
 import {
   Timer,
@@ -12,6 +19,7 @@ import {
   PanelLeftOpen,
   Settings,
   BarChart2,
+  Menu,
 } from "lucide-react";
 import { UnifiedTimer } from "./features/timer/containers/UnifiedTimer";
 import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
@@ -30,6 +38,7 @@ import {
   persistColorMode,
 } from "./utils/color-mode";
 import { useUIPreferencesStore } from "./features/timer/stores/ui-preferences-store";
+import { useIsMobile } from "./hooks/useIsMobile";
 import "./globals.css";
 
 const NAV_ITEMS = [
@@ -42,6 +51,8 @@ const NAV_ITEMS = [
 function App() {
   const [activeTab, setActiveTab] = useState("timer");
   const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
   const sidebarOpen = useUIPreferencesStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIPreferencesStore((s) => s.toggleSidebar);
   const handleSidebarToggle = toggleSidebar;
@@ -63,9 +74,19 @@ function App() {
     persistColorMode(colorMode);
   }, [colorMode]);
 
+  React.useEffect(() => {
+    if (!isMobile) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [isMobile]);
+
   const handleTabChange = (value: string) => {
     logger.userAction("Tab switched", { from: activeTab, to: value });
     setActiveTab(value);
+  };
+  const handleTabSelectFromMenu = (value: string) => {
+    handleTabChange(value);
+    setIsMobileMenuOpen(false);
   };
 
   const handleColorModeToggle = () => {
@@ -76,8 +97,14 @@ function App() {
         to: nextMode,
       });
       return nextMode;
-    });
+      });
   };
+  const currentTabLabel = React.useMemo(() => {
+    if (activeTab === "settings") {
+      return "設定・ログ";
+    }
+    return NAV_ITEMS.find((item) => item.value === activeTab)?.label ?? "タイマー";
+  }, [activeTab]);
 
   return (
     <Theme appearance={colorMode}>
@@ -85,8 +112,8 @@ function App() {
         {/* ── 左サイドバー ── */}
         <aside
           className={cn(
-            "flex shrink-0 flex-col border-r border-border bg-card transition-all duration-200",
-            sidebarOpen ? "w-48" : "w-14",
+            "hidden shrink-0 flex-col border-r border-border bg-card transition-all duration-200 md:flex",
+            sidebarOpen ? "md:w-48" : "md:w-14",
           )}
         >
           {/* ロゴ + 開閉ボタン */}
@@ -262,6 +289,36 @@ function App() {
 
         {/* ── メインコンテンツ ── */}
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {isMobile && (
+            <div className="flex items-center gap-2 border-b border-border p-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="メニューを開く"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+              <p className="text-sm font-semibold">{currentTabLabel}</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto"
+                onClick={handleColorModeToggle}
+                aria-label={
+                  colorMode === "dark"
+                    ? "ライトモードに切り替え"
+                    : "ダークモードに切り替え"
+                }
+              >
+                {colorMode === "dark" ? (
+                  <Sun className="h-4 w-4 shrink-0" />
+                ) : (
+                  <Moon className="h-4 w-4 shrink-0" />
+                )}
+              </Button>
+            </div>
+          )}
           <Tabs
             value={activeTab}
             onValueChange={handleTabChange}
@@ -296,6 +353,37 @@ function App() {
           <Footer />
         </div>
       </div>
+      <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <DialogContent className="max-w-sm p-4">
+          <DialogHeader>
+            <DialogTitle>メニュー</DialogTitle>
+            <DialogDescription>
+              開きたい機能を選択してください。
+            </DialogDescription>
+          </DialogHeader>
+          <nav className="flex flex-col gap-2" aria-label="モバイルメニュー">
+            {NAV_ITEMS.map(({ value, Icon, label }) => (
+              <Button
+                key={value}
+                variant={activeTab === value ? "default" : "outline"}
+                className="justify-start gap-2"
+                onClick={() => handleTabSelectFromMenu(value)}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="text-sm">{label}</span>
+              </Button>
+            ))}
+            <Button
+              variant={activeTab === "settings" ? "default" : "outline"}
+              className="justify-start gap-2"
+              onClick={() => handleTabSelectFromMenu("settings")}
+            >
+              <Settings className="h-4 w-4" />
+              <span className="text-sm">設定・ログ</span>
+            </Button>
+          </nav>
+        </DialogContent>
+      </Dialog>
       <MeetingReportDialog />
     </Theme>
   );

@@ -53,6 +53,7 @@ import { GridWidget } from "./GridWidget";
 import { VoiceTranscriptPanel } from "@/features/timer/components/voice/VoiceTranscriptPanel";
 import { VoiceTranscriptSummaryDialog } from "@/features/timer/components/voice/VoiceTranscriptSummaryDialog";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 export const AgendaTimerView: React.FC = () => {
   const {
@@ -77,6 +78,7 @@ export const AgendaTimerView: React.FC = () => {
   const [isDeleteMeetingDialogOpen, setIsDeleteMeetingDialogOpen] =
     useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
   const quillRef = useRef<QuillEditorHandle>(null);
   const {
     isEditMode,
@@ -398,7 +400,7 @@ export const AgendaTimerView: React.FC = () => {
           width={gridWidth ?? 1200}
           layout={rglLayout}
           gridConfig={{
-            cols: 12,
+            cols: isMobile ? 1 : 12,
             rowHeight: 40,
             margin: [8, 8] as [number, number],
             containerPadding: [0, 0] as [number, number],
