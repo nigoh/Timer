@@ -77,6 +77,11 @@ export const AgendaTimerView: React.FC = () => {
   const [isDeleteMeetingDialogOpen, setIsDeleteMeetingDialogOpen] =
     useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 767px)").matches
+      : false,
+  );
   const quillRef = useRef<QuillEditorHandle>(null);
   const {
     isEditMode,
@@ -107,6 +112,16 @@ export const AgendaTimerView: React.FC = () => {
       createMeeting("新しい会議");
     }
   }, [meetings.length, createMeeting]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   const currentAgenda = getCurrentAgenda();
 
@@ -398,7 +413,7 @@ export const AgendaTimerView: React.FC = () => {
           width={gridWidth ?? 1200}
           layout={rglLayout}
           gridConfig={{
-            cols: 12,
+            cols: isMobile ? 1 : 12,
             rowHeight: 40,
             margin: [8, 8] as [number, number],
             containerPadding: [0, 0] as [number, number],
