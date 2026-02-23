@@ -38,6 +38,7 @@ import {
   persistColorMode,
 } from "./utils/color-mode";
 import { useUIPreferencesStore } from "./features/timer/stores/ui-preferences-store";
+import { useIsMobile } from "./hooks/useIsMobile";
 import "./globals.css";
 
 const NAV_ITEMS = [
@@ -51,11 +52,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("timer");
   const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(max-width: 767px)").matches
-      : false,
-  );
+  const isMobile = useIsMobile();
   const sidebarOpen = useUIPreferencesStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIPreferencesStore((s) => s.toggleSidebar);
   const handleSidebarToggle = toggleSidebar;
@@ -76,16 +73,6 @@ function App() {
     applyColorMode(colorMode);
     persistColorMode(colorMode);
   }, [colorMode]);
-
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsMobile(event.matches);
-    };
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
   React.useEffect(() => {
     if (!isMobile) {
