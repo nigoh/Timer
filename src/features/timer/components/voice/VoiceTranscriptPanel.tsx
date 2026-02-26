@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VoiceRecognitionButton } from "@/features/timer/components/voice/VoiceRecognitionButton";
 import { useVoiceRecognition } from "@/features/timer/hooks/useVoiceRecognition";
-import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
+import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { cn, formatUnixTimestamp } from "@/lib/utils";
 
 interface VoiceTranscriptPanelProps {
@@ -25,7 +26,9 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
 
   const { isListening, confirmedEntries, interimTranscript, clearTranscript } =
     useVoiceRecognition();
-  const { updateAgendaMinutes, currentMeeting } = useAgendaTimerStore();
+  const taskId = useTaskId();
+  const { updateAgendaMinutes, currentMeeting } =
+    useAgendaTimerInstance(taskId);
 
   // 新しいエントリが追加されたら最下部にスクロール
   useEffect(() => {

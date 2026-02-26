@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +14,8 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
+import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { cn, formatDuration } from "@/lib/utils";
 import { getProgressDisplay } from "./agenda-timer-utils";
 
@@ -28,6 +24,7 @@ export const TimerDisplay: React.FC = () => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [isHelpTooltipOpen, setIsHelpTooltipOpen] = useState(false);
 
+  const taskId = useTaskId();
   const {
     currentMeeting,
     isRunning,
@@ -37,7 +34,7 @@ export const TimerDisplay: React.FC = () => {
     pauseTimer,
     stopTimer,
     syncTime,
-  } = useAgendaTimerStore();
+  } = useAgendaTimerInstance(taskId);
 
   const currentAgenda = getCurrentAgenda();
   const progress = getProgressPercentage();
@@ -109,7 +106,10 @@ export const TimerDisplay: React.FC = () => {
             <span className="truncate">{currentAgenda.title}</span>
           </CardTitle>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Badge variant="outline" className={cn("text-xs", progressDisplay.color)}>
+            <Badge
+              variant="outline"
+              className={cn("text-xs", progressDisplay.color)}
+            >
               {progressDisplay.label}
             </Badge>
             {currentMeeting.settings.silentMode ? (

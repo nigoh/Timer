@@ -2,6 +2,7 @@ import { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRoot } from "react-dom/client";
 import { useMultiTimerStore } from "@/features/timer/stores/multi-timer-store";
+import { TaskIdProvider } from "@/features/timer/contexts/TaskIdContext";
 
 // ─── モック ──────────────────────────────────────────────────────────────
 vi.mock("@/utils/notification-manager", () => ({
@@ -189,18 +190,24 @@ vi.mock("lucide-react", () => ({
 
 import { MultiTimerView } from "../MultiTimerView";
 
+// ─── 定数 ──────────────────────────────────────────────────────────────
+const TASK_ID = "test-task-1";
+
+const inst = () => useMultiTimerStore.getState().instances[TASK_ID];
+
 // ─── ストアリセット ────────────────────────────────────────────────────
 const resetStore = () => {
-  useMultiTimerStore.setState({
-    timers: [],
-    categories: ["仕事", "勉強", "運動", "休憩", "その他"],
-    isAnyRunning: false,
-    globalSettings: {
-      autoStartNext: false,
-      showNotifications: true,
-      soundEnabled: true,
-    },
-    sessions: [],
+  useMultiTimerStore.setState({ instances: {} });
+  useMultiTimerStore.getState().getOrCreateInstance(TASK_ID);
+};
+
+const renderView = async (container: HTMLDivElement) => {
+  await act(async () => {
+    createRoot(container).render(
+      <TaskIdProvider value={TASK_ID}>
+        <MultiTimerView />
+      </TaskIdProvider>,
+    );
   });
 };
 
@@ -223,9 +230,7 @@ describe("MultiTimerView", () => {
 
   // TC-MV-01
   it("timers が空のとき「タイマーがありません」が表示される", async () => {
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+    await renderView(container);
     expect(container.textContent).toContain("タイマーがありません");
   });
 
@@ -233,13 +238,19 @@ describe("MultiTimerView", () => {
   it("timers が 2 件のときカード名が 2 つ表示される", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "タイマーA", duration: 60, color: "bg-blue-500" });
+      .addTimer(TASK_ID, {
+        name: "タイマーA",
+        duration: 60,
+        color: "bg-blue-500",
+      });
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "タイマーB", duration: 120, color: "bg-red-500" });
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+      .addTimer(TASK_ID, {
+        name: "タイマーB",
+        duration: 120,
+        color: "bg-red-500",
+      });
+    await renderView(container);
     expect(container.textContent).toContain("タイマーA");
     expect(container.textContent).toContain("タイマーB");
   });
@@ -248,17 +259,15 @@ describe("MultiTimerView", () => {
   it("「開始」クリックでタイマーが実行状態になる", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "作業", duration: 60, color: "bg-blue-500" });
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+      .addTimer(TASK_ID, { name: "作業", duration: 60, color: "bg-blue-500" });
+    await renderView(container);
     const startBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("開始") && !b.disabled,
     )!;
     await act(async () => {
       startBtn.click();
     });
-    const timer = useMultiTimerStore.getState().timers[0];
+    const timer = inst().timers[0];
     expect(timer.isRunning).toBe(true);
   });
 
@@ -266,58 +275,54 @@ describe("MultiTimerView", () => {
   it("「一時停止」クリックでタイマーが一時停止状態になる", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "作業", duration: 60, color: "bg-blue-500" });
-    const timerId = useMultiTimerStore.getState().timers[0].id;
-    useMultiTimerStore.getState().startTimer(timerId);
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+      .addTimer(TASK_ID, { name: "作業", duration: 60, color: "bg-blue-500" });
+    const timerId = inst().timers[0].id;
+    useMultiTimerStore.getState().startTimer(TASK_ID, timerId);
+    await renderView(container);
     const pauseBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("一時停止"),
     )!;
     await act(async () => {
       pauseBtn.click();
     });
-    expect(useMultiTimerStore.getState().timers[0].isPaused).toBe(true);
+    expect(inst().timers[0].isPaused).toBe(true);
   });
 
   // TC-MV-07
   it("「削除」クリックでタイマーが削除される", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "消えるタイマー", duration: 60, color: "bg-blue-500" });
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+      .addTimer(TASK_ID, {
+        name: "消えるタイマー",
+        duration: 60,
+        color: "bg-blue-500",
+      });
+    await renderView(container);
     const deleteBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("削除"),
     )!;
     await act(async () => {
       deleteBtn.click();
     });
-    expect(useMultiTimerStore.getState().timers).toHaveLength(0);
+    expect(inst().timers).toHaveLength(0);
   });
 
   // TC-MV-08
   it("「すべて開始」クリックでタイマーが全て実行状態になる", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "A", duration: 60, color: "bg-blue-500" });
+      .addTimer(TASK_ID, { name: "A", duration: 60, color: "bg-blue-500" });
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "B", duration: 60, color: "bg-red-500" });
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+      .addTimer(TASK_ID, { name: "B", duration: 60, color: "bg-red-500" });
+    await renderView(container);
     const startAllBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("すべて開始"),
     )!;
     await act(async () => {
       startAllBtn.click();
     });
-    const allRunning = useMultiTimerStore
-      .getState()
-      .timers.every((t) => t.isRunning);
+    const allRunning = inst().timers.every((t) => t.isRunning);
     expect(allRunning).toBe(true);
   });
 
@@ -325,29 +330,23 @@ describe("MultiTimerView", () => {
   it("「すべて停止」クリックでタイマーが全て停止する", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "A", duration: 60, color: "bg-blue-500" });
-    const timerId = useMultiTimerStore.getState().timers[0].id;
-    useMultiTimerStore.getState().startTimer(timerId);
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+      .addTimer(TASK_ID, { name: "A", duration: 60, color: "bg-blue-500" });
+    const timerId = inst().timers[0].id;
+    useMultiTimerStore.getState().startTimer(TASK_ID, timerId);
+    await renderView(container);
     const stopAllBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("すべて停止"),
     )!;
     await act(async () => {
       stopAllBtn.click();
     });
-    const noneRunning = useMultiTimerStore
-      .getState()
-      .timers.every((t) => !t.isRunning);
+    const noneRunning = inst().timers.every((t) => !t.isRunning);
     expect(noneRunning).toBe(true);
   });
 
   // TC-MV-10: タイマー追加フォーム
   it("名前・時間入力→作成クリックで addTimer が呼ばれる", async () => {
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+    await renderView(container);
     const nameInput = container.querySelector(
       "#timer-name",
     ) as HTMLInputElement;
@@ -370,25 +369,33 @@ describe("MultiTimerView", () => {
     await act(async () => {
       createBtn.click();
     });
-    expect(useMultiTimerStore.getState().timers).toHaveLength(1);
-    expect(useMultiTimerStore.getState().timers[0].name).toBe("新タイマー");
+    expect(inst().timers).toHaveLength(1);
+    expect(inst().timers[0].name).toBe("新タイマー");
   });
 
   // TC-MV-12
   it("isCompleted=true のタイマーに「完了」バッジが表示される", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer({ name: "完了済み", duration: 60, color: "bg-blue-500" });
-    const timerId = useMultiTimerStore.getState().timers[0].id;
+      .addTimer(TASK_ID, {
+        name: "完了済み",
+        duration: 60,
+        color: "bg-blue-500",
+      });
+    const timerId = inst().timers[0].id;
     // 直接 completed に更新
     useMultiTimerStore.setState((state) => ({
-      timers: state.timers.map((t) =>
-        t.id === timerId ? { ...t, isCompleted: true } : t,
-      ),
+      instances: {
+        ...state.instances,
+        [TASK_ID]: {
+          ...state.instances[TASK_ID],
+          timers: state.instances[TASK_ID].timers.map((t) =>
+            t.id === timerId ? { ...t, isCompleted: true } : t,
+          ),
+        },
+      },
     }));
-    await act(async () => {
-      createRoot(container).render(<MultiTimerView />);
-    });
+    await renderView(container);
     // 完了タイマーカードは TIMER_STATUS_CONFIG.completed.surfaceClass='bg-green-50' クラスを持つ
     expect(container.querySelector(".bg-green-50")).not.toBeNull();
   });

@@ -5,7 +5,18 @@ export type WidgetType =
   | "minutes"
   | "transcript"
   | "time-allocation"
-  | "report-history";
+  | "report-history"
+  // タイマー画面
+  | "timer-unified"
+  // ダッシュボード画面
+  | "analytics-filter"
+  | "kpi-focus-time"
+  | "kpi-sessions"
+  | "kpi-pomodoro"
+  | "kpi-meeting-overtime"
+  | "trend-chart"
+  | "heatmap-chart"
+  | "donut-chart";
 
 /** react-grid-layout ベースの自由配置レイアウトアイテム */
 export interface WidgetLayoutItem {

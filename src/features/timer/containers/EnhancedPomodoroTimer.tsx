@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
-import { EnhancedPomodoroTimerView } from '../components/pomodoro/EnhancedPomodoroTimerView';
-import { usePomodoroStore } from '../stores/pomodoro-store';
-import { PomodoroSettings } from '@/types/pomodoro';
+import { useCallback, useEffect, useState } from "react";
+import { EnhancedPomodoroTimerView } from "../components/pomodoro/EnhancedPomodoroTimerView";
+import { usePomodoroInstance } from "../hooks/useTimerInstances";
+import { useTaskId } from "../contexts/TaskIdContext";
+import { PomodoroSettings } from "@/types/pomodoro";
 
 export const EnhancedPomodoroTimer = () => {
+  const taskId = useTaskId();
   const {
     currentPhase,
     timeRemaining,
@@ -20,8 +22,7 @@ export const EnhancedPomodoroTimer = () => {
     reset,
     setTaskName,
     updateSettings,
-    tick,
-  } = usePomodoroStore();
+  } = usePomodoroInstance(taskId);
 
   const [localTaskName, setLocalTaskName] = useState(taskName);
 
@@ -29,12 +30,7 @@ export const EnhancedPomodoroTimer = () => {
     setLocalTaskName(taskName);
   }, [taskName]);
 
-  useEffect(() => {
-    if (!isRunning) return;
-
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [isRunning, tick]);
+  // tick is handled by tick-manager-store
 
   useEffect(() => {
     setTaskName(localTaskName);

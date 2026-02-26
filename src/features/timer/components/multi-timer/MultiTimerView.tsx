@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatDuration } from "@/lib/utils";
 import {
   Card,
@@ -42,7 +42,8 @@ import {
   PlayCircle,
   PauseCircle,
 } from "lucide-react";
-import { useMultiTimerStore } from "@/features/timer/stores/multi-timer-store";
+import { useMultiTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { TIMER_STATUS_CONFIG, getTimerStatus } from "@/constants/timer-theme";
 import { notificationManager } from "@/utils/notification-manager";
 
@@ -75,7 +76,8 @@ const TIMER_COLORS = [
 ];
 
 const AddTimerDialog: React.FC = () => {
-  const { addTimer, categories, addCategory } = useMultiTimerStore();
+  const taskId = useTaskId();
+  const { addTimer, categories, addCategory } = useMultiTimerInstance(taskId);
   const [isOpen, setIsOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [formData, setFormData] = useState<TimerFormData>({
@@ -263,6 +265,7 @@ const AddTimerDialog: React.FC = () => {
 const TimerCard: React.FC<{
   timer: import("@/types/multi-timer").MultiTimer;
 }> = ({ timer }) => {
+  const taskId = useTaskId();
   const {
     startTimer,
     pauseTimer,
@@ -270,7 +273,7 @@ const TimerCard: React.FC<{
     resetTimer,
     deleteTimer,
     duplicateTimer,
-  } = useMultiTimerStore();
+  } = useMultiTimerInstance(taskId);
 
   const progress =
     timer.duration > 0
@@ -363,7 +366,7 @@ const TimerCard: React.FC<{
           >
             <Square className="w-4 h-4 mr-1.5" />
             停止
-            </Button>
+          </Button>
 
           <Button
             size="sm"
@@ -407,6 +410,7 @@ const TimerCard: React.FC<{
 };
 
 const GlobalControls: React.FC = () => {
+  const taskId = useTaskId();
   const {
     timers,
     isAnyRunning,
@@ -416,7 +420,7 @@ const GlobalControls: React.FC = () => {
     resetAllTimers,
     globalSettings,
     updateGlobalSettings,
-  } = useMultiTimerStore();
+  } = useMultiTimerInstance(taskId);
 
   const hasTimers = timers.length > 0;
   const hasIncompleteTimers = timers.some((t) => !t.isCompleted);
@@ -506,16 +510,11 @@ const GlobalControls: React.FC = () => {
 };
 
 export const MultiTimerView: React.FC = () => {
-  const { timers, isAnyRunning, tick, getRunningTimers, getCompletedTimers } =
-    useMultiTimerStore();
+  const taskId = useTaskId();
+  const { timers, getRunningTimers, getCompletedTimers } =
+    useMultiTimerInstance(taskId);
 
-  // タイマーのtick処理
-  useEffect(() => {
-    if (isAnyRunning) {
-      const interval = setInterval(tick, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isAnyRunning, tick]);
+  // tick is handled by tick-manager-store
 
   const runningTimers = getRunningTimers();
   const completedTimers = getCompletedTimers();

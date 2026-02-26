@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +13,8 @@ import {
   Circle,
   ChevronRight,
 } from "lucide-react";
-import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
+import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { cn, formatMinutes } from "@/lib/utils";
 import { TIMER_STATUS_CONFIG } from "@/constants/timer-theme";
 import { getProgressDisplay } from "./agenda-timer-utils";
@@ -37,8 +33,9 @@ export const AgendaList: React.FC<AgendaListProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const taskId = useTaskId();
   const { currentMeeting, deleteAgenda, getCurrentAgenda, selectAgenda } =
-    useAgendaTimerStore();
+    useAgendaTimerInstance(taskId);
 
   const currentAgenda = getCurrentAgenda();
 

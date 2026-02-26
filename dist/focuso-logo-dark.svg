@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg_glow" cx="40%" cy="38%" r="65%" gradientUnits="objectBoundingBox">
+      <stop stop-color="#3A1478"/>
+      <stop offset="1" stop-color="#090716"/>
+    </radialGradient>
+    <linearGradient id="arrow_grad" x1="288" y1="248" x2="374" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00A896"/>
+      <stop offset="1" stop-color="#00EDD8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg_glow)"/>
+  <circle cx="256" cy="258" r="198" stroke="white" stroke-width="1" opacity="0.05"/>
+  <rect x="118" y="112" width="62" height="294" rx="14" fill="white"/>
+  <rect x="118" y="112" width="236" height="62" rx="14" fill="white"/>
+  <rect x="118" y="222" width="174" height="56" rx="12" fill="white"/>
+  <path d="M 288 222 L 374 250 L 288 278 Z" fill="url(#arrow_grad)"/>
+</svg>

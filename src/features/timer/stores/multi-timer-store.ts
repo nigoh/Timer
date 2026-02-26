@@ -1,50 +1,101 @@
 import { create } from 'zustand';
-import { MultiTimerState, MultiTimer } from '@/types/multi-timer';
+import { MultiTimer, MultiTimerSession } from '@/types/multi-timer';
 import { notificationManager } from '@/utils/notification-manager';
 import { generateId } from '@/utils/id';
 
-export interface MultiTimerStore extends MultiTimerState {
+/** 1 タスクあたりのマルチタイマーインスタンス状態 */
+export interface MultiTimerInstanceState {
+  timers: MultiTimer[];
+  sessions: MultiTimerSession[];
+  isAnyRunning: boolean;
+  categories: string[];
+  globalSettings: {
+    autoStartNext: boolean;
+    showNotifications: boolean;
+    soundEnabled: boolean;
+  };
+}
+
+interface MultiTimerStoreState {
+  instances: Record<string, MultiTimerInstanceState>;
+}
+
+interface MultiTimerStoreActions {
+  getOrCreateInstance: (taskId: string) => MultiTimerInstanceState;
   addTimer: (
+    taskId: string,
     timer: Omit<
       MultiTimer,
       'id' | 'remainingTime' | 'isRunning' | 'isPaused' | 'isCompleted' | 'createdAt'
     >,
   ) => void;
-  updateTimer: (id: string, updates: Partial<MultiTimer>) => void;
-  deleteTimer: (id: string) => void;
-  duplicateTimer: (id: string) => void;
-  startTimer: (id: string) => void;
-  pauseTimer: (id: string) => void;
-  stopTimer: (id: string) => void;
-  resetTimer: (id: string) => void;
-  startAllTimers: () => void;
-  pauseAllTimers: () => void;
-  stopAllTimers: () => void;
-  resetAllTimers: () => void;
-  tick: () => void;
-  addCategory: (category: string) => void;
-  removeCategory: (category: string) => void;
-  updateGlobalSettings: (settings: Partial<MultiTimerState['globalSettings']>) => void;
-  getTimerById: (id: string) => MultiTimer | undefined;
-  getRunningTimers: () => MultiTimer[];
-  getCompletedTimers: () => MultiTimer[];
+  updateTimer: (taskId: string, id: string, updates: Partial<MultiTimer>) => void;
+  deleteTimer: (taskId: string, id: string) => void;
+  duplicateTimer: (taskId: string, id: string) => void;
+  startTimer: (taskId: string, id: string) => void;
+  pauseTimer: (taskId: string, id: string) => void;
+  stopTimer: (taskId: string, id: string) => void;
+  resetTimer: (taskId: string, id: string) => void;
+  startAllTimers: (taskId: string) => void;
+  pauseAllTimers: (taskId: string) => void;
+  stopAllTimers: (taskId: string) => void;
+  resetAllTimers: (taskId: string) => void;
+  tick: (taskId: string) => void;
+  addCategory: (taskId: string, category: string) => void;
+  removeCategory: (taskId: string, category: string) => void;
+  updateGlobalSettings: (taskId: string, settings: Partial<MultiTimerInstanceState['globalSettings']>) => void;
+  getTimerById: (taskId: string, id: string) => MultiTimer | undefined;
+  getRunningTimers: (taskId: string) => MultiTimer[];
+  getCompletedTimers: (taskId: string) => MultiTimer[];
+  removeInstance: (taskId: string) => void;
 }
+
+export type MultiTimerStore = MultiTimerStoreState & MultiTimerStoreActions;
 
 const DEFAULT_CATEGORIES = ['仕事', '勉強', '運動', '休憩', 'その他'];
 
-export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
+const createDefaultInstance = (): MultiTimerInstanceState => ({
   timers: [],
-  categories: DEFAULT_CATEGORIES,
+  categories: [...DEFAULT_CATEGORIES],
   isAnyRunning: false,
   globalSettings: {
     autoStartNext: false,
     showNotifications: true,
     soundEnabled: true,
   },
-  currentView: 'all',
   sessions: [],
+});
 
-  addTimer: (timerData) => {
+const ensureInstance = (
+  instances: Record<string, MultiTimerInstanceState>,
+  taskId: string,
+): Record<string, MultiTimerInstanceState> => {
+  if (instances[taskId]) return instances;
+  return { ...instances, [taskId]: createDefaultInstance() };
+};
+
+const updateInstance = (
+  instances: Record<string, MultiTimerInstanceState>,
+  taskId: string,
+  updater: (inst: MultiTimerInstanceState) => Partial<MultiTimerInstanceState>,
+): Record<string, MultiTimerInstanceState> => {
+  const current = instances[taskId];
+  if (!current) return instances;
+  return { ...instances, [taskId]: { ...current, ...updater(current) } };
+};
+
+export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
+  instances: {},
+
+  getOrCreateInstance: (taskId) => {
+    const state = get();
+    if (!state.instances[taskId]) {
+      set({ instances: ensureInstance(state.instances, taskId) });
+    }
+    return get().instances[taskId] ?? createDefaultInstance();
+  },
+
+  addTimer: (taskId, timerData) => {
     const newTimer: MultiTimer = {
       ...timerData,
       id: generateId(),
@@ -56,25 +107,34 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
     };
 
     set((state) => ({
-      timers: [...state.timers, newTimer],
+      instances: updateInstance(
+        ensureInstance(state.instances, taskId),
+        taskId,
+        (inst) => ({ timers: [...inst.timers, newTimer] }),
+      ),
     }));
   },
 
-  updateTimer: (id, updates) => {
+  updateTimer: (taskId, id, updates) => {
     set((state) => ({
-      timers: state.timers.map((timer) => (timer.id === id ? { ...timer, ...updates } : timer)),
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+      })),
     }));
   },
 
-  deleteTimer: (id) => {
+  deleteTimer: (taskId, id) => {
     set((state) => ({
-      timers: state.timers.filter((timer) => timer.id !== id),
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.filter((t) => t.id !== id),
+      })),
     }));
   },
 
-  duplicateTimer: (id) => {
-    const state = get();
-    const timer = state.timers.find((item) => item.id === id);
+  duplicateTimer: (taskId, id) => {
+    const inst = get().instances[taskId];
+    if (!inst) return;
+    const timer = inst.timers.find((t) => t.id === id);
     if (!timer) return;
 
     const duplicate: MultiTimer = {
@@ -88,159 +148,185 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
       remainingTime: timer.duration,
     };
 
-    set({ timers: [...state.timers, duplicate] });
+    set((state) => ({
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: [...inst.timers, duplicate],
+      })),
+    }));
   },
 
-  startTimer: (id) => {
-    const state = get();
-    const timer = state.timers.find((item) => item.id === id);
+  startTimer: (taskId, id) => {
+    const inst = get().instances[taskId];
+    if (!inst) return;
+    const timer = inst.timers.find((t) => t.id === id);
     if (!timer || timer.isRunning || timer.isCompleted) return;
 
     notificationManager.ensureInitialized().catch(console.warn);
 
     const now = Date.now();
-    set({
-      timers: state.timers.map((item) =>
-        item.id === id
-          ? { ...item, isRunning: true, isPaused: false, startedAt: new Date(now) }
-          : item,
-      ),
-      isAnyRunning: true,
-    });
-  },
-
-  pauseTimer: (id) => {
     set((state) => ({
-      timers: state.timers.map((timer) =>
-        timer.id === id ? { ...timer, isRunning: false, isPaused: true, pausedAt: new Date() } : timer,
-      ),
-      isAnyRunning: state.timers.some((timer) => timer.id !== id && timer.isRunning),
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) =>
+          t.id === id
+            ? { ...t, isRunning: true, isPaused: false, startedAt: new Date(now) }
+            : t,
+        ),
+        isAnyRunning: true,
+      })),
     }));
   },
 
-  stopTimer: (id) => {
+  pauseTimer: (taskId, id) => {
     set((state) => ({
-      timers: state.timers.map((timer) =>
-        timer.id === id
-          ? {
-              ...timer,
-              isRunning: false,
-              isPaused: false,
-              isCompleted: false,
-              remainingTime: timer.duration,
-              startedAt: undefined,
-              pausedAt: undefined,
-              completedAt: undefined,
-            }
-          : timer,
-      ),
-      isAnyRunning: state.timers.some((timer) => timer.id !== id && timer.isRunning),
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) =>
+          t.id === id ? { ...t, isRunning: false, isPaused: true, pausedAt: new Date() } : t,
+        ),
+        isAnyRunning: inst.timers.some((t) => t.id !== id && t.isRunning),
+      })),
     }));
   },
 
-  resetTimer: (id) => {
+  stopTimer: (taskId, id) => {
     set((state) => ({
-      timers: state.timers.map((timer) =>
-        timer.id === id
-          ? {
-              ...timer,
-              remainingTime: timer.duration,
-              isRunning: false,
-              isPaused: false,
-              isCompleted: false,
-              startedAt: undefined,
-              pausedAt: undefined,
-              completedAt: undefined,
-            }
-          : timer,
-      ),
-      isAnyRunning: state.timers.some((timer) => timer.id !== id && timer.isRunning),
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                isRunning: false,
+                isPaused: false,
+                isCompleted: false,
+                remainingTime: t.duration,
+                startedAt: undefined,
+                pausedAt: undefined,
+                completedAt: undefined,
+              }
+            : t,
+        ),
+        isAnyRunning: inst.timers.some((t) => t.id !== id && t.isRunning),
+      })),
     }));
   },
 
-  startAllTimers: () => {
-    const state = get();
-    
+  resetTimer: (taskId, id) => {
+    set((state) => ({
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                remainingTime: t.duration,
+                isRunning: false,
+                isPaused: false,
+                isCompleted: false,
+                startedAt: undefined,
+                pausedAt: undefined,
+                completedAt: undefined,
+              }
+            : t,
+        ),
+        isAnyRunning: inst.timers.some((t) => t.id !== id && t.isRunning),
+      })),
+    }));
+  },
+
+  startAllTimers: (taskId) => {
     notificationManager.ensureInitialized().catch(console.warn);
-
     const now = new Date();
-    set({
-      timers: state.timers.map((timer) =>
-        timer.isCompleted
-          ? timer
-          : { ...timer, isRunning: true, isPaused: false, startedAt: now },
+    set((state) => ({
+      instances: updateInstance(
+        ensureInstance(state.instances, taskId),
+        taskId,
+        (inst) => ({
+          timers: inst.timers.map((t) =>
+            t.isCompleted
+              ? t
+              : { ...t, isRunning: true, isPaused: false, startedAt: now },
+          ),
+          isAnyRunning: inst.timers.some((t) => !t.isCompleted),
+        }),
       ),
-      isAnyRunning: state.timers.some((timer) => !timer.isCompleted),
-    });
-  },
-
-  pauseAllTimers: () => {
-    set((state) => ({
-      timers: state.timers.map((timer) =>
-        timer.isRunning ? { ...timer, isRunning: false, isPaused: true, pausedAt: new Date() } : timer,
-      ),
-      isAnyRunning: false,
     }));
   },
 
-  stopAllTimers: () => {
+  pauseAllTimers: (taskId) => {
     set((state) => ({
-      timers: state.timers.map((timer) => ({
-        ...timer,
-        isRunning: false,
-        isPaused: false,
-        isCompleted: false,
-        remainingTime: timer.duration,
-        startedAt: undefined,
-        pausedAt: undefined,
-        completedAt: undefined,
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) =>
+          t.isRunning ? { ...t, isRunning: false, isPaused: true, pausedAt: new Date() } : t,
+        ),
+        isAnyRunning: false,
       })),
-      isAnyRunning: false,
     }));
   },
 
-  resetAllTimers: () => {
+  stopAllTimers: (taskId) => {
     set((state) => ({
-      timers: state.timers.map((timer) => ({
-        ...timer,
-        remainingTime: timer.duration,
-        isRunning: false,
-        isPaused: false,
-        isCompleted: false,
-        startedAt: undefined,
-        pausedAt: undefined,
-        completedAt: undefined,
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) => ({
+          ...t,
+          isRunning: false,
+          isPaused: false,
+          isCompleted: false,
+          remainingTime: t.duration,
+          startedAt: undefined,
+          pausedAt: undefined,
+          completedAt: undefined,
+        })),
+        isAnyRunning: false,
       })),
-      isAnyRunning: false,
     }));
   },
 
-  tick: () => {
-    const state = get();
-    if (!state.isAnyRunning) return;
+  resetAllTimers: (taskId) => {
+    set((state) => ({
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        timers: inst.timers.map((t) => ({
+          ...t,
+          remainingTime: t.duration,
+          isRunning: false,
+          isPaused: false,
+          isCompleted: false,
+          startedAt: undefined,
+          pausedAt: undefined,
+          completedAt: undefined,
+        })),
+        isAnyRunning: false,
+      })),
+    }));
+  },
 
-    const hasRunningTimers = state.timers.some((timer) => timer.isRunning);
+  tick: (taskId) => {
+    const inst = get().instances[taskId];
+    if (!inst?.isAnyRunning) return;
+
+    const hasRunningTimers = inst.timers.some((t) => t.isRunning);
     if (!hasRunningTimers) {
-      set({ isAnyRunning: false });
+      set((state) => ({
+        instances: updateInstance(state.instances, taskId, () => ({
+          isAnyRunning: false,
+        })),
+      }));
       return;
     }
-    
-    const updatedTimers = state.timers.map((timer) => {
+
+    const updatedTimers = inst.timers.map((timer) => {
       if (!timer.isRunning || timer.isCompleted) return timer;
 
       const newRemainingTime = Math.max(0, timer.remainingTime - 1);
 
       if (newRemainingTime === 0) {
-        if (state.globalSettings.soundEnabled) {
+        if (inst.globalSettings.soundEnabled) {
           notificationManager.notify('タイマー終了', {
             body: `「${timer.name}」が終了しました`,
-            sound: 'complete'
+            sound: 'complete',
           });
-        } else if (state.globalSettings.showNotifications) {
-            notificationManager.notify('タイマー終了', {
-                body: `「${timer.name}」が終了しました`,
-                silent: true
-            });
+        } else if (inst.globalSettings.showNotifications) {
+          notificationManager.notify('タイマー終了', {
+            body: `「${timer.name}」が終了しました`,
+            silent: true,
+          });
         }
 
         return {
@@ -258,37 +344,69 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
       };
     });
 
-    const nextIsAnyRunning = updatedTimers.some((timer) => timer.isRunning);
+    const nextIsAnyRunning = updatedTimers.some((t) => t.isRunning);
 
-    set({
-      timers: updatedTimers,
-      isAnyRunning: nextIsAnyRunning,
+    set((state) => ({
+      instances: updateInstance(state.instances, taskId, () => ({
+        timers: updatedTimers,
+        isAnyRunning: nextIsAnyRunning,
+      })),
+    }));
+  },
+
+  addCategory: (taskId, category) => {
+    set((state) => ({
+      instances: updateInstance(
+        ensureInstance(state.instances, taskId),
+        taskId,
+        (inst) => ({
+          categories: inst.categories.includes(category)
+            ? inst.categories
+            : [...inst.categories, category],
+        }),
+      ),
+    }));
+  },
+
+  removeCategory: (taskId, category) => {
+    set((state) => ({
+      instances: updateInstance(state.instances, taskId, (inst) => ({
+        categories: inst.categories.filter((c) => c !== category),
+      })),
+    }));
+  },
+
+  updateGlobalSettings: (taskId, settings) => {
+    set((state) => ({
+      instances: updateInstance(
+        ensureInstance(state.instances, taskId),
+        taskId,
+        (inst) => ({
+          globalSettings: { ...inst.globalSettings, ...settings },
+        }),
+      ),
+    }));
+  },
+
+  getTimerById: (taskId, id) => {
+    const inst = get().instances[taskId];
+    return inst?.timers.find((t) => t.id === id);
+  },
+
+  getRunningTimers: (taskId) => {
+    const inst = get().instances[taskId];
+    return inst?.timers.filter((t) => t.isRunning) ?? [];
+  },
+
+  getCompletedTimers: (taskId) => {
+    const inst = get().instances[taskId];
+    return inst?.timers.filter((t) => t.isCompleted) ?? [];
+  },
+
+  removeInstance: (taskId) => {
+    set((state) => {
+      const { [taskId]: _, ...rest } = state.instances;
+      return { instances: rest };
     });
   },
-
-  addCategory: (category: string) => {
-    set((state) => ({
-      categories: state.categories.includes(category)
-        ? state.categories
-        : [...state.categories, category],
-    }));
-  },
-
-  removeCategory: (category: string) => {
-    set((state) => ({
-      categories: state.categories.filter((item) => item !== category),
-    }));
-  },
-
-  updateGlobalSettings: (settings) => {
-    set((state) => ({
-      globalSettings: { ...state.globalSettings, ...settings },
-    }));
-  },
-
-  getTimerById: (id: string) => get().timers.find((timer) => timer.id === id),
-
-  getRunningTimers: () => get().timers.filter((timer) => timer.isRunning),
-
-  getCompletedTimers: () => get().timers.filter((timer) => timer.isCompleted),
 }));

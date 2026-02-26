@@ -227,13 +227,15 @@ describe('MultiTimerView', () => {
 
 ---
 
-### 2.7 `AgendaTimerView.tsx`
-**優先度**: Medium-High（アジェンダタイマーはコア機能）
+### 2.7 `TaskWidgetCanvas.tsx`
+**優先度**: Medium-High（タスクベースウィジェットキャンバスはコア機能）
+
+> **注**: 旧 `AgendaTimerView.tsx` は削除済み。アジェンダ機能は `TaskWidgetCanvas` 内のウィジェットとして統合。
 
 #### テストケース設計
 
 ```
-describe('AgendaTimerView', () => {
+describe('TaskWidgetCanvas', () => {
   describe('会議なし状態', () => {
     TC-AV-01: currentMeeting=null のとき「会議を作成」プロンプトが表示される
   })
@@ -480,7 +482,7 @@ it('アジェンダが時間超過でovertimeになる', () => { ... });
 | 🔴 High   | `basic-timer-store.ts` 拡充     | カバレッジ不足（setDuration/Label/toggle） |
 | 🔴 High   | `pomodoro-store.ts` 拡充        | long-break 遷移・統計・sessions 未テスト   |
 | 🟡 Medium | `notification-manager.ts`       | ストア全体が依存しているが実装未テスト     |
-| 🟡 Medium | `AgendaTimerView.tsx`           | コア機能のView                             |
+| 🟡 Medium | `TaskWidgetCanvas.tsx`          | タスクベースウィジェットキャンバス         |
 | 🟡 Medium | `BasicTimerView.tsx`            | 最もよく使われるView                       |
 | 🟡 Medium | `EnhancedPomodoroTimerView.tsx` | ポモドーロView                             |
 | 🟡 Medium | `MultiTimerView.tsx`            | マルチタイマーView                         |

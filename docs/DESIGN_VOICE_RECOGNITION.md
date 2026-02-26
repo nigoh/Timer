@@ -117,11 +117,11 @@ src/
 
 ### 変更対象ファイル
 
-| ファイル                                                   | 変更内容                                                                       |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `src/features/timer/components/agenda/AgendaTimerView.tsx` | `VoiceRecognitionButton` / `VoiceTranscriptPanel` を議事録エリア近傍に組み込む |
-| `docs/REQUIREMENTS.md`                                     | RQ-03 へ音声文字起こし要件を追記                                               |
-| `docs/FEATURES.md`                                         | アジェンダタイマー機能一覧に音声機能を追記                                     |
+| ファイル                                                       | 変更内容                                                                           |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `src/features/timer/components/task-list/TaskWidgetCanvas.tsx` | `VoiceRecognitionButton` / `VoiceTranscriptPanel` を議事録ウィジェット内に組み込む |
+| `docs/REQUIREMENTS.md`                                         | RQ-03 へ音声文字起こし要件を追記                                                   |
+| `docs/FEATURES.md`                                             | アジェンダタイマー機能一覧に音声機能を追記                                         |
 
 ---
 
@@ -326,7 +326,7 @@ export const useVoiceStore = create<VoiceState & VoiceActions>()((set) => ({
 - 既存の `AiProviderConfig`（AI 設定画面で設定済みの provider / model / api key）を参照する。
 - `meeting-ai-assist-service.ts` に追加する `summarizeVoiceTranscript(entries, config)` を呼び出す。
 - AI 設定が未構成（`config === null` または validation 失敗）の場合: 要約エリアに「AI 設定が未構成のため要約できません。原文をそのまま挿入するか、手動で編集してください。」と表示し、テキストエリアには原文を初期値として入れる。
-- **Quill への挿入**: `getEditor()` で Quill インスタンスを取得し、`insertText` / `insertEmbed` の Delta API で末尾に追記する。`AgendaTimerView` から ref 経由でインスタンスを受け取る。
+- **Quill への挿入**: `getEditor()` で Quill インスタンスを取得し、`insertText` / `insertEmbed` の Delta API で末尾に追記する。`TaskWidgetCanvas` の議事録ウィジェットから ref 経由でインスタンスを受け取る。
 
 ---
 
@@ -393,7 +393,7 @@ export const useVoiceStore = create<VoiceState & VoiceActions>()((set) => ({
 - [ ] `useVoiceRecognition.ts` 作成
 - [ ] `VoiceRecognitionButton.tsx` 作成（非対応時グレーアウト対応）
 - [ ] `VoiceTranscriptPanel.tsx` 作成（折りたたみ・暫定/確定テキスト表示）
-- [ ] `AgendaTimerView.tsx` への組み込み（議事録エリアの上部）
+- [x] `TaskWidgetCanvas.tsx` への組み込み（議事録ウィジェットの上部）
 - [ ] `npm run type-check` 通過確認
 
 ### Phase 2 — 議事録挿入・言語切り替え
@@ -405,7 +405,7 @@ export const useVoiceStore = create<VoiceState & VoiceActions>()((set) => ({
   - [x] 原文表示エリア
   - [x] AI 要約生成（AiProviderConfig 参照・未構成フォールバック）
   - [x] 要約テキスト編集エリア・再生成ボタン
-  - [x] Quill Delta API を使った末尾挿入（`AgendaTimerView` 内 `MinutesEditor` から Quill ref を props 経由で渡す）
+  - [x] Quill Delta API を使った末尾挿入（`TaskWidgetCanvas` 内 `MinutesEditor` から Quill ref を props 経由で渡す）
 - [x] 言語切り替えセレクト実装（ja-JP / en-US）
 - [x] タイムスタンプ表示
 - [x] エラーハンドリング強化（自動再起動・上限管理）

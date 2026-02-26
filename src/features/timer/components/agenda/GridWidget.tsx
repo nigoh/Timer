@@ -1,7 +1,7 @@
 import React from "react";
 import { Tooltip } from "@radix-ui/themes";
 import { GripVertical, Trash2 } from "lucide-react";
-import { getWidgetLabel } from "@/features/timer/stores/meeting-layout-store";
+import { getWidgetLabel } from "@/features/timer/utils/widget-catalog";
 import type { WidgetLayoutItem } from "@/types/layout";
 import { cn } from "@/lib/utils";
 

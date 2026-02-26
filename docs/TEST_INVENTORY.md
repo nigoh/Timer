@@ -419,7 +419,7 @@
 
 ---
 
-### 8-6. `agenda/AgendaTimerView.tsx` ❌
+### 8-6. `task-list/TaskWidgetCanvas.tsx` ❌ （旧 `AgendaTimerView.tsx` を統合）
 ### 8-7. `agenda/MeetingReportDialog.tsx` ❌
 ### 8-8. `agenda/MeetingReportHistory.tsx` ❌
 ### 8-9. `basic-timer/BasicTimerView.tsx` ❌
@@ -431,12 +431,11 @@
 ## 9. コンテナ (`src/features/timer/containers/`)
 
 ### ❌ 全コンテナ未テスト
-- `AgendaTimer.tsx`
 - `BasicTimer.tsx`
-- `Dashboard.tsx`
 - `EnhancedPomodoroTimer.tsx`
 - `MultiTimer.tsx`
-- `UnifiedTimer.tsx`
+
+> **注**: `AgendaTimer.tsx`, `Dashboard.tsx`, `UnifiedTimer.tsx` は削除済み。タスクベース UI に統合。
 
 ---
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
-import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
+import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import QuillEditor, {
   type QuillEditorHandle,
 } from "@/components/ui/quill-editor";
@@ -23,7 +24,8 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
   agenda,
   quillRef,
 }) => {
-  const { updateAgendaMinutes } = useAgendaTimerStore();
+  const taskId = useTaskId();
+  const { updateAgendaMinutes } = useAgendaTimerInstance(taskId);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") {
       return false;

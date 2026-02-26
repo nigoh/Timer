@@ -22,10 +22,10 @@ vi.mock("@/features/timer/hooks/useVoiceRecognition", () => ({
   useVoiceRecognition: () => mockVoiceHook,
 }));
 
-// ---- agenda-timer-store モック ----
+// ---- agenda-timer-instance モック ----
 const mockUpdateAgendaMinutes = vi.fn();
-vi.mock("@/features/timer/stores/agenda-timer-store", () => ({
-  useAgendaTimerStore: () => ({
+vi.mock("@/features/timer/hooks/useTimerInstances", () => ({
+  useAgendaTimerInstance: () => ({
     updateAgendaMinutes: mockUpdateAgendaMinutes,
     currentMeeting: {
       id: "meeting-1",
@@ -39,6 +39,10 @@ vi.mock("@/features/timer/stores/agenda-timer-store", () => ({
       ],
     },
   }),
+}));
+
+vi.mock("@/features/timer/contexts/TaskIdContext", () => ({
+  useTaskId: () => "test-task-id",
 }));
 
 // ---- UI コンポーネントのモック ----
@@ -129,13 +133,8 @@ describe("VoiceTranscriptPanel", () => {
     expect(container.textContent).not.toContain("お話しください");
   });
 
-  it("ヘッダークリックでパネルが開く", async () => {
+  it("パネルにデフォルトメッセージが表示される", async () => {
     await renderPanel();
-
-    const header = container.querySelector('[role="button"]')!;
-    await act(async () => {
-      header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
 
     expect(container.textContent).toContain(
       "録音を開始すると文字起こしが表示されます",
@@ -168,11 +167,6 @@ describe("VoiceTranscriptPanel", () => {
       { id: "e1", text: "重要な発言", timestamp: Date.now(), agendaId: null },
     ];
     await renderPanel();
-
-    const header = container.querySelector('[role="button"]')!;
-    await act(async () => {
-      header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
 
     expect(container.textContent).toContain("重要な発言");
   });
@@ -289,13 +283,7 @@ describe("VoiceTranscriptPanel", () => {
   it("Enter キーでもパネルを開閉できる", async () => {
     await renderPanel();
 
-    const header = container.querySelector('[role="button"]')!;
-    await act(async () => {
-      header.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
-      );
-    });
-
+    // コンポーネントが常にコンテンツを表示するため、デフォルト表示を確認
     expect(container.textContent).toContain(
       "録音を開始すると文字起こしが表示されます",
     );

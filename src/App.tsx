@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { Tabs, TabsContent } from "./components/ui/tabs";
+import React, { useState, useCallback } from "react";
 import { Button } from "./components/ui/button";
 import {
   Dialog,
@@ -10,25 +9,24 @@ import {
 } from "./components/ui/dialog";
 import { Theme, Tooltip } from "@radix-ui/themes";
 import {
-  Timer,
-  List,
-  FileText,
   Moon,
   Sun,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
-  BarChart2,
   Menu,
+  Settings,
+  Plus,
 } from "lucide-react";
-import { UnifiedTimer } from "./features/timer/containers/UnifiedTimer";
-import { AgendaTimer } from "./features/timer/containers/AgendaTimer";
-import { Dashboard } from "./features/timer/containers/Dashboard";
-import { MeetingReports } from "./features/timer/containers/MeetingReports";
 import { MeetingReportDialog } from "./features/timer/components/agenda/MeetingReportDialog";
+import { TaskWidgetCanvas } from "./features/timer/components/task-list/TaskWidgetCanvas";
+import { TaskListSidebar } from "./features/timer/components/task-list/TaskListSidebar";
+import { TaskCreateDialog } from "./features/timer/components/task-list/TaskCreateDialog";
+import { EmptyTaskView } from "./features/timer/components/task-list/EmptyTaskView";
+import { LucideDynamicIcon } from "./features/timer/components/task-list/LucideDynamicIcon";
 import SettingsAndLogsPage from "./components/SettingsAndLogsPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
+import { TaskIdProvider } from "./features/timer/contexts/TaskIdContext";
 import { logger } from "./utils/logger";
 import { cn } from "./lib/utils";
 import {
@@ -38,24 +36,37 @@ import {
   persistColorMode,
 } from "./utils/color-mode";
 import { useUIPreferencesStore } from "./features/timer/stores/ui-preferences-store";
+import {
+  useTaskStore,
+  selectActiveTask,
+  selectSortedTasks,
+} from "./features/timer/stores/task-store";
+import { useTickManagerStore } from "./features/timer/stores/tick-manager-store";
 import { useIsMobile } from "./hooks/useIsMobile";
 import "./globals.css";
 
-const NAV_ITEMS = [
-  { value: "timer", Icon: Timer, label: "タイマー" },
-  { value: "agenda", Icon: List, label: "会議" },
-  { value: "reports", Icon: FileText, label: "会議レポート" },
-  { value: "analytics", Icon: BarChart2, label: "分析" },
-] as const;
-
 function App() {
-  const [activeTab, setActiveTab] = useState("timer");
   const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const sidebarOpen = useUIPreferencesStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIPreferencesStore((s) => s.toggleSidebar);
-  const handleSidebarToggle = toggleSidebar;
+
+  const activeTask = useTaskStore(selectActiveTask);
+  const tasks = useTaskStore(selectSortedTasks);
+  const activeTaskId = useTaskStore((s) => s.activeTaskId);
+  const showSettings = useTaskStore((s) => s.showSettings);
+  const setShowSettings = useTaskStore((s) => s.setShowSettings);
+  const setActiveTask = useTaskStore((s) => s.setActiveTask);
+
+  // グローバルTickの開始（全タイマーインスタンスを1秒間隔で処理）
+  React.useEffect(() => {
+    useTickManagerStore.getState().startGlobalTick();
+    return () => {
+      useTickManagerStore.getState().stopGlobalTick();
+    };
+  }, []);
 
   React.useEffect(() => {
     logger.info(
@@ -80,16 +91,7 @@ function App() {
     }
   }, [isMobile]);
 
-  const handleTabChange = (value: string) => {
-    logger.userAction("Tab switched", { from: activeTab, to: value });
-    setActiveTab(value);
-  };
-  const handleTabSelectFromMenu = (value: string) => {
-    handleTabChange(value);
-    setIsMobileMenuOpen(false);
-  };
-
-  const handleColorModeToggle = () => {
+  const handleColorModeToggle = useCallback(() => {
     setColorMode((prevMode) => {
       const nextMode = prevMode === "dark" ? "light" : "dark";
       logger.userAction("Color mode switched", {
@@ -97,19 +99,34 @@ function App() {
         to: nextMode,
       });
       return nextMode;
-      });
-  };
-  const currentTabLabel = React.useMemo(() => {
-    if (activeTab === "settings") {
-      return "設定・ログ";
-    }
-    return NAV_ITEMS.find((item) => item.value === activeTab)?.label ?? "タイマー";
-  }, [activeTab]);
+    });
+  }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    setShowSettings(true);
+  }, [setShowSettings]);
+
+  const handleOpenCreate = useCallback(() => {
+    setIsCreateDialogOpen(true);
+  }, []);
+
+  const handleSelectTaskMobile = useCallback(
+    (taskId: string) => {
+      setActiveTask(taskId);
+      setIsMobileMenuOpen(false);
+    },
+    [setActiveTask],
+  );
+
+  const currentLabel = React.useMemo(() => {
+    if (showSettings) return "設定・ログ";
+    return activeTask?.name ?? "Focuso";
+  }, [showSettings, activeTask]);
 
   return (
     <Theme appearance={colorMode}>
       <div className="flex h-[100svh] overflow-hidden bg-background text-foreground">
-        {/* ── 左サイドバー ── */}
+        {/* ── 左サイドバー（デスクトップ） ── */}
         <aside
           className={cn(
             "hidden shrink-0 flex-col border-r border-border bg-card transition-all duration-200 md:flex",
@@ -135,11 +152,8 @@ function App() {
             <Button
               variant="ghost"
               size="icon"
-              className={cn(
-                "h-8 w-8 shrink-0",
-                sidebarOpen ? "ml-auto" : "ml-auto",
-              )}
-              onClick={() => handleSidebarToggle()}
+              className="h-8 w-8 shrink-0 ml-auto"
+              onClick={() => toggleSidebar()}
               aria-label={sidebarOpen ? "メニューを閉じる" : "メニューを開く"}
             >
               {sidebarOpen ? (
@@ -150,96 +164,20 @@ function App() {
             </Button>
           </div>
 
-          {/* ナビゲーション */}
-          <nav className="flex-1 py-1" aria-label="メインナビゲーション">
-            {NAV_ITEMS.map(({ value, Icon, label }) => {
-              const isActive = activeTab === value;
-              const btnOpen = (
-                <button
-                  key={value}
-                  onClick={() => handleTabChange(value)}
-                  aria-label={label}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "relative flex w-full items-center gap-3 px-2 py-3 text-sm transition-colors",
-                    isActive
-                      ? "bg-accent font-semibold text-accent-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-primary" />
-                  )}
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span>{label}</span>
-                </button>
-              );
-              const btnClosed = (
-                <button
-                  onClick={() => handleTabChange(value)}
-                  aria-label={label}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "relative flex w-full items-center justify-center py-3 text-sm transition-colors",
-                    isActive
-                      ? "bg-accent font-semibold text-accent-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-primary" />
-                  )}
-                  <Icon className="h-5 w-5 shrink-0" />
-                </button>
-              );
-              return sidebarOpen ? (
-                <React.Fragment key={value}>{btnOpen}</React.Fragment>
-              ) : (
-                <Tooltip key={value} content={label} side="right">
-                  {btnClosed}
-                </Tooltip>
-              );
-            })}
-          </nav>
+          {/* タスク一覧サイドバー */}
+          <TaskListSidebar
+            sidebarOpen={sidebarOpen}
+            onCreateTask={handleOpenCreate}
+            onOpenSettings={handleOpenSettings}
+          />
 
-          {/* ダークモード・設定 */}
+          {/* ダークモード切替 */}
           <div
             className={cn(
               "flex shrink-0 flex-col gap-1 border-t border-border p-2",
               sidebarOpen ? "items-stretch" : "items-center",
             )}
           >
-            {sidebarOpen ? (
-              <Button
-                variant="ghost"
-                className={cn(
-                  "h-9 w-full justify-start gap-3 px-2 shrink-0",
-                  activeTab === "settings" &&
-                    "bg-accent text-accent-foreground",
-                )}
-                onClick={() => handleTabChange("settings")}
-                aria-label="設定・ログを開く"
-              >
-                <Settings className="h-4 w-4 shrink-0" />
-                <span className="text-sm">設定・ログ</span>
-              </Button>
-            ) : (
-              <Tooltip content="設定・ログ" side="right">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-9 w-9 shrink-0",
-                    activeTab === "settings" &&
-                      "bg-accent text-accent-foreground",
-                  )}
-                  onClick={() => handleTabChange("settings")}
-                  aria-label="設定・ログを開く"
-                >
-                  <Settings className="h-4 w-4 shrink-0" />
-                </Button>
-              </Tooltip>
-            )}
             {sidebarOpen ? (
               <Button
                 variant="ghost"
@@ -289,6 +227,7 @@ function App() {
 
         {/* ── メインコンテンツ ── */}
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* モバイルヘッダー */}
           {isMobile && (
             <div className="flex items-center gap-2 border-b border-border p-2">
               <Button
@@ -299,7 +238,7 @@ function App() {
               >
                 <Menu className="h-4 w-4" />
               </Button>
-              <p className="text-sm font-semibold">{currentTabLabel}</p>
+              <p className="text-sm font-semibold">{currentLabel}</p>
               <Button
                 variant="ghost"
                 size="icon"
@@ -319,64 +258,69 @@ function App() {
               </Button>
             </div>
           )}
-          <Tabs
-            value={activeTab}
-            onValueChange={handleTabChange}
-            className="flex flex-1 flex-col overflow-hidden"
-          >
-            <main className="flex-1 overflow-y-auto p-2 md:p-3">
-              <TabsContent value="timer">
-                <ErrorBoundary componentName="UnifiedTimer">
-                  <UnifiedTimer />
-                </ErrorBoundary>
-              </TabsContent>
-              <TabsContent value="agenda">
-                <ErrorBoundary componentName="AgendaTimer">
-                  <AgendaTimer />
-                </ErrorBoundary>
-              </TabsContent>
-              <TabsContent value="analytics">
-                <ErrorBoundary componentName="Dashboard">
-                  <Dashboard />
-                </ErrorBoundary>
-              </TabsContent>
-              <TabsContent value="reports">
-                <ErrorBoundary componentName="MeetingReports">
-                  <MeetingReports />
-                </ErrorBoundary>
-              </TabsContent>
-              <TabsContent value="settings">
-                <SettingsAndLogsPage />
-              </TabsContent>
-            </main>
-          </Tabs>
+
+          {/* メイン表示領域 */}
+          <main className="flex-1 overflow-y-auto p-2 md:p-3">
+            {showSettings ? (
+              <SettingsAndLogsPage />
+            ) : activeTask && activeTaskId ? (
+              <ErrorBoundary componentName="TaskWidgetCanvas">
+                <TaskIdProvider value={activeTaskId}>
+                  <TaskWidgetCanvas taskId={activeTaskId} />
+                </TaskIdProvider>
+              </ErrorBoundary>
+            ) : (
+              <EmptyTaskView onCreateTask={handleOpenCreate} />
+            )}
+          </main>
           <Footer />
         </div>
       </div>
+
+      {/* モバイルメニュー */}
       <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <DialogContent className="max-w-sm p-4">
           <DialogHeader>
-            <DialogTitle>メニュー</DialogTitle>
+            <DialogTitle>タスク一覧</DialogTitle>
             <DialogDescription>
-              開きたい機能を選択してください。
+              タスクを選択するか、新しいタスクを作成してください。
             </DialogDescription>
           </DialogHeader>
           <nav className="flex flex-col gap-2" aria-label="モバイルメニュー">
-            {NAV_ITEMS.map(({ value, Icon, label }) => (
+            {tasks.map((task) => (
               <Button
-                key={value}
-                variant={activeTab === value ? "default" : "outline"}
+                key={task.id}
+                variant={
+                  activeTaskId === task.id && !showSettings
+                    ? "default"
+                    : "outline"
+                }
                 className="justify-start gap-2"
-                onClick={() => handleTabSelectFromMenu(value)}
+                onClick={() => handleSelectTaskMobile(task.id)}
               >
-                <Icon className="h-4 w-4" />
-                <span className="text-sm">{label}</span>
+                <LucideDynamicIcon name={task.icon} className="h-4 w-4" />
+                <span className="text-sm">{task.name}</span>
               </Button>
             ))}
             <Button
-              variant={activeTab === "settings" ? "default" : "outline"}
+              variant="outline"
+              className="justify-start gap-2 text-muted-foreground"
+              onClick={() => {
+                setIsCreateDialogOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">タスクを追加</span>
+            </Button>
+            <hr className="my-1" />
+            <Button
+              variant={showSettings ? "default" : "outline"}
               className="justify-start gap-2"
-              onClick={() => handleTabSelectFromMenu("settings")}
+              onClick={() => {
+                handleOpenSettings();
+                setIsMobileMenuOpen(false);
+              }}
             >
               <Settings className="h-4 w-4" />
               <span className="text-sm">設定・ログ</span>
@@ -384,6 +328,13 @@ function App() {
           </nav>
         </DialogContent>
       </Dialog>
+
+      {/* タスク作成ダイアログ */}
+      <TaskCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
+
       <MeetingReportDialog />
     </Theme>
   );

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, X } from "lucide-react";
-import { getWidgetLabel } from "@/features/timer/stores/meeting-layout-store";
+import { getWidgetLabel } from "@/features/timer/utils/widget-catalog";
 import type { WidgetLayoutItem } from "@/types/layout";
 
 export interface WidgetCatalogDialogProps {

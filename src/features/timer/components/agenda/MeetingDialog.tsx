@@ -10,7 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Users, X } from "lucide-react";
-import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
+import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
 import { fetchGitHubIssue } from "@/features/timer/api/github-issues";
 import {
@@ -37,8 +38,9 @@ export const MeetingDialog: React.FC<MeetingDialogProps> = ({
   isOpen,
   onClose,
 }) => {
+  const taskId = useTaskId();
   const { createMeeting, updateMeetingTitle, addAgenda } =
-    useAgendaTimerStore();
+    useAgendaTimerInstance(taskId);
   const { githubPat } = useIntegrationLinkStore();
   const [title, setTitle] = useState(meeting?.title || "");
   const [ownerRepo, setOwnerRepo] = useState("");

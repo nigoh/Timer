@@ -10,7 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Clock, X } from "lucide-react";
-import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
+import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { meetingTitleSchema } from "@/features/timer/utils/input-validators";
 import { AgendaItem } from "@/types/agenda";
 
@@ -27,7 +28,8 @@ export const AgendaDialog: React.FC<AgendaDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { addAgenda, updateAgenda } = useAgendaTimerStore();
+  const taskId = useTaskId();
+  const { addAgenda, updateAgenda } = useAgendaTimerInstance(taskId);
   const [title, setTitle] = useState(agenda?.title || "");
   const [duration, setDuration] = useState(
     agenda ? Math.ceil(agenda.plannedDuration / 60) : 10,

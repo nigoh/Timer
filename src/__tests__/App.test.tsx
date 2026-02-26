@@ -2,20 +2,48 @@ import React, { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot, Root } from "react-dom/client";
 
-vi.mock("../features/timer/containers/UnifiedTimer", () => ({
-  UnifiedTimer: () => <div>UnifiedTimer</div>,
+vi.mock("../features/timer/components/task-list/TaskWidgetCanvas", () => ({
+  TaskWidgetCanvas: ({ taskId }: { taskId: string }) => (
+    <div>TaskWidgetCanvas:{taskId}</div>
+  ),
 }));
 
-vi.mock("../features/timer/containers/AgendaTimer", () => ({
-  AgendaTimer: () => <div>AgendaTimer</div>,
+vi.mock("../features/timer/components/task-list/TaskListSidebar", () => ({
+  TaskListSidebar: ({
+    onCreateTask,
+    onOpenSettings,
+  }: {
+    sidebarOpen: boolean;
+    onCreateTask: () => void;
+    onOpenSettings: () => void;
+  }) => (
+    <div>
+      <button onClick={onCreateTask}>タスクを追加</button>
+      <button onClick={onOpenSettings}>設定・ログを開く</button>
+    </div>
+  ),
 }));
 
-vi.mock("../features/timer/containers/Dashboard", () => ({
-  Dashboard: () => <div>Dashboard</div>,
+vi.mock("../features/timer/components/task-list/TaskCreateDialog", () => ({
+  TaskCreateDialog: ({
+    open,
+  }: {
+    open: boolean;
+    onOpenChange: (v: boolean) => void;
+  }) => (open ? <div data-testid="create-dialog">CreateDialog</div> : null),
 }));
 
-vi.mock("../features/timer/containers/MeetingReports", () => ({
-  MeetingReports: () => <div>MeetingReports</div>,
+vi.mock("../features/timer/components/task-list/EmptyTaskView", () => ({
+  EmptyTaskView: ({ onCreateTask }: { onCreateTask: () => void }) => (
+    <div>
+      <span>タスクがありません</span>
+      <button onClick={onCreateTask}>最初のタスクを作成</button>
+    </div>
+  ),
+}));
+
+vi.mock("../features/timer/components/task-list/LucideDynamicIcon", () => ({
+  LucideDynamicIcon: () => <span aria-hidden="true" />,
 }));
 
 vi.mock("../features/timer/components/agenda/MeetingReportDialog", () => ({
@@ -61,36 +89,13 @@ vi.mock("../components/ui/dialog", () => ({
   DialogHeader: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+  DialogTitle: ({ children }: { children: React.ReactNode }) => (
+    <h2>{children}</h2>
+  ),
   DialogDescription: ({ children }: { children: React.ReactNode }) => (
     <p>{children}</p>
   ),
 }));
-
-vi.mock("../components/ui/tabs", () => {
-  const TabsContext = React.createContext<string>("");
-  return {
-    Tabs: ({
-      value,
-      children,
-    }: {
-      value: string;
-      onValueChange?: (value: string) => void;
-      className?: string;
-      children: React.ReactNode;
-    }) => <TabsContext.Provider value={value}>{children}</TabsContext.Provider>,
-    TabsContent: ({
-      value,
-      children,
-    }: {
-      value: string;
-      children: React.ReactNode;
-    }) => {
-      const currentTab = React.useContext(TabsContext);
-      return currentTab === value ? <div>{children}</div> : null;
-    },
-  };
-});
 
 vi.mock("@radix-ui/themes", () => ({
   Theme: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -100,16 +105,13 @@ vi.mock("@radix-ui/themes", () => ({
 vi.mock("lucide-react", () => {
   const Icon = () => <span aria-hidden="true" />;
   return {
-    Timer: Icon,
-    List: Icon,
-    FileText: Icon,
     Moon: Icon,
     Sun: Icon,
     PanelLeftClose: Icon,
     PanelLeftOpen: Icon,
-    Settings: Icon,
-    BarChart2: Icon,
     Menu: Icon,
+    Settings: Icon,
+    Plus: Icon,
   };
 });
 
@@ -122,6 +124,51 @@ vi.mock("../features/timer/stores/ui-preferences-store", () => ({
   useUIPreferencesStore: (
     selector: (state: typeof mockUIPreferencesState) => unknown,
   ) => selector(mockUIPreferencesState),
+}));
+
+const mockTaskStore = {
+  tasks: [] as Array<{
+    id: string;
+    name: string;
+    icon: string;
+    widgets: never[];
+    order: number;
+    createdAt: number;
+    updatedAt: number;
+  }>,
+  activeTaskId: null as string | null,
+  showSettings: false,
+  setShowSettings: vi.fn(),
+  setActiveTask: vi.fn(),
+  isEditMode: false,
+  presets: [],
+};
+
+vi.mock("../features/timer/stores/task-store", () => ({
+  useTaskStore: (selector: (state: typeof mockTaskStore) => unknown) =>
+    selector(mockTaskStore),
+  selectActiveTask: (state: typeof mockTaskStore) =>
+    state.tasks.find((t) => t.id === state.activeTaskId),
+  selectSortedTasks: (state: typeof mockTaskStore) =>
+    [...state.tasks].sort((a, b) => a.order - b.order),
+}));
+
+vi.mock("../features/timer/stores/tick-manager-store", () => ({
+  useTickManagerStore: {
+    getState: () => ({
+      startGlobalTick: vi.fn(),
+      stopGlobalTick: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock("../features/timer/contexts/TaskIdContext", () => ({
+  TaskIdProvider: ({
+    children,
+  }: {
+    children: React.ReactNode;
+    value: string;
+  }) => <>{children}</>,
 }));
 
 vi.mock("../utils/color-mode", () => ({
@@ -141,6 +188,11 @@ import App from "../App";
 
 describe("App", () => {
   beforeEach(() => {
+    // Reset mock task store
+    mockTaskStore.tasks = [];
+    mockTaskStore.activeTaskId = null;
+    mockTaskStore.showSettings = false;
+
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: (query: string) => ({
@@ -156,7 +208,7 @@ describe("App", () => {
     });
   });
 
-  it("モバイルではメニューボタンから会議機能へ切り替えられる", async () => {
+  it("タスクがない場合、EmptyTaskView が表示される", async () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root: Root = createRoot(container);
@@ -165,33 +217,37 @@ describe("App", () => {
       root.render(<App />);
     });
 
-    const openMenuButton = container.querySelector(
-      'button[aria-label="メニューを開く"]',
-    );
-    expect(openMenuButton).not.toBeNull();
+    expect(container.textContent).toContain("タスクがありません");
 
     await act(async () => {
-      openMenuButton?.dispatchEvent(
-        new MouseEvent("click", { bubbles: true, cancelable: true }),
-      );
+      root.unmount();
     });
+    document.body.removeChild(container);
+  });
 
-    const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog).not.toBeNull();
+  it("タスクがある場合、TaskWidgetCanvas が表示される", async () => {
+    mockTaskStore.tasks = [
+      {
+        id: "t1",
+        name: "テストタスク",
+        icon: "Timer",
+        widgets: [],
+        order: 0,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+    ];
+    mockTaskStore.activeTaskId = "t1";
 
-    const agendaButton = Array.from(dialog?.querySelectorAll("button") ?? []).find(
-      (button) => button.textContent?.trim() === "会議",
-    );
-    expect(agendaButton).not.toBeUndefined();
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
 
     await act(async () => {
-      agendaButton?.dispatchEvent(
-        new MouseEvent("click", { bubbles: true, cancelable: true }),
-      );
+      root.render(<App />);
     });
 
-    expect(container.textContent).toContain("AgendaTimer");
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(container.textContent).toContain("TaskWidgetCanvas:t1");
 
     await act(async () => {
       root.unmount();

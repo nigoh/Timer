@@ -16,7 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Settings, X } from "lucide-react";
-import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store";
+import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
+import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { GitHubIssueLinking } from "@/components/GitHubIssueLinking";
 import { Meeting } from "@/types/agenda";
 
@@ -31,7 +32,8 @@ export const AgendaSettingsDialog: React.FC<AgendaSettingsDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { updateMeetingSettings } = useAgendaTimerStore();
+  const taskId = useTaskId();
+  const { updateMeetingSettings } = useAgendaTimerInstance(taskId);
   const [settings, setSettings] = useState(meeting.settings);
   const meetingIssueLinkId = `meeting:${meeting.id}`;
 

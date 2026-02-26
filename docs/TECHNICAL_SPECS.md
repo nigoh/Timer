@@ -17,6 +17,8 @@
 - `src/features/timer/components`: 機能別 View
 - `src/features/timer/containers`: コンテナ（配線）
 - `src/features/timer/stores`: ドメイン状態（Zustand）
+  - `task-store.ts`: タスク管理・ウィジェットレイアウト
+  - `tick-manager-store.ts`: グローバル tick 管理（1秒周期）
   - `agenda-timer-store.ts` / `new-agenda-timer-store.ts`: アジェンダタイマー
   - `basic-timer-store.ts`: 基本タイマー
   - `dashboard-store.ts`: ダッシュボードフィルタ永続化
@@ -110,13 +112,13 @@
 **採用: Option A クライアント完結 + Option B 最小抽象化の併用**
 
 - `src/features/timer/services/analytics.ts` に `IAnalyticsService` インターフェースと `LocalAnalyticsService` を実装。
-- `Dashboard` コンテナで各 Zustand ストアから生データを読み、`useMemo` 内で `localAnalyticsService.compute()` を呼び出す。
+- `TaskWidgetCanvas` で各 Zustand ストアから生データを読み、`useMemo` 内で `localAnalyticsService.compute()` を呼び出す。
 - 将来の API 移行時は `LocalAnalyticsService` を差し替えるだけで hook・UI 変更不要。
 
 ```
 Zustand stores (localStorage persist)
-  └─ Dashboard.tsx (useMemo → localAnalyticsService.compute(filter, rawData))
-       └─ AnalyticsResult → DashboardView
+  └─ TaskWidgetCanvas.tsx (useMemo → localAnalyticsService.compute(filter, rawData))
+       └─ AnalyticsResult → ダッシュボードウィジェット
             ├─ KpiCard ×4
             ├─ TrendChart (Recharts BarChart / LineChart)
             ├─ HeatmapChart (Tailwind CSS grid)
@@ -137,7 +139,7 @@ src/
 │   │   ├── TrendChart.tsx
 │   │   ├── HeatmapChart.tsx
 │   │   └── DonutChart.tsx
-│   └── containers/Dashboard.tsx                    # 配線（データ取得 + useMemo）
+│   └── components/task-list/TaskWidgetCanvas.tsx    # 分析ウィジェット統合（旧 Dashboard コンテナ）
 ```
 
 ## アクセシビリティ仕様

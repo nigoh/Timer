@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { BasicTimerView } from '../components/basic-timer/BasicTimerView';
-import { useBasicTimerStore } from '../stores/basic-timer-store';
+import React, { useCallback, useEffect, useState } from "react";
+import { BasicTimerView } from "../components/basic-timer/BasicTimerView";
+import { useBasicTimerInstance } from "../hooks/useTimerInstances";
+import { useTaskId } from "../contexts/TaskIdContext";
 
 export const BasicTimer: React.FC = () => {
+  const taskId = useTaskId();
   const {
     duration,
     remainingTime,
@@ -16,10 +18,9 @@ export const BasicTimer: React.FC = () => {
     stop,
     reset,
     setSessionLabel,
-    tick,
     deleteHistoryEntry,
     clearHistory,
-  } = useBasicTimerStore();
+  } = useBasicTimerInstance(taskId);
 
   const [localLabel, setLocalLabel] = useState(sessionLabel);
 
@@ -27,12 +28,7 @@ export const BasicTimer: React.FC = () => {
     setLocalLabel(sessionLabel);
   }, [sessionLabel]);
 
-  useEffect(() => {
-    if (!isRunning) return;
-
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [isRunning, tick]);
+  // tick is handled by tick-manager-store
 
   useEffect(() => {
     setSessionLabel(localLabel);
@@ -61,4 +57,3 @@ export const BasicTimer: React.FC = () => {
     />
   );
 };
-
