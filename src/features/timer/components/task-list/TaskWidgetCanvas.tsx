@@ -56,6 +56,7 @@ import { useAgendaTimerStore } from "@/features/timer/stores/agenda-timer-store"
 import { useMultiTimerStore } from "@/features/timer/stores/multi-timer-store";
 import {
   localAnalyticsService,
+  exportAnalyticsAsMarkdown,
   RawData,
 } from "@/features/timer/services/analytics";
 import type { Granularity, TimerKind } from "@/types/analytics";
@@ -223,6 +224,17 @@ function useAnalytics() {
     URL.revokeObjectURL(url);
   }, [filter, result.trend]);
 
+  const handleExportMarkdown = useCallback(() => {
+    const md = exportAnalyticsAsMarkdown(result, filter);
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `analytics_${filter.since.toISOString().slice(0, 10)}_${filter.until.toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filter, result]);
+
   return {
     filter,
     result,
@@ -230,6 +242,7 @@ function useAnalytics() {
     setDateRange,
     setTimerKind,
     handleExportCsv,
+    handleExportMarkdown,
   };
 }
 
@@ -463,6 +476,7 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
       setTimerKind,
       setDateRange,
       handleExportCsv,
+      handleExportMarkdown,
     } = analytics;
     const handleRangeClick = (days: number) => {
       const until = new Date();
@@ -528,6 +542,16 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
         >
           <Download className="mr-1.5 h-3 w-3" />
           CSV
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          onClick={handleExportMarkdown}
+          aria-label="Markdownエクスポート"
+        >
+          <Download className="mr-1.5 h-3 w-3" />
+          MD
         </Button>
       </div>
     );

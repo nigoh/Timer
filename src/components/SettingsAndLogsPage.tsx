@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -26,9 +28,11 @@ import {
   Zap,
   Eye,
   RefreshCw,
+  BrainCircuit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
+import { useMeetingKnowledgeStore } from "@/features/timer/stores/meeting-knowledge-store";
 import { AiProviderConfig, AiProviderType } from "@/types/aiAssist";
 import { validateAiProviderConfig } from "@/features/timer/utils/ai-provider-config";
 import {
@@ -53,6 +57,28 @@ const SettingsAndLogsPage: React.FC = () => {
   });
   const [patDraft, setPatDraft] = useState(githubPat ?? "");
   const { confirm, ConfirmDialog } = useConfirmDialog();
+
+  // ─── MAPE-K Knowledge Store ───────────────────────────────────────────────
+  const {
+    settings: knowledgeSettings,
+    records: knowledgeRecords,
+    updateSettings,
+    resetKnowledge,
+  } = useMeetingKnowledgeStore();
+
+  const handleResetKnowledge = () => {
+    confirm(
+      {
+        title: "学習データをリセット",
+        description:
+          "蓄積した会議記録と学習パターンをすべて削除しますか？この操作は取り消せません。",
+      },
+      () => {
+        resetKnowledge();
+        toast.success("MAPE-K 学習データをリセットしました");
+      },
+    );
+  };
 
   const aiValidation = validateAiProviderConfig(aiDraft);
 
@@ -401,6 +427,83 @@ const SettingsAndLogsPage: React.FC = () => {
                   <div className="flex justify-end pt-1">
                     <Button onClick={handleSavePat} size="sm">
                       保存
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* MAPE-K 会議効率化 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BrainCircuit className="h-5 w-5" />
+                    MAPE-K 会議効率化
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <p className="text-xs text-muted-foreground">
+                    過去の会議データを自動学習し、アジェンダの予定時間調整を提案します。
+                    現在 <strong>{knowledgeRecords.length}</strong>{" "}
+                    件の会議記録を蓄積中です。
+                  </p>
+
+                  {/* 提案機能 ON/OFF */}
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="mape-k-enabled"
+                      className="flex flex-col gap-0.5"
+                    >
+                      提案機能
+                      <span className="text-xs font-normal text-muted-foreground">
+                        アジェンダに時間提案バッジを表示する
+                      </span>
+                    </Label>
+                    <Switch
+                      id="mape-k-enabled"
+                      checked={knowledgeSettings.enabled}
+                      onCheckedChange={(checked) =>
+                        updateSettings({ enabled: checked })
+                      }
+                    />
+                  </div>
+
+                  {/* 学習期間 */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center justify-between">
+                      学習期間
+                      <span className="text-xs font-normal text-muted-foreground">
+                        直近 {knowledgeSettings.learningWindow} 件
+                      </span>
+                    </Label>
+                    <Slider
+                      min={5}
+                      max={50}
+                      step={5}
+                      value={[knowledgeSettings.learningWindow]}
+                      onValueChange={([v]) =>
+                        updateSettings({ learningWindow: v })
+                      }
+                      disabled={!knowledgeSettings.enabled}
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>5件</span>
+                      <span>50件</span>
+                    </div>
+                  </div>
+
+                  {/* リセット */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-muted-foreground">
+                      学習データをすべて削除します
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetKnowledge}
+                      disabled={knowledgeRecords.length === 0}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      データをリセット
                     </Button>
                   </div>
                 </CardContent>

@@ -12,6 +12,7 @@ export interface BasicTimerInstanceState {
   sessionStartTime: Date | null;
   sessionLabel: string;
   history: BasicTimerHistory[];
+  lastTickTime: number | null;
 }
 
 interface BasicTimerStoreState {
@@ -45,6 +46,7 @@ const createDefaultInstance = (): BasicTimerInstanceState => ({
   sessionStartTime: null,
   sessionLabel: '',
   history: [],
+  lastTickTime: null,
 });
 
 /** インスタンスを安全に取得（なければ作成） */
@@ -107,6 +109,7 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
           isPaused: false,
           sessionId: inst.sessionId || crypto.randomUUID(),
           sessionStartTime: inst.sessionStartTime || now,
+          lastTickTime: Date.now(),
         },
       },
     });
@@ -117,6 +120,7 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
       instances: updateInstance(state.instances, taskId, () => ({
         isRunning: false,
         isPaused: true,
+        lastTickTime: null,
       })),
     }));
   },
@@ -148,6 +152,7 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
         sessionId: null,
         sessionStartTime: null,
         sessionLabel: '',
+        lastTickTime: null,
       })),
     }));
   },
@@ -161,6 +166,7 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
         sessionId: null,
         sessionStartTime: null,
         sessionLabel: '',
+        lastTickTime: null,
       })),
     }));
   },
@@ -205,6 +211,7 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
         sessionId: null,
         sessionStartTime: null,
         sessionLabel: '',
+        lastTickTime: null,
       })),
     }));
   },
@@ -246,11 +253,17 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
     const inst = get().instances[taskId];
     if (!inst?.isRunning) return;
 
-    const newRemainingTime = Math.max(0, inst.remainingTime - 1);
+    const now = Date.now();
+    const deltaTime = inst.lastTickTime
+      ? Math.max(1, Math.round((now - inst.lastTickTime) / 1000))
+      : 1;
+
+    const newRemainingTime = Math.max(0, inst.remainingTime - deltaTime);
 
     set((state) => ({
       instances: updateInstance(state.instances, taskId, () => ({
         remainingTime: newRemainingTime,
+        lastTickTime: now,
       })),
     }));
 

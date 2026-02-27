@@ -250,3 +250,54 @@ function buildDonut(filter: AnalyticsFilter, data: RawData): DonutSegment[] {
 }
 
 export const localAnalyticsService = new LocalAnalyticsService();
+
+// ──────────────────────────────────────────────
+// Markdown エクスポート（要件 5.2）
+// ──────────────────────────────────────────────
+
+export function exportAnalyticsAsMarkdown(
+  result: AnalyticsResult,
+  filter: AnalyticsFilter,
+): string {
+  const since = filter.since.toISOString().slice(0, 10);
+  const until = filter.until.toISOString().slice(0, 10);
+
+  const lines: string[] = [];
+
+  lines.push(`# 分析レポート`);
+  lines.push(`\n期間: ${since} 〜 ${until}  粒度: ${filter.granularity}`);
+
+  // KPI サマリー
+  lines.push(`\n## KPI サマリー`);
+  lines.push(`- 集中時間: ${result.kpi.focusMinutes} 分`);
+  lines.push(`- セッション数: ${result.kpi.sessions}`);
+  lines.push(`- 完了セッション数: ${result.kpi.completedSessions}`);
+  lines.push(
+    `- ポモドーロ達成率: ${(result.kpi.pomodoroAchievementRate * 100).toFixed(1)} %`,
+  );
+  lines.push(
+    `- 会議超過率: ${(result.kpi.meetingOvertimeRate * 100).toFixed(1)} %`,
+  );
+
+  // トレンドテーブル
+  lines.push(`\n## トレンド`);
+  if (result.trend.length === 0) {
+    lines.push(`データなし`);
+  } else {
+    lines.push(`| 期間 | 集中時間(分) | セッション数 | 完了数 |`);
+    lines.push(`|------|------------|------------|--------|`);
+    for (const p of result.trend) {
+      lines.push(`| ${p.label} | ${p.focusMinutes} | ${p.sessions} | ${p.completedSessions} |`);
+    }
+  }
+
+  // カテゴリ分布
+  if (result.donut.length > 0) {
+    lines.push(`\n## カテゴリ分布`);
+    for (const seg of result.donut) {
+      lines.push(`- ${seg.name}: ${seg.value} 分`);
+    }
+  }
+
+  return lines.join('\n');
+}

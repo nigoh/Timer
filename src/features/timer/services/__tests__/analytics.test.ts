@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LocalAnalyticsService, RawData } from '../analytics';
-import { AnalyticsFilter } from '@/types/analytics';
+import { LocalAnalyticsService, RawData, exportAnalyticsAsMarkdown } from '../analytics';
+import { AnalyticsFilter, AnalyticsResult } from '@/types/analytics';
 import { BasicTimerHistory } from '@/types/timer';
 import { PomodoroSession } from '@/types/pomodoro';
 import { Meeting } from '@/types/agenda';
@@ -466,5 +466,81 @@ describe('LocalAnalyticsService', () => {
       expect(result.trend).toHaveLength(1);
       expect(result.trend[0].label).toBe('2025-03');
     });
+  });
+});
+
+// ──────────────────────────────────────────────
+// exportAnalyticsAsMarkdown
+// ──────────────────────────────────────────────
+
+describe('exportAnalyticsAsMarkdown', () => {
+  const filter: AnalyticsFilter = {
+    since: new Date('2025-01-01T00:00:00.000Z'),
+    until: new Date('2025-01-07T23:59:59.999Z'),
+    granularity: 'day',
+  };
+
+  const result: AnalyticsResult = {
+    kpi: {
+      focusMinutes: 120,
+      sessions: 5,
+      completedSessions: 4,
+      pomodoroAchievementRate: 0.8,
+      meetingOvertimeRate: 0.25,
+    },
+    trend: [
+      { label: '2025-01-01', focusMinutes: 60, sessions: 2, completedSessions: 2 },
+      { label: '2025-01-02', focusMinutes: 60, sessions: 3, completedSessions: 2 },
+    ],
+    heatmap: [],
+    donut: [
+      { name: '集中', value: 90 },
+      { name: '会議', value: 30 },
+    ],
+  };
+
+  it('# 分析レポート ヘッダーを含む', () => {
+    const md = exportAnalyticsAsMarkdown(result, filter);
+    expect(md).toContain('# 分析レポート');
+  });
+
+  it('KPI の集中時間を含む', () => {
+    const md = exportAnalyticsAsMarkdown(result, filter);
+    expect(md).toContain('120 分');
+  });
+
+  it('ポモドーロ達成率をパーセント表示する', () => {
+    const md = exportAnalyticsAsMarkdown(result, filter);
+    expect(md).toContain('80.0 %');
+  });
+
+  it('Markdown テーブル区切り文字 | を含む', () => {
+    const md = exportAnalyticsAsMarkdown(result, filter);
+    expect(md).toContain('|');
+  });
+
+  it('トレンドの各ラベルを含む', () => {
+    const md = exportAnalyticsAsMarkdown(result, filter);
+    expect(md).toContain('2025-01-01');
+    expect(md).toContain('2025-01-02');
+  });
+
+  it('カテゴリ分布セクションを含む', () => {
+    const md = exportAnalyticsAsMarkdown(result, filter);
+    expect(md).toContain('集中');
+    expect(md).toContain('会議');
+  });
+
+  it('trend が空のときクラッシュしない', () => {
+    const emptyResult: AnalyticsResult = { ...result, trend: [] };
+    expect(() => exportAnalyticsAsMarkdown(emptyResult, filter)).not.toThrow();
+    const md = exportAnalyticsAsMarkdown(emptyResult, filter);
+    expect(md).toContain('データなし');
+  });
+
+  it('donut が空のときカテゴリ分布セクションを省略する', () => {
+    const emptyDonut: AnalyticsResult = { ...result, donut: [] };
+    const md = exportAnalyticsAsMarkdown(emptyDonut, filter);
+    expect(md).not.toContain('## カテゴリ分布');
   });
 });

@@ -4,6 +4,7 @@ import { notificationManager, SoundType } from "@/utils/notification-manager";
 import { logger } from "@/utils/logger";
 import { generateId } from "@/utils/id";
 import { getProgressColor } from "@/constants/timer-theme";
+import { useMeetingKnowledgeStore } from "@/features/timer/stores/meeting-knowledge-store";
 
 /** 1 タスクあたりのアジェンダタイマーインスタンス状態 */
 export interface AgendaTimerInstanceState {
@@ -585,6 +586,14 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
           lastTickTime: undefined,
         })),
       }));
+
+      // MAPE-K Monitor: 完了した会議を Knowledge Store に記録
+      const completedMeeting = get().instances[taskId]?.meetings.find(
+        (m) => m.id === meetingId,
+      );
+      if (completedMeeting) {
+        useMeetingKnowledgeStore.getState().addMeetingRecord(completedMeeting);
+      }
     }
   },
 

@@ -19,6 +19,7 @@ export interface PomodoroInstanceState {
   settings: PomodoroSettings;
   todayStats: PomodoroStats;
   sessions: PomodoroSession[];
+  lastTickTime: number | null;
 }
 
 interface PomodoroStoreState {
@@ -82,6 +83,7 @@ const createDefaultInstance = (): PomodoroInstanceState => ({
   settings: { ...DEFAULT_SETTINGS },
   todayStats: { ...DEFAULT_STATS },
   sessions: [],
+  lastTickTime: null,
 });
 
 const ensureInstance = (
@@ -118,7 +120,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       instances: updateInstance(
         ensureInstance(state.instances, taskId),
         taskId,
-        () => ({ isRunning: true, isPaused: false }),
+        () => ({ isRunning: true, isPaused: false, lastTickTime: Date.now() }),
       ),
     }));
     notificationManager.ensureInitialized().catch(console.warn);
@@ -129,6 +131,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       instances: updateInstance(state.instances, taskId, () => ({
         isRunning: false,
         isPaused: true,
+        lastTickTime: null,
       })),
     }));
   },
@@ -139,6 +142,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
         isRunning: false,
         isPaused: false,
         timeRemaining: getInitialTimeRemaining(inst.currentPhase, inst.settings),
+        lastTickTime: null,
       })),
     }));
   },
@@ -156,6 +160,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
         timeRemaining: inst.settings.workDuration * 60,
         cycle: 1,
         taskName: '',
+        lastTickTime: null,
       })),
     }));
   },
@@ -164,7 +169,12 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
     const inst = get().instances[taskId];
     if (!inst?.isRunning) return;
 
-    const nextRemaining = inst.timeRemaining - 1;
+    const now = Date.now();
+    const deltaTime = inst.lastTickTime
+      ? Math.max(1, Math.round((now - inst.lastTickTime) / 1000))
+      : 1;
+
+    const nextRemaining = inst.timeRemaining - deltaTime;
 
     if (nextRemaining <= 0) {
       set((state) => ({
@@ -172,13 +182,16 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
           isRunning: false,
           isPaused: false,
           timeRemaining: 0,
+          lastTickTime: null,
         })),
       }));
 
       get().completeSession(taskId);
 
       notificationManager.notify('ポモドーロタイマー', {
-        body: `${inst.currentPhase === 'work' ? '作業' : '休憩'}が終了しました`,
+        body: `${
+          inst.currentPhase === 'work' ? '作業' : '休憩'
+        }が終了しました`,
         sound: 'complete',
       });
 
@@ -198,6 +211,7 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       set((state) => ({
         instances: updateInstance(state.instances, taskId, () => ({
           timeRemaining: nextRemaining,
+          lastTickTime: now,
         })),
       }));
     }
