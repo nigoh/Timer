@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip } from "@radix-ui/themes";
+import { SimpleTooltip } from "@/components/ui/simple-tooltip";
 import {
   Play,
   Pause,
@@ -157,7 +157,7 @@ export const TimerDisplay: React.FC = () => {
         </div>
 
         <div className="flex justify-center gap-2">
-          <Tooltip
+          <SimpleTooltip
             content="開始/一時停止で進行を調整し、区切りがついたらセッション完了で次のセッションへ進めます。"
             side="top"
             open={isHelpTooltipOpen}
@@ -175,7 +175,7 @@ export const TimerDisplay: React.FC = () => {
             >
               <CircleHelp className="h-4 w-4" />
             </Button>
-          </Tooltip>
+          </SimpleTooltip>
           {!isRunning ? (
             <Button onClick={startTimer} size="sm">
               <Play className="mr-1.5 h-4 w-4" />

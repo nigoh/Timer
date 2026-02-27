@@ -1,13 +1,8 @@
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip } from "@radix-ui/themes";
+import { SimpleTooltip } from "@/components/ui/simple-tooltip";
 import { Plus, Edit, Trash2, Settings, Users, FileText } from "lucide-react";
 import { Meeting } from "@/types/agenda";
 import { cn } from "@/lib/utils";
@@ -52,7 +47,7 @@ export const MeetingList: React.FC<MeetingListProps> = ({
             </Badge>
           </CardTitle>
           <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:justify-start">
-            <Tooltip content="新しい会議を作成" side="top">
+            <SimpleTooltip content="新しい会議を作成" side="top">
               <Button
                 type="button"
                 variant="secondary"
@@ -64,8 +59,8 @@ export const MeetingList: React.FC<MeetingListProps> = ({
                 <Plus className="h-3.5 w-3.5 sm:mr-1.5" />
                 <span className="hidden sm:inline">新しい会議</span>
               </Button>
-            </Tooltip>
-            <Tooltip content="会議設定を開く" side="top">
+            </SimpleTooltip>
+            <SimpleTooltip content="会議設定を開く" side="top">
               <Button
                 type="button"
                 variant="outline"
@@ -76,7 +71,7 @@ export const MeetingList: React.FC<MeetingListProps> = ({
               >
                 <Settings className="mr-1.5 h-3.5 w-3.5" />
               </Button>
-            </Tooltip>
+            </SimpleTooltip>
           </div>
         </div>
       </CardHeader>
@@ -102,7 +97,7 @@ export const MeetingList: React.FC<MeetingListProps> = ({
                       {meeting.agenda.length}件
                     </span>
                   </Button>
-                  <Tooltip content="会議名を編集" side="top">
+                  <SimpleTooltip content="会議名を編集" side="top">
                     <Button
                       type="button"
                       variant="ghost"
@@ -113,31 +108,31 @@ export const MeetingList: React.FC<MeetingListProps> = ({
                     >
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
-                  </Tooltip>
-                  <Tooltip content="会議レポートを作成" side="top">
+                  </SimpleTooltip>
+                  <SimpleTooltip content="会議レポートを作成" side="top">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-blue-600 hover:text-blue-700"
+                      className="h-7 w-7 text-link hover:text-link/80"
                       onClick={() => onSaveReport(meeting)}
                       aria-label="レポートを保存"
                     >
                       <FileText className="h-3.5 w-3.5" />
                     </Button>
-                  </Tooltip>
-                  <Tooltip content="会議を削除" side="top">
+                  </SimpleTooltip>
+                  <SimpleTooltip content="会議を削除" side="top">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-red-500 hover:text-red-700"
+                      className="h-7 w-7 text-destructive hover:text-destructive/80"
                       onClick={() => onDeleteMeeting(meeting)}
                       aria-label="会議を削除"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </Tooltip>
+                  </SimpleTooltip>
                 </div>
               </div>
             ))}

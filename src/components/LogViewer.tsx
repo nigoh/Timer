@@ -30,6 +30,7 @@ import {
   Zap,
   Eye,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   logger,
   LogLevel,
@@ -37,6 +38,7 @@ import {
   createAiAnalysisPrompt,
 } from "@/utils/logger";
 import { formatTimestamp } from "@/lib/utils";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface LogViewerProps {
   children: React.ReactNode;
@@ -49,9 +51,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [copyFeedbackById, setCopyFeedbackById] = useState<
-    Record<string, string>
-  >({});
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     if (isOpen) {
@@ -97,15 +97,15 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
   const getLevelIcon = (level: LogLevel) => {
     switch (level) {
       case LogLevel.ERROR:
-        return <Bug className="h-4 w-4 text-red-500" />;
+        return <Bug className="h-4 w-4 text-destructive" />;
       case LogLevel.WARN:
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        return <AlertTriangle className="h-4 w-4 text-warning" />;
       case LogLevel.INFO:
-        return <Info className="h-4 w-4 text-blue-500" />;
+        return <Info className="h-4 w-4 text-info" />;
       case LogLevel.DEBUG:
-        return <Zap className="h-4 w-4 text-green-500" />;
+        return <Zap className="h-4 w-4 text-success" />;
       case LogLevel.TRACE:
-        return <Eye className="h-4 w-4 text-gray-500" />;
+        return <Eye className="h-4 w-4 text-muted-foreground" />;
       default:
         return <Info className="h-4 w-4" />;
     }
@@ -144,14 +144,17 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
   };
 
   const handleClearLogs = () => {
-    if (
-      window.confirm("すべてのログを削除しますか？この操作は取り消せません。")
-    ) {
-      logger.clearLogs();
-      setLogs([]);
-      setFilteredLogs([]);
-      setCopyFeedbackById({});
-    }
+    confirm(
+      {
+        title: "ログを削除",
+        description: "すべてのログを削除しますか？この操作は取り消せません。",
+      },
+      () => {
+        logger.clearLogs();
+        setLogs([]);
+        setFilteredLogs([]);
+      },
+    );
   };
 
   const handleCopyForAi = async (entry: LogEntry) => {
@@ -159,17 +162,12 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
 
     try {
       await navigator.clipboard.writeText(prompt);
-      setCopyFeedbackById((prev) => ({
-        ...prev,
-        [entry.id]: "このログのAI分析文をコピーしました",
-      }));
+      toast.success("このログのAI分析文をコピーしました");
     } catch (error) {
       logger.warn("Failed to copy AI prompt", { error, logId: entry.id }, "ui");
-      setCopyFeedbackById((prev) => ({
-        ...prev,
-        [entry.id]:
-          "コピーに失敗しました。ブラウザの権限設定を確認してください。",
-      }));
+      toast.error(
+        "コピーに失敗しました。ブラウザの権限設定を確認してください。",
+      );
     }
   };
 
@@ -198,11 +196,6 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
             <Copy className="h-4 w-4 mr-2" />
             このログをAI解析文としてコピー
           </Button>
-          {copyFeedbackById[entry.id] && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {copyFeedbackById[entry.id]}
-            </p>
-          )}
         </div>
         {entry.data !== undefined && (
           <details className="text-xs">
@@ -229,187 +222,193 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-6xl h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>アプリケーションログ</DialogTitle>
-          <DialogDescription>
-            システムログの表示・分析・エクスポートができます
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>{children}</DialogTrigger>
+        <DialogContent className="max-w-6xl h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>アプリケーションログ</DialogTitle>
+            <DialogDescription>
+              システムログの表示・分析・エクスポートができます
+            </DialogDescription>
+          </DialogHeader>
 
-        <Tabs defaultValue="logs" className="flex h-full min-h-0 flex-col">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="logs">ログ一覧</TabsTrigger>
-            <TabsTrigger value="statistics">統計情報</TabsTrigger>
-          </TabsList>
+          <Tabs defaultValue="logs" className="flex h-full min-h-0 flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="logs">ログ一覧</TabsTrigger>
+              <TabsTrigger value="statistics">統計情報</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="logs" className="flex-1 min-h-0">
-            <div className="space-y-4 h-full min-h-0 flex flex-col">
-              <div className="flex gap-4 flex-wrap shrink-0">
-                <div className="flex-1 min-w-[200px]">
-                  <Input
-                    placeholder="ログを検索..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full"
-                  />
+            <TabsContent value="logs" className="flex-1 min-h-0">
+              <div className="space-y-4 h-full min-h-0 flex flex-col">
+                <div className="flex gap-4 flex-wrap shrink-0">
+                  <div className="flex-1 min-w-[200px]">
+                    <Input
+                      placeholder="ログを検索..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <Select
+                    value={selectedLevel}
+                    onValueChange={setSelectedLevel}
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="レベル" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">すべてのレベル</SelectItem>
+                      <SelectItem value="ERROR">エラー</SelectItem>
+                      <SelectItem value="WARN">警告</SelectItem>
+                      <SelectItem value="INFO">情報</SelectItem>
+                      <SelectItem value="DEBUG">デバッグ</SelectItem>
+                      <SelectItem value="TRACE">トレース</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={setSelectedCategory}
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="カテゴリ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">すべてのカテゴリ</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" onClick={handleExport} size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    エクスポート
+                  </Button>
+                  <Button variant="outline" onClick={handleClearLogs} size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    クリア
+                  </Button>
                 </div>
-                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="レベル" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべてのレベル</SelectItem>
-                    <SelectItem value="ERROR">エラー</SelectItem>
-                    <SelectItem value="WARN">警告</SelectItem>
-                    <SelectItem value="INFO">情報</SelectItem>
-                    <SelectItem value="DEBUG">デバッグ</SelectItem>
-                    <SelectItem value="TRACE">トレース</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                >
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="カテゴリ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべてのカテゴリ</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" onClick={handleExport} size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  エクスポート
-                </Button>
-                <Button variant="outline" onClick={handleClearLogs} size="sm">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  クリア
-                </Button>
-              </div>
 
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="space-y-2">
-                  {filteredLogs.length === 0 ? (
-                    <Card>
-                      <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">
-                          {logs.length === 0
-                            ? "ログがありません"
-                            : "フィルター条件に一致するログがありません"}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    filteredLogs.map((entry) => (
-                      <LogEntryCard key={entry.id} entry={entry} />
-                    ))
-                  )}
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-2">
+                    {filteredLogs.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-8 text-center">
+                          <p className="text-muted-foreground">
+                            {logs.length === 0
+                              ? "ログがありません"
+                              : "フィルター条件に一致するログがありません"}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      filteredLogs.map((entry) => (
+                        <LogEntryCard key={entry.id} entry={entry} />
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="statistics" className="flex-1 min-h-0">
+              <ScrollArea className="h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>基本統計</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>総ログ数:</span>
+                          <span className="font-medium">
+                            {statistics.totalLogs}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>セッション数:</span>
+                          <span className="font-medium">
+                            {statistics.sessionCount}
+                          </span>
+                        </div>
+                        {statistics.oldestLog && (
+                          <div className="flex justify-between">
+                            <span>最古ログ:</span>
+                            <span className="font-medium text-xs">
+                              {formatTimestamp(statistics.oldestLog)}
+                            </span>
+                          </div>
+                        )}
+                        {statistics.newestLog && (
+                          <div className="flex justify-between">
+                            <span>最新ログ:</span>
+                            <span className="font-medium text-xs">
+                              {formatTimestamp(statistics.newestLog)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>レベル別統計</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {Object.entries(statistics.logsByLevel).map(
+                          ([level, count]) => (
+                            <div
+                              key={level}
+                              className="flex justify-between items-center"
+                            >
+                              <div className="flex items-center gap-2">
+                                {getLevelIcon(
+                                  LogLevel[level as keyof typeof LogLevel],
+                                )}
+                                <span>{level}</span>
+                              </div>
+                              <Badge variant="outline">{count}</Badge>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="md:col-span-2">
+                    <CardHeader>
+                      <CardTitle>カテゴリ別統計</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(statistics.logsByCategory).map(
+                          ([category, count]) => (
+                            <div
+                              key={category}
+                              className="flex justify-between items-center"
+                            >
+                              <span className="text-sm">{category}</span>
+                              <Badge variant="secondary">{count}</Badge>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </ScrollArea>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="statistics" className="flex-1 min-h-0">
-            <ScrollArea className="h-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>基本統計</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>総ログ数:</span>
-                        <span className="font-medium">
-                          {statistics.totalLogs}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>セッション数:</span>
-                        <span className="font-medium">
-                          {statistics.sessionCount}
-                        </span>
-                      </div>
-                      {statistics.oldestLog && (
-                        <div className="flex justify-between">
-                          <span>最古ログ:</span>
-                          <span className="font-medium text-xs">
-                            {formatTimestamp(statistics.oldestLog)}
-                          </span>
-                        </div>
-                      )}
-                      {statistics.newestLog && (
-                        <div className="flex justify-between">
-                          <span>最新ログ:</span>
-                          <span className="font-medium text-xs">
-                            {formatTimestamp(statistics.newestLog)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>レベル別統計</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {Object.entries(statistics.logsByLevel).map(
-                        ([level, count]) => (
-                          <div
-                            key={level}
-                            className="flex justify-between items-center"
-                          >
-                            <div className="flex items-center gap-2">
-                              {getLevelIcon(
-                                LogLevel[level as keyof typeof LogLevel],
-                              )}
-                              <span>{level}</span>
-                            </div>
-                            <Badge variant="outline">{count}</Badge>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle>カテゴリ別統計</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {Object.entries(statistics.logsByCategory).map(
-                        ([category, count]) => (
-                          <div
-                            key={category}
-                            className="flex justify-between items-center"
-                          >
-                            <span className="text-sm">{category}</span>
-                            <Badge variant="secondary">{count}</Badge>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+      {ConfirmDialog}
+    </>
   );
 };
 

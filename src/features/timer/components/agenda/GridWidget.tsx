@@ -1,5 +1,5 @@
 import React from "react";
-import { Tooltip } from "@radix-ui/themes";
+import { SimpleTooltip } from "@/components/ui/simple-tooltip";
 import { GripVertical, Trash2 } from "lucide-react";
 import { getWidgetLabel } from "@/features/timer/utils/widget-catalog";
 import type { WidgetLayoutItem } from "@/types/layout";
@@ -21,7 +21,7 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
   return (
     <div
       className={cn(
-        "h-full flex flex-col overflow-hidden rounded-md border bg-background",
+        "h-full flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md",
         isEditMode && "ring-2 ring-primary/30",
       )}
     >
@@ -32,7 +32,7 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
             {getWidgetLabel(widget.type)}
           </span>
           {widget.type !== "transcript" && (
-            <Tooltip content="ウィジェットを非表示" side="top">
+            <SimpleTooltip content="ウィジェットを非表示" side="top">
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
@@ -42,7 +42,7 @@ export const GridWidget: React.FC<GridWidgetProps> = ({
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
-            </Tooltip>
+            </SimpleTooltip>
           )}
         </div>
       )}

@@ -40,8 +40,8 @@ vi.mock("@/components/ui/dialog", () => ({
   DialogTitle: ({ children }: any) => <h2>{children}</h2>,
 }));
 
-vi.mock("@radix-ui/themes", () => ({
-  Tooltip: ({ children }: any) => <>{children}</>,
+vi.mock("@/components/ui/simple-tooltip", () => ({
+  SimpleTooltip: ({ children }: any) => <>{children}</>,
 }));
 
 vi.mock("lucide-react", () => ({

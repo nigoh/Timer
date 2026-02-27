@@ -1,5 +1,8 @@
-import React, { useState, useCallback } from "react";
+import React from "react";
 import * as LucideIcons from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,7 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { X } from "lucide-react";
 import type { LucideIconName } from "@/types/task";
 import { useTaskStore } from "@/features/timer/stores/task-store";
@@ -57,6 +67,17 @@ const ICON_LIST: LucideIconName[] = [
   "Trophy",
 ];
 
+const taskCreateSchema = z.object({
+  name: z
+    .string()
+    .min(1, "タスク名は必須です")
+    .max(60, "タスク名は60文字以内で入力してください")
+    .regex(/^[^\x00-\x1f\x7f]*$/, "使用できない文字が含まれています"),
+  icon: z.string().min(1),
+});
+
+type TaskCreateFormValues = z.infer<typeof taskCreateSchema>;
+
 interface TaskCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -67,26 +88,24 @@ export const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   onOpenChange,
 }) => {
   const createTask = useTaskStore((s) => s.createTask);
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState<LucideIconName>("Timer");
 
-  const handleCreate = useCallback(() => {
-    if (!name.trim()) return;
-    createTask(name.trim(), icon);
-    setName("");
-    setIcon("Timer");
+  const form = useForm<TaskCreateFormValues, unknown, TaskCreateFormValues>({
+    resolver: zodResolver(taskCreateSchema),
+    defaultValues: { name: "", icon: "Timer" },
+  });
+
+  const onSubmit = (values: TaskCreateFormValues) => {
+    createTask(values.name.trim(), values.icon as LucideIconName);
+    form.reset();
     onOpenChange(false);
-  }, [name, icon, createTask, onOpenChange]);
+  };
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && name.trim()) {
-        e.preventDefault();
-        handleCreate();
-      }
-    },
-    [handleCreate, name],
-  );
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      form.handleSubmit(onSubmit)();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,69 +124,81 @@ export const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             </Button>
           </div>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="task-name-input">タスク名</Label>
-            <Input
-              id="task-name-input"
-              placeholder="例: ポモドーロ集中"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-              maxLength={60}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>タスク名</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="例: ポモドーロ集中"
+                      {...field}
+                      onKeyDown={handleKeyDown}
+                      autoFocus
+                      maxLength={60}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-1.5">
-            <Label>アイコン</Label>
-            <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto rounded-md border p-2">
-              {ICON_LIST.map((iconName) => {
-                const IconComp = (
-                  LucideIcons as unknown as Record<
-                    string,
-                    React.ComponentType<{ className?: string }> | undefined
-                  >
-                )[iconName];
-                if (!IconComp) return null;
-                const isSelected = icon === iconName;
-                return (
-                  <button
-                    key={iconName}
-                    type="button"
-                    onClick={() => setIcon(iconName)}
-                    className={`flex items-center justify-center rounded-sm p-1.5 transition-colors ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-accent text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-label={iconName}
-                    title={iconName}
-                  >
-                    <IconComp className="h-4 w-4" />
-                  </button>
-                );
-              })}
+            <FormField
+              control={form.control}
+              name="icon"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>アイコン</FormLabel>
+                  <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto rounded-md border p-2">
+                    {ICON_LIST.map((iconName) => {
+                      const IconComp = (
+                        LucideIcons as unknown as Record<
+                          string,
+                          | React.ComponentType<{ className?: string }>
+                          | undefined
+                        >
+                      )[iconName];
+                      if (!IconComp) return null;
+                      const isSelected = field.value === iconName;
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() => field.onChange(iconName)}
+                          className={`flex items-center justify-center rounded-sm p-1 transition-colors ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-accent text-muted-foreground hover:text-foreground"
+                          }`}
+                          aria-label={iconName}
+                          title={iconName}
+                        >
+                          <IconComp className="h-4 w-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                キャンセル
+              </Button>
+              <Button type="submit" disabled={!form.formState.isValid}>
+                作成
+              </Button>
             </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              キャンセル
-            </Button>
-            <Button
-              type="button"
-              onClick={handleCreate}
-              disabled={!name.trim()}
-            >
-              作成
-            </Button>
-          </div>
-        </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

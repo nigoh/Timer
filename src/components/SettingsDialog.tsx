@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Bot, Github, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Bot, Github, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
 import { AiProviderConfig, AiProviderType } from "@/types/aiAssist";
 import { validateAiProviderConfig } from "@/features/timer/utils/ai-provider-config";
@@ -33,7 +34,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     apiKey: aiProviderConfig?.apiKey ?? "",
     temperature: aiProviderConfig?.temperature ?? 0.2,
   });
-  const [aiSaved, setAiSaved] = React.useState(false);
 
   // ダイアログを開くたびに最新値に同期
   React.useEffect(() => {
@@ -44,8 +44,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         apiKey: aiProviderConfig?.apiKey ?? "",
         temperature: aiProviderConfig?.temperature ?? 0.2,
       });
-      setAiSaved(false);
-      setPatSaved(false);
     }
   }, [open, aiProviderConfig]);
 
@@ -56,17 +54,15 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     value: AiProviderConfig[K],
   ) => {
     setAiDraft((prev) => ({ ...prev, [key]: value }));
-    setAiSaved(false);
   };
 
   const handleSaveAi = () => {
     setAiProviderConfig(aiDraft);
-    setAiSaved(true);
+    toast.success("AI設定を保存しました（メモリのみ）");
   };
 
   // ── GitHub PAT ドラフト ──
   const [patDraft, setPatDraft] = React.useState(githubPat ?? "");
-  const [patSaved, setPatSaved] = React.useState(false);
 
   React.useEffect(() => {
     if (open) setPatDraft(githubPat ?? "");
@@ -74,7 +70,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
   const handleSavePat = () => {
     setGithubPat(patDraft.trim() || null);
-    setPatSaved(true);
+    toast.success(
+      patDraft.trim()
+        ? "PATを保存しました（メモリのみ）"
+        : "PATをクリアしました",
+    );
   };
 
   return (
@@ -173,12 +173,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              {aiSaved ? (
-                <span className="flex items-center gap-1 text-xs text-green-600">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  保存しました（メモリのみ）
-                </span>
-              ) : !aiValidation.valid ? (
+              {!aiValidation.valid ? (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <AlertCircle className="h-3.5 w-3.5" />
                   {aiValidation.reason}
@@ -221,7 +216,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 value={patDraft}
                 onChange={(e) => {
                   setPatDraft(e.target.value);
-                  setPatSaved(false);
                 }}
               />
               <p className="text-xs text-muted-foreground">
@@ -231,17 +225,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center justify-between pt-1">
-              {patSaved ? (
-                <span className="flex items-center gap-1 text-xs text-green-600">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  {patDraft.trim()
-                    ? "保存しました（メモリのみ）"
-                    : "クリアしました"}
-                </span>
-              ) : (
-                <span />
-              )}
+            <div className="flex justify-end pt-1">
               <Button onClick={handleSavePat} size="sm">
                 保存
               </Button>

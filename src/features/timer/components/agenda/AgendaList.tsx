@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip } from "@radix-ui/themes";
+import { SimpleTooltip } from "@/components/ui/simple-tooltip";
 import {
   Plus,
   Edit,
@@ -208,7 +208,10 @@ export const AgendaList: React.FC<AgendaListProps> = ({
                           </div>
 
                           <div className="flex shrink-0 gap-0.5">
-                            <Tooltip content="アジェンダを編集" side="top">
+                            <SimpleTooltip
+                              content="アジェンダを編集"
+                              side="top"
+                            >
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -221,8 +224,11 @@ export const AgendaList: React.FC<AgendaListProps> = ({
                               >
                                 <Edit className="h-3.5 w-3.5" />
                               </Button>
-                            </Tooltip>
-                            <Tooltip content="アジェンダを削除" side="top">
+                            </SimpleTooltip>
+                            <SimpleTooltip
+                              content="アジェンダを削除"
+                              side="top"
+                            >
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -235,7 +241,7 @@ export const AgendaList: React.FC<AgendaListProps> = ({
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
-                            </Tooltip>
+                            </SimpleTooltip>
                           </div>
                         </div>
 

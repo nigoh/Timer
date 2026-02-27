@@ -9,8 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tooltip } from "@radix-ui/themes";
+import { SimpleTooltip } from "@/components/ui/simple-tooltip";
 import { ClipboardCopy, Eye, FileText, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { MeetingReport } from "@/types/meetingReport";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
   const handleCopy = async (markdown: string) => {
     if (!markdown.trim()) return;
     await navigator.clipboard.writeText(markdown);
+    toast.success("レポートをクリップボードにコピーしました");
   };
 
   return (
@@ -101,7 +103,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Tooltip content="レポートを表示" side="top">
+                      <SimpleTooltip content="レポートを表示" side="top">
                         <Button
                           type="button"
                           variant="ghost"
@@ -115,8 +117,8 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
-                      </Tooltip>
-                      <Tooltip content="レポートをコピー" side="top">
+                      </SimpleTooltip>
+                      <SimpleTooltip content="レポートをコピー" side="top">
                         <Button
                           type="button"
                           variant="ghost"
@@ -130,8 +132,8 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                         >
                           <ClipboardCopy className="h-3.5 w-3.5" />
                         </Button>
-                      </Tooltip>
-                      <Tooltip content="レポートを削除" side="top">
+                      </SimpleTooltip>
+                      <SimpleTooltip content="レポートを削除" side="top">
                         <Button
                           type="button"
                           variant="ghost"
@@ -145,7 +147,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      </Tooltip>
+                      </SimpleTooltip>
                     </div>
                   </div>
                 </li>
@@ -187,7 +189,7 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
                         href={entry.commentUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline break-all"
+                        className="text-link hover:underline break-all"
                       >
                         {entry.commentUrl}
                       </a>

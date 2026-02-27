@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Sparkles, Trash2 } from "lucide-react";
-import { Tooltip } from "@radix-ui/themes";
+import { SimpleTooltip } from "@/components/ui/simple-tooltip";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VoiceRecognitionButton } from "@/features/timer/components/voice/VoiceRecognitionButton";
@@ -85,7 +85,7 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
           {/* 右: クリア・挿入ボタン */}
           <div className="ml-auto flex items-center gap-1">
             {hasContent && (
-              <Tooltip content="クリア">
+              <SimpleTooltip content="クリア">
                 <Button
                   type="button"
                   variant="ghost"
@@ -96,9 +96,9 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
-              </Tooltip>
+              </SimpleTooltip>
             )}
-            <Tooltip
+            <SimpleTooltip
               content={
                 minutesFormat === "richtext"
                   ? "AI要約して議事録に追加"
@@ -120,7 +120,7 @@ export const VoiceTranscriptPanel: React.FC<VoiceTranscriptPanelProps> = ({
               >
                 <Sparkles className="h-4 w-4" />
               </Button>
-            </Tooltip>
+            </SimpleTooltip>
           </div>
         </div>
 

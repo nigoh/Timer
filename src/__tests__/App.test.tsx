@@ -13,7 +13,6 @@ vi.mock("../features/timer/components/task-list/TaskListSidebar", () => ({
     onCreateTask,
     onOpenSettings,
   }: {
-    sidebarOpen: boolean;
     onCreateTask: () => void;
     onOpenSettings: () => void;
   }) => (
@@ -42,12 +41,12 @@ vi.mock("../features/timer/components/task-list/EmptyTaskView", () => ({
   ),
 }));
 
-vi.mock("../features/timer/components/task-list/LucideDynamicIcon", () => ({
-  LucideDynamicIcon: () => <span aria-hidden="true" />,
-}));
-
 vi.mock("../features/timer/components/agenda/MeetingReportDialog", () => ({
   MeetingReportDialog: () => null,
+}));
+
+vi.mock("../features/timer/components/task-list/CommandPalette", () => ({
+  CommandPalette: () => null,
 }));
 
 vi.mock("../components/SettingsAndLogsPage", () => ({
@@ -74,50 +73,19 @@ vi.mock("../components/ui/button", () => ({
   ),
 }));
 
-vi.mock("../components/ui/dialog", () => ({
-  Dialog: ({
-    open,
-    children,
-  }: {
-    open: boolean;
-    onOpenChange?: (open: boolean) => void;
-    children: React.ReactNode;
-  }) => (open ? <div role="dialog">{children}</div> : null),
-  DialogContent: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogHeader: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogTitle: ({ children }: { children: React.ReactNode }) => (
-    <h2>{children}</h2>
-  ),
-  DialogDescription: ({ children }: { children: React.ReactNode }) => (
-    <p>{children}</p>
-  ),
-}));
-
-vi.mock("@radix-ui/themes", () => ({
-  Theme: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
 vi.mock("lucide-react", () => {
   const Icon = () => <span aria-hidden="true" />;
   return {
     Moon: Icon,
     Sun: Icon,
-    PanelLeftClose: Icon,
-    PanelLeftOpen: Icon,
-    Menu: Icon,
-    Settings: Icon,
-    Plus: Icon,
+    PanelLeft: Icon,
   };
 });
 
 const mockUIPreferencesState = {
   sidebarOpen: true,
   toggleSidebar: vi.fn(),
+  setSidebarOpen: vi.fn(),
 };
 
 vi.mock("../features/timer/stores/ui-preferences-store", () => ({

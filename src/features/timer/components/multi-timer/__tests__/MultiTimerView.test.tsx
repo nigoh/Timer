@@ -43,7 +43,7 @@ vi.mock("@/constants/timer-theme", () => ({
       color: "text-blue",
       label: "完了",
       badgeVariant: "outline",
-      surfaceClass: "bg-green-50",
+      surfaceClass: "bg-success/10",
       icon: null,
     },
     idle: {
@@ -96,6 +96,13 @@ vi.mock("@/components/ui/button", () => ({
       {children}
     </button>
   ),
+}));
+
+vi.mock("@/hooks/useConfirmDialog", () => ({
+  useConfirmDialog: () => ({
+    confirm: vi.fn((_config: any, onConfirm: () => void) => onConfirm()),
+    ConfirmDialog: null,
+  }),
 }));
 
 vi.mock("@/components/ui/input", () => ({
@@ -236,20 +243,16 @@ describe("MultiTimerView", () => {
 
   // TC-MV-02
   it("timers が 2 件のときカード名が 2 つ表示される", async () => {
-    useMultiTimerStore
-      .getState()
-      .addTimer(TASK_ID, {
-        name: "タイマーA",
-        duration: 60,
-        color: "bg-blue-500",
-      });
-    useMultiTimerStore
-      .getState()
-      .addTimer(TASK_ID, {
-        name: "タイマーB",
-        duration: 120,
-        color: "bg-red-500",
-      });
+    useMultiTimerStore.getState().addTimer(TASK_ID, {
+      name: "タイマーA",
+      duration: 60,
+      color: "bg-info",
+    });
+    useMultiTimerStore.getState().addTimer(TASK_ID, {
+      name: "タイマーB",
+      duration: 120,
+      color: "bg-destructive",
+    });
     await renderView(container);
     expect(container.textContent).toContain("タイマーA");
     expect(container.textContent).toContain("タイマーB");
@@ -259,7 +262,7 @@ describe("MultiTimerView", () => {
   it("「開始」クリックでタイマーが実行状態になる", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer(TASK_ID, { name: "作業", duration: 60, color: "bg-blue-500" });
+      .addTimer(TASK_ID, { name: "作業", duration: 60, color: "bg-info" });
     await renderView(container);
     const startBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("開始") && !b.disabled,
@@ -275,7 +278,7 @@ describe("MultiTimerView", () => {
   it("「一時停止」クリックでタイマーが一時停止状態になる", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer(TASK_ID, { name: "作業", duration: 60, color: "bg-blue-500" });
+      .addTimer(TASK_ID, { name: "作業", duration: 60, color: "bg-info" });
     const timerId = inst().timers[0].id;
     useMultiTimerStore.getState().startTimer(TASK_ID, timerId);
     await renderView(container);
@@ -290,13 +293,11 @@ describe("MultiTimerView", () => {
 
   // TC-MV-07
   it("「削除」クリックでタイマーが削除される", async () => {
-    useMultiTimerStore
-      .getState()
-      .addTimer(TASK_ID, {
-        name: "消えるタイマー",
-        duration: 60,
-        color: "bg-blue-500",
-      });
+    useMultiTimerStore.getState().addTimer(TASK_ID, {
+      name: "消えるタイマー",
+      duration: 60,
+      color: "bg-info",
+    });
     await renderView(container);
     const deleteBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("削除"),
@@ -311,10 +312,10 @@ describe("MultiTimerView", () => {
   it("「すべて開始」クリックでタイマーが全て実行状態になる", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer(TASK_ID, { name: "A", duration: 60, color: "bg-blue-500" });
+      .addTimer(TASK_ID, { name: "A", duration: 60, color: "bg-info" });
     useMultiTimerStore
       .getState()
-      .addTimer(TASK_ID, { name: "B", duration: 60, color: "bg-red-500" });
+      .addTimer(TASK_ID, { name: "B", duration: 60, color: "bg-destructive" });
     await renderView(container);
     const startAllBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent?.includes("すべて開始"),
@@ -330,7 +331,7 @@ describe("MultiTimerView", () => {
   it("「すべて停止」クリックでタイマーが全て停止する", async () => {
     useMultiTimerStore
       .getState()
-      .addTimer(TASK_ID, { name: "A", duration: 60, color: "bg-blue-500" });
+      .addTimer(TASK_ID, { name: "A", duration: 60, color: "bg-info" });
     const timerId = inst().timers[0].id;
     useMultiTimerStore.getState().startTimer(TASK_ID, timerId);
     await renderView(container);
@@ -375,13 +376,11 @@ describe("MultiTimerView", () => {
 
   // TC-MV-12
   it("isCompleted=true のタイマーに「完了」バッジが表示される", async () => {
-    useMultiTimerStore
-      .getState()
-      .addTimer(TASK_ID, {
-        name: "完了済み",
-        duration: 60,
-        color: "bg-blue-500",
-      });
+    useMultiTimerStore.getState().addTimer(TASK_ID, {
+      name: "完了済み",
+      duration: 60,
+      color: "bg-info",
+    });
     const timerId = inst().timers[0].id;
     // 直接 completed に更新
     useMultiTimerStore.setState((state) => ({
@@ -396,7 +395,7 @@ describe("MultiTimerView", () => {
       },
     }));
     await renderView(container);
-    // 完了タイマーカードは TIMER_STATUS_CONFIG.completed.surfaceClass='bg-green-50' クラスを持つ
-    expect(container.querySelector(".bg-green-50")).not.toBeNull();
+    // 完了タイマーカードは TIMER_STATUS_CONFIG.completed.surfaceClass クラスを持つ
+    expect(container.querySelector('[class*="bg-success"]')).not.toBeNull();
   });
 });

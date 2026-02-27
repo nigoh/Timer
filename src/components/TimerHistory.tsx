@@ -232,7 +232,7 @@ export const TimerHistory: React.FC<TimerHistoryProps> = ({
                       href={stat.issueUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-w-0 break-all text-xs text-blue-600 hover:underline"
+                      className="min-w-0 break-all text-xs text-link hover:underline"
                     >
                       {stat.issueTitle}
                     </a>

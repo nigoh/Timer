@@ -16,13 +16,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertDialog } from "@radix-ui/themes";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import type { QuillEditorHandle } from "@/components/ui/quill-editor";
 import {
   Plus,
@@ -33,6 +41,7 @@ import {
   Volume2,
   FileText,
   X,
+  BarChart3,
 } from "lucide-react";
 import {
   useTaskStore,
@@ -72,7 +81,7 @@ import TrendChart from "@/features/timer/components/dashboard/TrendChart";
 import HeatmapChart from "@/features/timer/components/dashboard/HeatmapChart";
 import DonutChart from "@/features/timer/components/dashboard/DonutChart";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { formatMinutesValue } from "@/lib/utils";
+import { cn, formatMinutesValue } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   Select,
@@ -86,7 +95,15 @@ import {
   getWidgetsByCategory,
   CATEGORY_LABELS,
   createWidgetLayoutItem,
+  type WidgetCategory,
 } from "@/features/timer/utils/widget-catalog";
+
+/** カテゴリごとのアイコン */
+const CATEGORY_ICONS: Record<WidgetCategory, React.ElementType> = {
+  timer: Clock,
+  meeting: Users,
+  analytics: BarChart3,
+};
 
 // ── Analytics helpers ──
 
@@ -250,36 +267,47 @@ const WidgetAddDialog: React.FC<WidgetAddDialogProps> = ({
             </Button>
           </div>
         </DialogHeader>
-        {(Object.keys(grouped) as Array<keyof typeof grouped>).map((cat) => (
-          <div key={cat} className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-              {CATEGORY_LABELS[cat]}
-            </p>
-            {grouped[cat].map((meta) => {
-              const alreadyExists = existingTypes.has(meta.type);
-              return (
-                <div
-                  key={meta.type}
-                  className="flex items-center justify-between rounded-sm border px-2 py-1.5"
-                >
-                  <p className="text-sm">{meta.label}</p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={alreadyExists}
-                    onClick={() => {
-                      onAddWidget(meta.type);
-                      onOpenChange(false);
-                    }}
+        {(Object.keys(grouped) as Array<keyof typeof grouped>).map((cat) => {
+          const CatIcon = CATEGORY_ICONS[cat];
+          return (
+            <div key={cat} className="space-y-2">
+              <div className="flex items-center gap-1.5 pt-2">
+                <CatIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {CATEGORY_LABELS[cat]}
+                </p>
+              </div>
+              {grouped[cat].map((meta) => {
+                const alreadyExists = existingTypes.has(meta.type);
+                return (
+                  <div
+                    key={meta.type}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg border p-3 transition-colors",
+                      alreadyExists
+                        ? "bg-muted/40 opacity-60"
+                        : "bg-card hover:bg-accent/50",
+                    )}
                   >
-                    {alreadyExists ? "追加済み" : "追加"}
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                    <p className="text-sm font-medium">{meta.label}</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={alreadyExists ? "ghost" : "default"}
+                      disabled={alreadyExists}
+                      onClick={() => {
+                        onAddWidget(meta.type);
+                        onOpenChange(false);
+                      }}
+                    >
+                      {alreadyExists ? "追加済み" : "追加"}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </DialogContent>
     </Dialog>
   );
@@ -797,6 +825,15 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
     <div className="w-full">
       {/* ── ツールバー ── */}
       <div className="flex flex-wrap items-center gap-2 pb-3">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setIsWidgetAddOpen(true)}
+        >
+          <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
+          ウィジェット追加
+        </Button>
         <div className="ml-auto flex items-center gap-2">
           <Label htmlFor="canvas-edit-mode" className="text-sm">
             編集モード
@@ -808,15 +845,6 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
           />
           {isEditMode && (
             <>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setIsWidgetAddOpen(true)}
-              >
-                <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
-                ウィジェット追加
-              </Button>
               {hiddenWidgets.length > 0 && (
                 <Button
                   type="button"
@@ -842,14 +870,27 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
 
       {/* ── グリッド ── */}
       <div ref={containerRef as React.Ref<HTMLDivElement>} className="w-full">
-        {visibleWidgets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <p className="text-sm">ウィジェットがありません</p>
+        {!gridWidth ? (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            <Skeleton className="h-40 rounded-lg" />
+            <Skeleton className="h-40 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+          </div>
+        ) : visibleWidgets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-12 text-muted-foreground">
+            <PlusCircle className="h-10 w-10 opacity-25" />
+            <div className="text-center">
+              <p className="text-sm font-medium text-foreground">
+                ウィジェットがありません
+              </p>
+              <p className="mt-1 text-xs">
+                ウィジェットを追加してカスタマイズしましょう
+              </p>
+            </div>
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              className="mt-3"
               onClick={() => setIsWidgetAddOpen(true)}
             >
               <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
@@ -1096,19 +1137,19 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
         onInserted={() => setIsSummaryDialogOpen(false)}
       />
 
-      <AlertDialog.Root
+      <AlertDialog
         open={isDeleteMeetingDialogOpen}
         onOpenChange={setIsDeleteMeetingDialogOpen}
       >
-        <AlertDialog.Content maxWidth="420px">
-          <AlertDialog.Title>会議を削除しますか？</AlertDialog.Title>
-          <AlertDialog.Description>
+        <AlertDialogContent className="max-w-[420px]">
+          <AlertDialogTitle>会議を削除しますか？</AlertDialogTitle>
+          <AlertDialogDescription>
             {meetingToDelete
               ? `「${meetingToDelete.title}」を削除します。この操作は取り消せません。`
               : "この操作は取り消せません。"}
-          </AlertDialog.Description>
+          </AlertDialogDescription>
           <div className="mt-4 flex justify-end gap-2">
-            <AlertDialog.Cancel>
+            <AlertDialogCancel asChild>
               <Button
                 type="button"
                 variant="outline"
@@ -1119,8 +1160,8 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
               >
                 キャンセル
               </Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
               <Button
                 type="button"
                 variant="destructive"
@@ -1132,10 +1173,10 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
               >
                 削除
               </Button>
-            </AlertDialog.Action>
+            </AlertDialogAction>
           </div>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

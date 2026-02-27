@@ -147,7 +147,7 @@ export const GitHubIssueLinking: React.FC<GitHubIssueLinkingProps> = ({
                     href={link.issueUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="min-w-0 flex-1 break-all text-blue-600 hover:underline"
+                    className="min-w-0 flex-1 break-all text-link hover:underline"
                   >
                     {link.owner}/{link.repo} #{link.issueNumber}
                     {link.issueTitle && (

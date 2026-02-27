@@ -1,49 +1,45 @@
-# AGENTS.md（リポジトリ共通ガイド）
+# AI-DLC and Spec-Driven Development
 
-## 1) スコープと優先順位
-- この `AGENTS.md` のスコープは、**このファイルが置かれたディレクトリ配下（= リポジトリ全体）**です。
-- 指示の優先順位は次の通りです。
-  1. システム / 開発者 / ユーザーからの直接指示
-  2. より深い階層にある `AGENTS.md`
-  3. この `AGENTS.md`
-  4. その他の一般的な慣習
+Kiro-style Spec Driven Development implementation on AI-DLC (AI Development Life Cycle)
 
-## Claude Code ユーザーへ
+## Project Context
 
-Claude Codeを利用する場合は、プロジェクトルートの **`CLAUDE.md`** を参照してください。
-コーディング規約・アーキテクチャ・コマンド早見表・主要ファイル一覧が記載されています。
-ワークフロー・PRプロセスはこの `AGENTS.md` を引き続き参照してください。
+### Paths
+- Steering: `.kiro/steering/`
+- Specs: `.kiro/specs/`
 
-## 2) エージェント作業手順（必須順序）
-エージェントは必ず次の順序で作業してください。
-1. **要件確認**: 依頼内容・制約・影響範囲を明確化
-2. **設計**: 変更方針、対象ファイル、検証方法を定義
-3. **実装**: 設計に沿って最小差分で実装
-4. **検証**: テスト・静的解析・動作確認を実施
-5. **PR作成**: 変更内容と検証結果をテンプレートに沿って記載
+### Steering vs Specification
 
-## 3) コーディング規約の参照先
-- 実装時は `.github/copilot-instructions.md` を第一のコーディング規約参照先とします。
-- 本ガイドは同ファイルと**矛盾しない形**で運用し、矛盾が疑われる場合は `.github/copilot-instructions.md` を優先してください。
+**Steering** (`.kiro/steering/`) - Guide AI with project-wide rules and context
+**Specs** (`.kiro/specs/`) - Formalize development process for individual features
 
-## 4) ドキュメント更新義務
-- 仕様変更・挙動変更・要件追加/削除を伴う変更では、コード変更と同一PRで次を更新してください。
-  - `docs/REQUIREMENTS.md`
-  - 関連仕様書（例: `docs/TECHNICAL_SPECS.md`, `docs/UX_DESIGN_SPEC.md`, `docs/FEATURES.md` など）
-- 変更が仕様に影響しない場合は、PR本文に「仕様影響なし」の根拠を明記してください。
+### Active Specifications
+- Check `.kiro/specs/` for active specifications
+- Use `/kiro-spec-status [feature-name]` to check progress
 
-## 5) PR本文テンプレート（必須項目）
-PR本文には、以下の見出しを必ず含めてください。
+## Development Guidelines
+- Think in English, generate responses in Japanese. All Markdown content written to project files (e.g., requirements.md, design.md, tasks.md, research.md, validation reports) MUST be written in the target language configured for this specification (see spec.json.language).
 
-```md
-## 背景
-## 変更点
-## 影響範囲
-## 検証手順
-## 未解決事項
-```
+## Minimal Workflow
+- Phase 0 (optional): `/kiro-steering`, `/kiro-steering-custom`
+- Phase 1 (Specification):
+  - `/kiro-spec-init "description"`
+  - `/kiro-spec-requirements {feature}`
+  - `/kiro-validate-gap {feature}` (optional: for existing codebase)
+  - `/kiro-spec-design {feature} [-y]`
+  - `/kiro-validate-design {feature}` (optional: design review)
+  - `/kiro-spec-tasks {feature} [-y]`
+- Phase 2 (Implementation): `/kiro-spec-impl {feature} [tasks]`
+  - `/kiro-validate-impl {feature}` (optional: after implementation)
+- Progress check: `/kiro-spec-status {feature}` (use anytime)
 
----
+## Development Rules
+- 3-phase approval workflow: Requirements → Design → Tasks → Implementation
+- Human review required each phase; use `-y` only for intentional fast-track
+- Keep steering current and verify alignment with `/kiro-spec-status`
+- Follow the user's instructions precisely, and within that scope act autonomously: gather the necessary context and complete the requested work end-to-end in this run, asking questions only when essential information is missing or the instructions are critically ambiguous.
 
-## 補足
-- UI層・state層の追加ルールは、必要に応じて `src/` 配下のネストした `AGENTS.md` で定義します。
+## Steering Configuration
+- Load entire `.kiro/steering/` as project memory
+- Default files: `product.md`, `tech.md`, `structure.md`
+- Custom files are supported (managed via `/kiro-steering-custom`)

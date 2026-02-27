@@ -84,6 +84,13 @@ vi.mock("@/components/ui/button", () => ({
   ),
 }));
 
+vi.mock("@/hooks/useConfirmDialog", () => ({
+  useConfirmDialog: () => ({
+    confirm: vi.fn((_config: any, onConfirm: () => void) => onConfirm()),
+    ConfirmDialog: null,
+  }),
+}));
+
 vi.mock("@/components/ui/input", () => ({
   Input: ({ value, onChange, placeholder }: any) => (
     <input value={value} onChange={onChange} placeholder={placeholder} />
@@ -225,9 +232,6 @@ describe("LogViewer", () => {
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(writeText.mock.calls[0][0]).toContain("Network down");
     expect(writeText.mock.calls[0][0]).not.toContain("UI loaded");
-    expect(container.textContent).toContain(
-      "このログのAI分析文をコピーしました",
-    );
 
     await act(async () => {
       selects[0].value = "all";

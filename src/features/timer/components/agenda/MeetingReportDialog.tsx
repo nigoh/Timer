@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Copy, Save, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useMeetingReportStore } from "@/features/timer/stores/meeting-report-store";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
 import {
@@ -40,8 +41,7 @@ export const MeetingReportDialog: React.FC = () => {
     saveDraft,
     reports,
   } = useMeetingReportStore();
-  const { getLinks, githubPat, aiProviderConfig } =
-    useIntegrationLinkStore();
+  const { getLinks, githubPat, aiProviderConfig } = useIntegrationLinkStore();
   const [isPosting, setIsPosting] = React.useState(false);
   const [isTodoImporting, setIsTodoImporting] = React.useState(false);
   const [isAiGenerating, setIsAiGenerating] = React.useState(false);
@@ -82,6 +82,7 @@ export const MeetingReportDialog: React.FC = () => {
   const handleCopyAndSave = async () => {
     if (draft.markdown.trim()) {
       await navigator.clipboard.writeText(draft.markdown);
+      toast.success("レポートをクリップボードにコピーしました");
     }
     saveDraft();
   };
@@ -135,12 +136,15 @@ export const MeetingReportDialog: React.FC = () => {
   const handleGenerateAssist = async (testOnly = false) => {
     setIsAiGenerating(true);
     try {
-      const result = await generateMeetingAiAssist(draft, aiProviderConfig ?? {
-        provider: "openai",
-        model: "gpt-4o-mini",
-        apiKey: "",
-        temperature: 0.2,
-      });
+      const result = await generateMeetingAiAssist(
+        draft,
+        aiProviderConfig ?? {
+          provider: "openai",
+          model: "gpt-4o-mini",
+          apiKey: "",
+          temperature: 0.2,
+        },
+      );
       if (!testOnly) {
         setGeneratedAiAssist(result.assist);
       }
@@ -321,7 +325,8 @@ export const MeetingReportDialog: React.FC = () => {
                 </div>
                 {!aiProviderConfig?.apiKey && (
                   <p className="text-xs text-muted-foreground">
-                    AI機能を使用するには、サイドバーの「設定」からAI APIキーを設定してください。
+                    AI機能を使用するには、サイドバーの「設定」からAI
+                    APIキーを設定してください。
                   </p>
                 )}
                 <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">

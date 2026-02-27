@@ -58,9 +58,9 @@ vi.mock("date-fns/locale", () => ({
 
 vi.mock("@/constants/timer-theme", () => ({
   TIMER_STATUS_CONFIG: {
-    completed: { color: "text-green-600" },
-    paused: { color: "text-yellow-600" },
-    warning: { color: "text-orange-600" },
+    completed: { color: "text-success" },
+    paused: { color: "text-warning" },
+    warning: { color: "text-warning" },
   },
 }));
 

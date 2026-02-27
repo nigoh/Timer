@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatDuration } from "@/lib/utils";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   Card,
   CardContent,
@@ -68,12 +69,7 @@ interface TimerFormData {
   color: string;
 }
 
-const TIMER_COLORS = [
-  "bg-blue-500",
-  "bg-green-500",
-  "bg-amber-500",
-  "bg-red-500",
-];
+const TIMER_COLORS = ["bg-info", "bg-success", "bg-warning", "bg-destructive"];
 
 const AddTimerDialog: React.FC = () => {
   const taskId = useTaskId();
@@ -274,6 +270,7 @@ const TimerCard: React.FC<{
     deleteTimer,
     duplicateTimer,
   } = useMultiTimerInstance(taskId);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const progress =
     timer.duration > 0
@@ -288,124 +285,133 @@ const TimerCard: React.FC<{
   const statusConfig = TIMER_STATUS_CONFIG[timerStatus];
 
   return (
-    <Card
-      className={`${timer.isRunning ? "ring-2 ring-ring" : ""} ${timer.isCompleted ? TIMER_STATUS_CONFIG.completed.surfaceClass : ""}`}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg truncate">{timer.name}</CardTitle>
-            <div
-              className={`flex items-center gap-2 mt-1 ${statusConfig.color}`}
-            >
-              {statusConfig.icon}
-              <span className="text-sm font-medium">{statusConfig.label}</span>
-              {timer.category && (
-                <Badge variant="secondary" className="text-xs text-foreground">
-                  {timer.category}
-                </Badge>
-              )}
+    <>
+      <Card
+        className={`${timer.isRunning ? "ring-2 ring-ring" : ""} ${timer.isCompleted ? TIMER_STATUS_CONFIG.completed.surfaceClass : ""}`}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg truncate">{timer.name}</CardTitle>
+              <div
+                className={`flex items-center gap-2 mt-1 ${statusConfig.color}`}
+              >
+                {statusConfig.icon}
+                <span className="text-sm font-medium">
+                  {statusConfig.label}
+                </span>
+                {timer.category && (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs text-foreground"
+                  >
+                    {timer.category}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className={`w-4 h-4 rounded-full ${timer.color}`} />
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* 時間表示 */}
+          <div className="text-center">
+            <div className="text-2xl font-mono font-bold">
+              {formatDuration(timer.remainingTime)}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              / {formatDuration(timer.duration)}
             </div>
           </div>
-          <div className={`w-4 h-4 rounded-full ${timer.color}`} />
-        </div>
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* 時間表示 */}
-        <div className="text-center">
-          <div className="text-2xl font-mono font-bold">
-            {formatDuration(timer.remainingTime)}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            / {formatDuration(timer.duration)}
-          </div>
-        </div>
+          {/* 進捗バー */}
+          <Progress
+            value={progress}
+            className="h-2"
+            indicatorClassName={timer.color}
+          />
 
-        {/* 進捗バー */}
-        <Progress
-          value={progress}
-          className="h-2"
-          indicatorClassName={timer.color}
-        />
+          {/* 説明 */}
+          {timer.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {timer.description}
+            </p>
+          )}
 
-        {/* 説明 */}
-        {timer.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {timer.description}
-          </p>
-        )}
+          {/* コントロールボタン */}
+          <div className="flex justify-center gap-2">
+            {!timer.isRunning && !timer.isCompleted ? (
+              <Button
+                size="sm"
+                onClick={() => startTimer(timer.id)}
+                disabled={timer.isCompleted}
+              >
+                <Play className="w-4 h-4 mr-1.5" />
+                開始
+              </Button>
+            ) : timer.isRunning ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => pauseTimer(timer.id)}
+              >
+                <Pause className="w-4 h-4 mr-1.5" />
+                一時停止
+              </Button>
+            ) : null}
 
-        {/* コントロールボタン */}
-        <div className="flex justify-center gap-2">
-          {!timer.isRunning && !timer.isCompleted ? (
-            <Button
-              size="sm"
-              onClick={() => startTimer(timer.id)}
-              disabled={timer.isCompleted}
-            >
-              <Play className="w-4 h-4 mr-1.5" />
-              開始
-            </Button>
-          ) : timer.isRunning ? (
             <Button
               size="sm"
               variant="outline"
-              onClick={() => pauseTimer(timer.id)}
+              onClick={() => stopTimer(timer.id)}
+              disabled={!timer.isRunning && !timer.isPaused}
             >
-              <Pause className="w-4 h-4 mr-1.5" />
-              一時停止
+              <Square className="w-4 h-4 mr-1.5" />
+              停止
             </Button>
-          ) : null}
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => stopTimer(timer.id)}
-            disabled={!timer.isRunning && !timer.isPaused}
-          >
-            <Square className="w-4 h-4 mr-1.5" />
-            停止
-          </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => resetTimer(timer.id)}
+            >
+              <RotateCcw className="w-4 h-4 mr-1.5" />
+              リセット
+            </Button>
+          </div>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => resetTimer(timer.id)}
-          >
-            <RotateCcw className="w-4 h-4 mr-1.5" />
-            リセット
-          </Button>
-        </div>
-
-        {/* アクションボタン */}
-        <div className="flex justify-center gap-2 pt-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => duplicateTimer(timer.id)}
-          >
-            <Copy className="w-4 h-4 mr-1.5" />
-            複製
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => {
-              const shouldDelete = window.confirm(
-                `「${timer.name}」を削除しますか？この操作は取り消せません。`,
-              );
-              if (shouldDelete) {
-                deleteTimer(timer.id);
-              }
-            }}
-          >
-            <Trash2 className="w-4 h-4 mr-1.5" />
-            削除
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          {/* アクションボタン */}
+          <div className="flex justify-center gap-2 pt-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => duplicateTimer(timer.id)}
+            >
+              <Copy className="w-4 h-4 mr-1.5" />
+              複製
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                confirm(
+                  {
+                    title: "タイマーを削除",
+                    description: `「${timer.name}」を削除しますか？この操作は取り消せません。`,
+                  },
+                  () => deleteTimer(timer.id),
+                );
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              削除
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      {ConfirmDialog}
+    </>
   );
 };
 

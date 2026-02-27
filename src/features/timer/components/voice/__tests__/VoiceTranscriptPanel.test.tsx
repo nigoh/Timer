@@ -80,8 +80,10 @@ vi.mock("lucide-react", () => ({
   Sparkles: () => <span>sparkles</span>,
 }));
 
-vi.mock("@radix-ui/themes", () => ({
-  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+vi.mock("@/components/ui/simple-tooltip", () => ({
+  SimpleTooltip: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 vi.mock("@/lib/utils", () => ({

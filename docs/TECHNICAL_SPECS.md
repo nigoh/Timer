@@ -7,7 +7,11 @@
 - TypeScript 5
 - Vite 5
 - Zustand 4
-- Tailwind CSS + shadcn/ui + Radix UI
+- Tailwind CSS + shadcn/ui (new-york style) + Radix UI
+- react-hook-form + @hookform/resolvers + zod（フォームバリデーション）
+- Sonner（トースト通知）
+- cmdk（コマンドパレット）
+- @dnd-kit/sortable + core（ドラッグ並べ替え）
 - Vitest
 
 
@@ -27,11 +31,13 @@
   - `multi-timer-store.ts`: 複数タイマー
   - `pomodoro-store.ts`: ポモドーロ
   - `voice-store.ts`: 音声文字起こし状態（録音中/確定エントリ/言語）
+  - `meeting-knowledge-store.ts`: MAPE-K Knowledge — 会議記録・学習パターン永続化
 - `src/features/timer/api`: 外部 API クライアント（GitHub 連携）
 - `src/features/timer/services`: 外部連携サービス
   - `analytics.ts`: 分析集計ロジック
   - `meeting-ai-assist-service.ts`: AI API 連携（LangChain 経由 / OpenAI・Anthropic）
   - `voice-recognition-service.ts`: Web Speech API ラッパー
+  - `meeting-optimization-service.ts`: MAPE-K Analyze + Plan — 超過傾向分析・改善提案生成
 - `src/features/timer/hooks`: カスタムフック（`useVoiceRecognition.ts`）
 - `src/features/timer/utils`: 機能ユーティリティ（Issue別集計・AIアシスト・議題パーサーなど）
 - `src/types`: ドメイン型
@@ -45,6 +51,18 @@
 - ストア参照は `src/features/timer/stores` を正本とし、`src/stores` の互換レイヤーは使用しない。
 
 - UI ローカル状態のみコンポーネントの `useState` を許可する。
+
+## UI コンポーネント方針
+
+- shadcn/ui (new-york スタイル) コンポーネントを `src/components/ui/` に配置し、Radix UI プリミティブはラッパー経由で使用する。
+- レイアウトは shadcn Sidebar (`collapsible="icon"`) + SidebarProvider で制御する。サイドバー開閉状態は `ui-preferences-store` で永続化する。
+- デスクトップではパンくずナビ（shadcn Breadcrumb）でタスク名/設定画面を表示する。モバイルではヘッダーバーで同等情報を表示。
+- ウィジェットグリッド初期レンダリング時は shadcn Skeleton で読み込み中状態を表示する。
+- インラインフィードバック（保存完了/コピー完了等）は Sonner Toast に統一する。
+- ダイアログ確認は shadcn AlertDialog（`useConfirmDialog` フック）に統一し、`window.confirm` は使用しない。
+- フォームバリデーションは react-hook-form + zod + shadcn Form コンポーネントに統一する。
+- コマンドパレット (Ctrl+K / Cmd+K) でタスク検索・切り替え・アクション実行が可能。
+- CSS カラーはセマンティック変数（`--success`, `--warning`, `--info`, `--link`）を使用し、ハードコードされた色値は禁止する。
 
 ## 通知仕様
 
@@ -152,6 +170,28 @@ src/
 - 一部ストアは Zustand `persist` を利用し、LocalStorage に保存する。
 - 永続化対象はストアごとに `partialize` で制御する。
 - `integration-link-store` は `linksByLogId` のみ永続化し、`githubPat` はメモリ保持（非永続）とする。
+- `meeting-knowledge-store` は `records`（最大 100 件）, `learnedPatterns`, `settings` を永続化する。
+
+## MAPE-K 会議効率化 アーキテクチャ
+
+MAPE-K 自律コンピューティングループにより、会議データを蓄積・分析し、アジェンダの予定時間改善を自動提案する。
+
+### ループ構成
+
+| コンポーネント | 実装先 | 責務 |
+|---------------|--------|------|
+| Monitor | `meeting-knowledge-store.ts` | 会議完了時の MeetingRecord 自動記録 |
+| Analyze | `meeting-optimization-service.ts` | 超過傾向分析、パターンマッチング |
+| Plan | `meeting-optimization-service.ts` | 改善提案生成（duration-adjustment 等） |
+| Execute | `SuggestionBadge` / `SuggestionDialog` | ユーザー承認→予定時間更新 |
+| Knowledge | `meeting-knowledge-store.ts` | 会議記録・学習パターン・設定の永続化 |
+
+### 設計原則
+
+- ローカル計算のみ（外部 API 不要）
+- 提案は必ずユーザー承認（自動適用禁止）
+- 最低 3 件のデータ蓄積後に分析開始
+- 詳細仕様: `.kiro/specs/mape-k-meeting-optimization/`
 
 ## アジェンダ向け GitHub Issue 入力仕様（初期実装）
 

@@ -7,6 +7,7 @@ interface UIPreferencesState {
 
 interface UIPreferencesActions {
   toggleSidebar: () => void;
+  setSidebarOpen: (open: boolean) => void;
 }
 
 type UIPreferencesStore = UIPreferencesState & UIPreferencesActions;
@@ -18,6 +19,8 @@ export const useUIPreferencesStore = create<UIPreferencesStore>()(
 
       toggleSidebar: () =>
         set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+
+      setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
     }),
     {
       name: "ui-preferences",

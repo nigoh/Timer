@@ -1,6 +1,6 @@
 import React from "react";
 import { Mic, MicOff } from "lucide-react";
-import { Tooltip } from "@radix-ui/themes";
+import { SimpleTooltip } from "@/components/ui/simple-tooltip";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -39,7 +39,7 @@ export const VoiceRecognitionButton: React.FC<VoiceRecognitionButtonProps> = ({
   };
 
   const button = (
-    <Tooltip content={isListening ? "録音を停止" : "録音を開始"}>
+    <SimpleTooltip content={isListening ? "録音を停止" : "録音を開始"}>
       <Button
         type="button"
         variant={isListening ? "destructive" : "outline"}
@@ -58,13 +58,13 @@ export const VoiceRecognitionButton: React.FC<VoiceRecognitionButtonProps> = ({
         {isListening && (
           <Badge
             variant="secondary"
-            className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs"
+            className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs"
           >
             ●
           </Badge>
         )}
       </Button>
-    </Tooltip>
+    </SimpleTooltip>
   );
 
   return (
@@ -72,9 +72,9 @@ export const VoiceRecognitionButton: React.FC<VoiceRecognitionButtonProps> = ({
       {isSupported ? (
         button
       ) : (
-        <Tooltip content="このブラウザは音声認識に対応していません（Chrome / Edge をお使いください）">
+        <SimpleTooltip content="このブラウザは音声認識に対応していません（Chrome / Edge をお使いください）">
           <span>{button}</span>
-        </Tooltip>
+        </SimpleTooltip>
       )}
 
       <Select

@@ -9,7 +9,7 @@ interface EmptyTaskViewProps {
 export const EmptyTaskView: React.FC<EmptyTaskViewProps> = ({
   onCreateTask,
 }) => (
-  <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-20 text-muted-foreground">
+  <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8 text-muted-foreground">
     <PlusCircle className="h-12 w-12 opacity-30" />
     <div className="text-center">
       <p className="text-lg font-medium text-foreground">タスクがありません</p>

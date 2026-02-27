@@ -204,9 +204,7 @@ export const BasicTimerView: React.FC<BasicTimerViewProps> = ({
                       効率{" "}
                       <span
                         className={
-                          efficiency <= 100
-                            ? "text-green-600"
-                            : "text-orange-600"
+                          efficiency <= 100 ? "text-success" : "text-warning"
                         }
                       >
                         {Math.round(efficiency)}%
