@@ -923,6 +923,7 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
           </div>
         ) : (
           <GridLayout
+            key={String(isEditMode)}
             width={gridWidth ?? 1200}
             layout={rglLayout}
             gridConfig={{

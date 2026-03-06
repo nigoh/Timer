@@ -102,6 +102,11 @@
   }
 }
 
+/* react-grid-layout: ドラッグ中のプレースホルダーがウィジェット操作をブロックしないようにする */
+.react-grid-item.react-grid-placeholder {
+  pointer-events: none;
+}
+
 /* スクロールバーのカスタマイズ */
 @layer utilities {
   .timer-display-digit {
