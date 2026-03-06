@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Camera, FileImage, Loader2, ScanText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,11 +79,11 @@ export const OcrImportDialog: React.FC<OcrImportDialogProps> = ({
     e.target.value = "";
   };
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (file) loadImageFile(file);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

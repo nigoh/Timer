@@ -56,7 +56,11 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
     if (quill) {
       const range = quill.getSelection(true);
       const insertIndex = range ? range.index + range.length : quill.getLength() - 1;
-      quill.insertText(insertIndex, `\n${text}`, 'user');
+      // 挿入位置の直前が改行でなければ改行を先行挿入して読みやすくする
+      const needsLeadingNewline =
+        insertIndex > 0 && quill.getText(insertIndex - 1, 1) !== '\n';
+      const insertText = needsLeadingNewline ? `\n${text}` : text;
+      quill.insertText(insertIndex, insertText, 'user');
       const updatedHtml = quill.root.innerHTML;
       updateAgendaMinutes(meetingId, agenda.id, {
         minutesContent: updatedHtml,
@@ -64,9 +68,10 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
       });
     } else {
       // Quill 未初期化時は既存テキストに追記
-      const sep = agenda.minutesContent ? "\n" : "";
+      const existing = agenda.minutesContent ?? "";
+      const sep = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
       updateAgendaMinutes(meetingId, agenda.id, {
-        minutesContent: agenda.minutesContent + sep + text,
+        minutesContent: existing + sep + text,
         minutesFormat: "richtext",
       });
     }
