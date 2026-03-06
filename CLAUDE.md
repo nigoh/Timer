@@ -77,6 +77,7 @@ src/
 
 ## 禁止事項
 
+- cc-sdd スペック（`.kiro/specs/<feature>/` の requirements.md + design.md + tasks.md）なしに新機能の実装を開始すること
 - 同一責務のストア重複作成（例: 同タイマー種別の別名 store）
 - UI から直接の副作用呼び出し（通知 / 永続化 / ログ）
 - 未使用 import / 未使用 state の残置
@@ -126,6 +127,13 @@ src/
 
 ## 新機能追加時の実装順序
 
+> ⚠️ 実装開始前に必ず cc-sdd スペック（requirements.md + design.md + tasks.md）を `.kiro/specs/<feature>/` に作成し、人間レビューを完了すること。
+
+0. **cc-sdd フロー実行（必須）**:
+   - `/kiro-spec-init "<feature-description>"`
+   - `/kiro-spec-requirements <feature>` → 人間レビュー
+   - `/kiro-spec-design <feature>` → 人間レビュー
+   - `/kiro-spec-tasks <feature>` → 人間レビュー
 1. `src/types/` にドメイン型を定義
 2. `src/features/timer/stores/` にストア（State + Actions interface）を作成
 3. `src/features/timer/components/{feature}/` に View コンポーネントを実装
