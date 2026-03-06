@@ -57,8 +57,19 @@ src/
 - 1秒 tick 系処理は store 側で最小演算に保つ。
 - 不要な `useEffect` を増やさず、依存配列を厳密に管理する。
 
+## ⚠️ cc-sdd 必須ルール
+
+**新機能追加・既存機能の大幅改修は、必ず cc-sdd フロー（Spec-Driven Development）を通じて設計を完了してから実装を開始すること。**
+
+1. `.kiro/specs/<feature>/` に `requirements.md`・`design.md`・`tasks.md` を作成し、人間レビューを得る
+2. スペックが揃った後にのみ `/kiro-spec-impl` による実装を開始する
+3. ユーザーから実装を直接依頼された場合も、まず cc-sdd フローでスペックを起票・承認してから実装する
+
+詳細フロー: `AGENTS.md` および `.kiro/steering/dev-flow.md` を参照。
+
 ## 禁止事項
 
+- ❌ cc-sdd スペック（requirements.md + design.md + tasks.md）なしに新機能の実装を開始すること
 - ❌ 廃止済みファイル（`App.full.tsx` など）を復活させる実装
 - ❌ 同一責務のストア重複作成（例: 同じタイマー種別の別名 store）
 - ❌ UI から直接の副作用呼び出し（通知/永続化/複雑ログ）
