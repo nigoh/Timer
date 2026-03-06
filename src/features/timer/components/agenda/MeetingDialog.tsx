@@ -9,7 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Users, X } from "lucide-react";
+import { ScanText, Users, X } from "lucide-react";
+import { OcrImportDialog } from "@/features/timer/components/agenda/OcrImportDialog";
 import { useAgendaTimerInstance } from "@/features/timer/hooks/useTimerInstances";
 import { useTaskId } from "@/features/timer/contexts/TaskIdContext";
 import { useIntegrationLinkStore } from "@/features/timer/stores/integration-link-store";
@@ -48,6 +49,7 @@ export const MeetingDialog: React.FC<MeetingDialogProps> = ({
   const [agendaDraft, setAgendaDraft] = useState("");
   const [issueError, setIssueError] = useState("");
   const [isImportingIssue, setIsImportingIssue] = useState(false);
+  const [isOcrDialogOpen, setIsOcrDialogOpen] = useState(false);
   const [importedAgendaItems, setImportedAgendaItems] = useState<
     ReturnType<typeof parseIssueAgendaItems>
   >([]);
@@ -61,6 +63,7 @@ export const MeetingDialog: React.FC<MeetingDialogProps> = ({
     setIssueNumber("");
     setAgendaDraft("");
     setIssueError("");
+    setIsOcrDialogOpen(false);
     setImportedAgendaItems([]);
     setSelectedAgendaItems({});
   }, [meeting]);
@@ -112,6 +115,12 @@ export const MeetingDialog: React.FC<MeetingDialogProps> = ({
     }
   };
 
+  const handleOcrImport = (text: string) => {
+    setAgendaDraft((prev) => (prev ? `${prev}\n${text}` : text));
+    setImportedAgendaItems([]);
+    setSelectedAgendaItems({});
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const titleResult = meetingTitleSchema.safeParse(title.trim());
@@ -144,12 +153,14 @@ export const MeetingDialog: React.FC<MeetingDialogProps> = ({
     setOwnerRepo("");
     setIssueNumber("");
     setIssueError("");
+    setIsOcrDialogOpen(false);
     setImportedAgendaItems([]);
     setSelectedAgendaItems({});
     onClose();
   };
 
   return (
+    <>
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
@@ -233,6 +244,14 @@ export const MeetingDialog: React.FC<MeetingDialogProps> = ({
               >
                 {isImportingIssue ? "取得中..." : "Issue から反映"}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsOcrDialogOpen(true)}
+              >
+                <ScanText className="mr-1.5 h-3.5 w-3.5" />
+                画像から読み込む
+              </Button>
               {importedAgendaItems.length > 0 && (
                 <div className="space-y-1 rounded-md bg-muted/50 p-2">
                   <p className="text-xs font-medium">取り込み対象の選択</p>
@@ -286,5 +305,12 @@ export const MeetingDialog: React.FC<MeetingDialogProps> = ({
         </form>
       </DialogContent>
     </Dialog>
+    <OcrImportDialog
+      isOpen={isOcrDialogOpen}
+      mode="agenda"
+      onClose={() => setIsOcrDialogOpen(false)}
+      onImport={handleOcrImport}
+    />
+  </>
   );
 };
