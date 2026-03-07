@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { MultiTimer, MultiTimerSession } from '@/types/multi-timer';
 import { notificationManager } from '@/utils/notification-manager';
 import { generateId } from '@/utils/id';
+import { getStorageProvider } from '@/utils/storage-adapter';
 
 /** 1 タスクあたりのマルチタイマーインスタンス状態 */
 export interface MultiTimerInstanceState {
@@ -84,7 +86,9 @@ const updateInstance = (
   return { ...instances, [taskId]: { ...current, ...updater(current) } };
 };
 
-export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
+export const useMultiTimerStore = create<MultiTimerStore>()(
+  persist(
+  (set, get) => ({
   instances: {},
 
   getOrCreateInstance: (taskId) => {
@@ -409,4 +413,52 @@ export const useMultiTimerStore = create<MultiTimerStore>((set, get) => ({
       return { instances: rest };
     });
   },
-}));
+  }),
+  {
+    name: 'multi-timer-store',
+    storage: createJSONStorage(() => getStorageProvider()),
+    partialize: (state) => ({
+      instances: Object.fromEntries(
+        Object.entries(state.instances).map(([taskId, inst]) => [
+          taskId,
+          {
+            timers: inst.timers.map((t) => ({
+              ...t,
+              isRunning: false,
+              isPaused: false,
+              remainingTime: t.isCompleted ? 0 : t.duration,
+            })),
+            categories: inst.categories,
+            globalSettings: inst.globalSettings,
+            sessions: inst.sessions,
+          },
+        ]),
+      ),
+    }),
+    merge: (persisted, current) => {
+      const stored = persisted as { instances?: Record<string, Partial<MultiTimerInstanceState>> } | undefined;
+      if (!stored?.instances) return current;
+      const merged: Record<string, MultiTimerInstanceState> = {};
+      for (const [taskId, partial] of Object.entries(stored.instances)) {
+        merged[taskId] = {
+          ...createDefaultInstance(),
+          timers: (partial.timers ?? []).map((t) => ({
+            ...t,
+            createdAt: new Date(t.createdAt),
+            startedAt: t.startedAt ? new Date(t.startedAt) : undefined,
+            completedAt: t.completedAt ? new Date(t.completedAt) : undefined,
+          })),
+          categories: partial.categories ?? [...DEFAULT_CATEGORIES],
+          globalSettings: partial.globalSettings ?? createDefaultInstance().globalSettings,
+          sessions: (partial.sessions ?? []).map((s) => ({
+            ...s,
+            startTime: new Date(s.startTime),
+            endTime: new Date(s.endTime),
+          })),
+        };
+      }
+      return { ...current, instances: merged };
+    },
+  },
+  ),
+);

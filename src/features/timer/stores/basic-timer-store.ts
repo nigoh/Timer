@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { BasicTimerHistory } from '@/types/timer';
 import { notificationManager } from '@/utils/notification-manager';
+import { getStorageProvider } from '@/utils/storage-adapter';
 
 /** 1 タスクあたりの基本タイマーインスタンス状態 */
 export interface BasicTimerInstanceState {
@@ -37,9 +39,11 @@ interface BasicTimerStoreActions {
 
 export type BasicTimerStore = BasicTimerStoreState & BasicTimerStoreActions;
 
+const DEFAULT_DURATION = 25 * 60;
+
 const createDefaultInstance = (): BasicTimerInstanceState => ({
-  duration: 25 * 60,
-  remainingTime: 25 * 60,
+  duration: DEFAULT_DURATION,
+  remainingTime: DEFAULT_DURATION,
   isRunning: false,
   isPaused: false,
   sessionId: null,
@@ -69,7 +73,9 @@ const updateInstance = (
   return { ...instances, [taskId]: { ...current, ...updater(current) } };
 };
 
-export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
+export const useBasicTimerStore = create<BasicTimerStore>()(
+  persist(
+  (set, get) => ({
   instances: {},
 
   getOrCreateInstance: (taskId) => {
@@ -278,5 +284,38 @@ export const useBasicTimerStore = create<BasicTimerStore>((set, get) => ({
       return { instances: rest };
     });
   },
-}));
+  }),
+  {
+    name: 'basic-timer-store',
+    storage: createJSONStorage(() => getStorageProvider()),
+    partialize: (state) => ({
+      instances: Object.fromEntries(
+        Object.entries(state.instances).map(([taskId, inst]) => [
+          taskId,
+          {
+            duration: inst.duration,
+            sessionLabel: inst.sessionLabel,
+            history: inst.history,
+          },
+        ]),
+      ),
+    }),
+    merge: (persisted, current) => {
+      const stored = persisted as { instances?: Record<string, Partial<BasicTimerInstanceState>> } | undefined;
+      if (!stored?.instances) return current;
+      const merged: Record<string, BasicTimerInstanceState> = {};
+      for (const [taskId, partial] of Object.entries(stored.instances)) {
+        merged[taskId] = {
+          ...createDefaultInstance(),
+          duration: partial.duration ?? DEFAULT_DURATION,
+          remainingTime: partial.duration ?? DEFAULT_DURATION,
+          sessionLabel: partial.sessionLabel ?? '',
+          history: partial.history ?? [],
+        };
+      }
+      return { ...current, instances: merged };
+    },
+  },
+  ),
+);
 

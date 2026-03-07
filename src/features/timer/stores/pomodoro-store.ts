@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   PomodoroPhase,
   PomodoroSettings,
@@ -6,6 +7,7 @@ import {
   PomodoroStats,
 } from '@/types/pomodoro';
 import { notificationManager } from '@/utils/notification-manager';
+import { getStorageProvider } from '@/utils/storage-adapter';
 
 /** 1 タスクあたりのポモドーロインスタンス状態 */
 export interface PomodoroInstanceState {
@@ -104,7 +106,9 @@ const updateInstance = (
   return { ...instances, [taskId]: { ...current, ...updater(current) } };
 };
 
-export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
+export const usePomodoroStore = create<PomodoroStore>()(
+  persist(
+  (set, get) => ({
   instances: {},
 
   getOrCreateInstance: (taskId) => {
@@ -325,4 +329,38 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
       return { instances: rest };
     });
   },
-}));
+  }),
+  {
+    name: 'pomodoro-store',
+    storage: createJSONStorage(() => getStorageProvider()),
+    partialize: (state) => ({
+      instances: Object.fromEntries(
+        Object.entries(state.instances).map(([taskId, inst]) => [
+          taskId,
+          {
+            settings: inst.settings,
+            todayStats: inst.todayStats,
+            sessions: inst.sessions,
+          },
+        ]),
+      ),
+    }),
+    merge: (persisted, current) => {
+      const stored = persisted as { instances?: Record<string, Partial<PomodoroInstanceState>> } | undefined;
+      if (!stored?.instances) return current;
+      const merged: Record<string, PomodoroInstanceState> = {};
+      for (const [taskId, partial] of Object.entries(stored.instances)) {
+        const settings = partial.settings ?? { ...DEFAULT_SETTINGS };
+        merged[taskId] = {
+          ...createDefaultInstance(),
+          settings,
+          timeRemaining: settings.workDuration * 60,
+          todayStats: partial.todayStats ?? { ...DEFAULT_STATS },
+          sessions: partial.sessions ?? [],
+        };
+      }
+      return { ...current, instances: merged };
+    },
+  },
+  ),
+);

@@ -1,10 +1,12 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { Meeting, AgendaItem } from "@/types/agenda";
 import { notificationManager, SoundType } from "@/utils/notification-manager";
 import { logger } from "@/utils/logger";
 import { generateId } from "@/utils/id";
 import { getProgressColor } from "@/constants/timer-theme";
 import { useMeetingKnowledgeStore } from "@/features/timer/stores/meeting-knowledge-store";
+import { getStorageProvider } from "@/utils/storage-adapter";
 
 /** 1 タスクあたりのアジェンダタイマーインスタンス状態 */
 export interface AgendaTimerInstanceState {
@@ -138,7 +140,9 @@ const notifyAgenda = (
   });
 };
 
-export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
+export const useAgendaTimerStore = create<AgendaTimerStore>()(
+  persist(
+  (set, get) => ({
   instances: {},
 
   getOrCreateInstance: (taskId) => {
@@ -716,4 +720,36 @@ export const useAgendaTimerStore = create<AgendaTimerStore>((set, get) => ({
       return { instances: rest };
     });
   },
-}));
+  }),
+  {
+    name: 'agenda-timer-store',
+    storage: createJSONStorage(() => getStorageProvider()),
+    partialize: (state) => ({
+      instances: Object.fromEntries(
+        Object.entries(state.instances).map(([taskId, inst]) => [
+          taskId,
+          {
+            meetings: inst.meetings,
+            currentMeeting: inst.currentMeeting,
+          },
+        ]),
+      ),
+    }),
+    merge: (persisted, current) => {
+      const stored = persisted as {
+        instances?: Record<string, Partial<AgendaTimerInstanceState>>;
+      } | undefined;
+      if (!stored?.instances) return current;
+      const merged: Record<string, AgendaTimerInstanceState> = {};
+      for (const [taskId, partial] of Object.entries(stored.instances)) {
+        merged[taskId] = {
+          ...createDefaultInstance(),
+          meetings: partial.meetings ?? [],
+          currentMeeting: partial.currentMeeting ?? null,
+        };
+      }
+      return { ...current, instances: merged };
+    },
+  },
+  ),
+);

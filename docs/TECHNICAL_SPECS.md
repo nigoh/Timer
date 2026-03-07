@@ -169,10 +169,16 @@ src/
 
 ## 永続化
 
-- 一部ストアは Zustand `persist` を利用し、LocalStorage に保存する。
-- 永続化対象はストアごとに `partialize` で制御する。
+- 全タイマー系ストアは Zustand `persist` を利用し、LocalStorage に保存する。
+- 永続化対象はストアごとに `partialize` で制御し、ランタイム状態（`isRunning`, `lastTickTime` 等）は除外する。
+- ストレージバックエンドは `src/utils/storage-adapter.ts` の `IStorageProvider` で抽象化し、将来的な DB 移行に対応する。
 - `integration-link-store` は `linksByLogId` のみ永続化し、`githubPat` はメモリ保持（非永続）とする。
 - `meeting-knowledge-store` は `records`（最大 100 件）, `learnedPatterns`, `settings` を永続化する。
+- `basic-timer-store` は `duration`, `sessionLabel`, `history` を永続化する。
+- `pomodoro-store` は `settings`, `todayStats`, `sessions` を永続化する。
+- `multi-timer-store` は `timers`（実行状態リセット済み）, `categories`, `globalSettings`, `sessions` を永続化する。
+- `agenda-timer-store` は `meetings`, `currentMeeting` を永続化する。
+- 詳細設計: `docs/DESIGN_DATA_PERSISTENCE.md`
 
 ## MAPE-K 会議効率化 アーキテクチャ
 
