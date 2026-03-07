@@ -39,9 +39,11 @@ interface BasicTimerStoreActions {
 
 export type BasicTimerStore = BasicTimerStoreState & BasicTimerStoreActions;
 
+const DEFAULT_DURATION = 25 * 60;
+
 const createDefaultInstance = (): BasicTimerInstanceState => ({
-  duration: 25 * 60,
-  remainingTime: 25 * 60,
+  duration: DEFAULT_DURATION,
+  remainingTime: DEFAULT_DURATION,
   isRunning: false,
   isPaused: false,
   sessionId: null,
@@ -305,8 +307,8 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
       for (const [taskId, partial] of Object.entries(stored.instances)) {
         merged[taskId] = {
           ...createDefaultInstance(),
-          duration: partial.duration ?? 25 * 60,
-          remainingTime: partial.duration ?? 25 * 60,
+          duration: partial.duration ?? DEFAULT_DURATION,
+          remainingTime: partial.duration ?? DEFAULT_DURATION,
           sessionLabel: partial.sessionLabel ?? '',
           history: partial.history ?? [],
         };

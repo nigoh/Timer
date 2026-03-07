@@ -39,10 +39,10 @@ describe('basic-timer-store partialize', () => {
     });
     useBasicTimerStore.getState().setSessionLabel(TASK_ID, 'ラベルテスト');
 
-    // Act: persist options から partialize を取得してテスト
+    // Act: persist API から partialize を取得してテスト
     const state = useBasicTimerStore.getState();
-    const persistOptions = useBasicTimerStore.persist;
-    const opts = persistOptions.getOptions();
+    const persistAPI = useBasicTimerStore.persist;
+    const opts = persistAPI.getOptions();
     const partialized = opts.partialize?.(state);
 
     // Assert: ランタイム状態 (isRunning, lastTickTime 等) は含まれない
