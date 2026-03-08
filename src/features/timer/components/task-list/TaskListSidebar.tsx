@@ -18,6 +18,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -164,40 +166,43 @@ export const TaskListSidebar: React.FC<TaskListSidebarProps> = ({
   return (
     <>
       <SidebarGroup className="flex-1 overflow-y-auto py-1">
-        <SidebarMenu>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={taskIds}
-              strategy={verticalListSortingStrategy}
+        <SidebarGroupLabel>タスク</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              {tasks.map((task) => (
-                <SortableTaskItem
-                  key={task.id}
-                  task={task}
-                  isActive={task.id === activeTaskId}
-                  onSelect={setActiveTask}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
+              <SortableContext
+                items={taskIds}
+                strategy={verticalListSortingStrategy}
+              >
+                {tasks.map((task) => (
+                  <SortableTaskItem
+                    key={task.id}
+                    task={task}
+                    isActive={task.id === activeTaskId}
+                    onSelect={setActiveTask}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
 
-          {/* 新規タスクボタン */}
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="タスクを追加"
-              onClick={onCreateTask}
-              className="text-sidebar-foreground/70"
-            >
-              <Plus className="h-4 w-4" />
-              <span>タスクを追加</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+            {/* 新規タスクボタン */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="タスクを追加"
+                onClick={onCreateTask}
+                className="text-sidebar-foreground/70"
+              >
+                <Plus className="h-4 w-4" />
+                <span>タスクを追加</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
       </SidebarGroup>
 
       {/* 設定ボタン */}

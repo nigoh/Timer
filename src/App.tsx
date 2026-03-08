@@ -7,19 +7,22 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./components/ui/breadcrumb";
+import { Separator } from "./components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarRail,
   SidebarTrigger,
 } from "./components/ui/sidebar";
 import { Toaster } from "./components/ui/sonner";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Timer } from "lucide-react";
 import { MeetingReportDialog } from "./features/timer/components/agenda/MeetingReportDialog";
 import { TaskWidgetCanvas } from "./features/timer/components/task-list/TaskWidgetCanvas";
 import { TaskListSidebar } from "./features/timer/components/task-list/TaskListSidebar";
@@ -43,7 +46,6 @@ import {
   selectActiveTask,
 } from "./features/timer/stores/task-store";
 import { useTickManagerStore } from "./features/timer/stores/tick-manager-store";
-import { useIsMobile } from "./hooks/useIsMobile";
 import { AuthContainer } from "./features/auth/containers/AuthContainer";
 import { useAuthStore } from "./features/auth/auth-store";
 import {
@@ -54,13 +56,11 @@ import { syncAll } from "./features/sync/sync-service";
 import { useSyncStore } from "./features/sync/sync-store";
 import { migrateGuestData } from "./features/sync/migration-service";
 import { subscribe, unsubscribe } from "./features/sync/realtime-service";
-import { useLayoutOverlapDetection } from "./hooks/useLayoutOverlapDetection";
 import "./globals.css";
 
 function App() {
   const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const isMobile = useIsMobile();
   const sidebarOpen = useUIPreferencesStore((s) => s.sidebarOpen);
   const setSidebarOpen = useUIPreferencesStore((s) => s.setSidebarOpen);
 
@@ -68,8 +68,6 @@ function App() {
   const activeTaskId = useTaskStore((s) => s.activeTaskId);
   const showSettings = useTaskStore((s) => s.showSettings);
   const setShowSettings = useTaskStore((s) => s.setShowSettings);
-
-  const sidebarHeaderRef = useLayoutOverlapDetection("SidebarHeader");
 
   // グローバルTickの開始（全タイマーインスタンスを1秒間隔で処理）
   React.useEffect(() => {
@@ -181,11 +179,6 @@ function App() {
     setIsCreateDialogOpen(true);
   }, []);
 
-  const currentLabel = React.useMemo(() => {
-    if (showSettings) return "設定・ログ";
-    return activeTask?.name ?? "Focuso";
-  }, [showSettings, activeTask]);
-
   return (
     <SidebarProvider
       open={sidebarOpen}
@@ -201,23 +194,22 @@ function App() {
       {/* ── 左サイドバー ── */}
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div ref={sidebarHeaderRef} className="flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md overflow-hidden">
-              <img
-                src={
-                  colorMode === "dark"
-                    ? "/focuso-logo-dark.svg"
-                    : "/focuso-logo-light.svg"
-                }
-                alt="Focuso"
-                className="h-8 w-8"
-              />
-            </div>
-            <span className="flex-1 font-semibold group-data-[collapsible=icon]:hidden">
-              Focuso
-            </span>
-            <SidebarTrigger className="ml-auto" />
-          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                size="lg"
+                tooltip="Focuso"
+                className="cursor-default hover:bg-transparent active:bg-transparent"
+              >
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <Timer className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Focuso</span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarHeader>
 
         <SidebarContent>
@@ -229,56 +221,20 @@ function App() {
 
         <SidebarFooter>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip={colorMode === "dark" ? "ライトモード" : "ダークモード"}
-                onClick={handleColorModeToggle}
-              >
-                {colorMode === "dark" ? (
-                  <Sun className="h-4 w-4 shrink-0" />
-                ) : (
-                  <Moon className="h-4 w-4 shrink-0" />
-                )}
-                <span>{colorMode === "dark" ? "ライト" : "ダーク"}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
             <AuthContainer />
           </SidebarMenu>
         </SidebarFooter>
+        <SidebarRail />
       </Sidebar>
 
       {/* ── メインコンテンツ ── */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* モバイルヘッダー */}
-        {isMobile && (
-          <div className="flex items-center gap-2 border-b border-border p-2">
-            <SidebarTrigger />
-            <p className="text-sm font-semibold">{currentLabel}</p>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-auto"
-              onClick={handleColorModeToggle}
-              aria-label={
-                colorMode === "dark"
-                  ? "ライトモードに切り替え"
-                  : "ダークモードに切り替え"
-              }
-            >
-              {colorMode === "dark" ? (
-                <Sun className="h-4 w-4 shrink-0" />
-              ) : (
-                <Moon className="h-4 w-4 shrink-0" />
-              )}
-            </Button>
-          </div>
-        )}
-
-        {/* メイン表示領域 */}
-        <main className="flex-1 overflow-y-auto p-2 md:p-3">
-          {/* デスクトップ用パンくずナビ */}
-          {!isMobile && (
-            <Breadcrumb className="mb-2">
+      <SidebarInset>
+        {/* ヘッダー */}
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-10">
+          <div className="flex items-center gap-2 px-3">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbPage
@@ -303,7 +259,30 @@ function App() {
                 )}
               </BreadcrumbList>
             </Breadcrumb>
-          )}
+          </div>
+          <div className="ml-auto flex items-center gap-1 px-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleColorModeToggle}
+              aria-label={
+                colorMode === "dark"
+                  ? "ライトモードに切り替え"
+                  : "ダークモードに切り替え"
+              }
+            >
+              {colorMode === "dark" ? (
+                <Sun className="h-4 w-4 shrink-0" />
+              ) : (
+                <Moon className="h-4 w-4 shrink-0" />
+              )}
+            </Button>
+          </div>
+        </header>
+
+        {/* メイン表示領域 */}
+        <div className="flex-1 overflow-y-auto p-2 md:p-3">
           {showSettings ? (
             <SettingsAndLogsPage />
           ) : activeTask && activeTaskId ? (
@@ -315,9 +294,9 @@ function App() {
           ) : (
             <EmptyTaskView onCreateTask={handleOpenCreate} />
           )}
-        </main>
+        </div>
         <Footer />
-      </div>
+      </SidebarInset>
 
       {/* タスク作成ダイアログ */}
       <TaskCreateDialog
