@@ -242,10 +242,8 @@ function App() {
                 <span>{colorMode === "dark" ? "ライト" : "ダーク"}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-          <div className="px-2 pb-1">
             <AuthContainer />
-          </div>
+          </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
 

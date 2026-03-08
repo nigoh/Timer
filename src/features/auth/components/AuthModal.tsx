@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import { LogIn } from 'lucide-react';
+import { useState } from "react";
+import { LogIn } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { LoginButton } from './LoginButton';
-import { isSupabaseConfigured } from '@/lib/supabase';
+} from "@/components/ui/dialog";
+import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { LoginButton } from "./LoginButton";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 /** ログインモーダル — Supabase 未設定時は非表示 */
 export function AuthModal() {
@@ -20,10 +20,10 @@ export function AuthModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full gap-2">
+        <SidebarMenuButton tooltip="ログイン">
           <LogIn className="size-4" />
-          ログイン
-        </Button>
+          <span>ログイン</span>
+        </SidebarMenuButton>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>

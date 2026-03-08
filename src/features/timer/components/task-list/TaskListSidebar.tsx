@@ -210,9 +210,6 @@ export const TaskListSidebar: React.FC<TaskListSidebarProps> = ({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <p className="px-3 pt-1 text-[10px] text-sidebar-foreground/40">
-          Ctrl+K で検索
-        </p>
       </SidebarGroup>
       {ConfirmDialog}
     </>
