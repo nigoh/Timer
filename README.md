@@ -126,11 +126,12 @@ npm run lint
 
 利用時は、依頼文に対象スキルの目的（例: 「Radix UI準拠でレイアウト改善」）を明示すると、エージェントがスキルを選択しやすくなります。
 
-## GitHub Pages 公開
+## Vercel デプロイ
 
-- このリポジトリには GitHub Pages 自動デプロイ用 Workflow を追加済みです: `.github/workflows/deploy-pages.yml`
-- `main` ブランチへ push すると、`npm run build:pages` でビルドして `dist` を Pages に公開します
-- 初回のみ GitHub リポジトリ設定で Pages の Build and deployment を `GitHub Actions` にしてください
+- デプロイ先: **Vercel**（`vercel.json` で SPA リライト + CSP ヘッダーを設定済み）
+- `main` ブランチへ push すると自動デプロイされます
+- PR ごとにプレビュー URL が自動生成されます
+- 初回セットアップ: [Vercel](https://vercel.com) でリポジトリをインポートし、`Settings → Environment Variables` で `VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` を設定してください
 
 ## Codex MCP 設定
 

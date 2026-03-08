@@ -24,8 +24,36 @@
 | `VITE_SUPABASE_ANON_KEY` | Supabase 匿名キー（公開可） | クラウド同期を使用する場合 |
 
 未設定の場合は Supabase 関連機能（ログイン UI・クラウド同期）が無効化され、ゲストモードのみで動作する。
-`.env.example` にプレースホルダーを記載している。Vercel / Netlify では環境変数ダッシュボードから設定する。
+`.env.example` にプレースホルダーを記載している。Vercel では `Settings → Environment Variables` から設定する。
 
+
+## デプロイ
+
+デプロイ先: **Vercel**
+
+### Vercel 設定
+
+`vercel.json` でSPA リライトとセキュリティヘッダー（CSP）を設定する。
+
+- **SPA リライト**: 全パスを `/index.html` に転送し、ページリロード時の 404 を防ぐ。
+- **CSP**: HTTP レスポンスヘッダーで適用（`<meta>` タグは使用しない）。Supabase REST（`https://*.supabase.co`）および Realtime WebSocket（`wss://*.supabase.co`）を許可。
+
+### デプロイ手順
+
+1. [Vercel](https://vercel.com) でリポジトリをインポートしてプロジェクトを作成する。
+2. **Framework Preset**: Vite を選択する（自動検出される）。
+3. **Build Command**: `npm run build`（デフォルト）。
+4. **Output Directory**: `dist`（デフォルト）。
+5. `Settings → Environment Variables` で以下を設定する：
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+6. `main` ブランチへ push すると自動デプロイされる。PR ごとにプレビュー URL が生成される。
+
+### ローカル開発
+
+```bash
+npm run dev   # port 3000、開発サーバー用 CSP は vite.config.ts で設定
+```
 
 ## 主要ディレクトリ
 
