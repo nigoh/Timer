@@ -7,3 +7,6 @@ test-results/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+dist/
+.env.local
