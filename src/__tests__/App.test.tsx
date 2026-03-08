@@ -79,8 +79,62 @@ vi.mock("lucide-react", () => {
     Moon: Icon,
     Sun: Icon,
     PanelLeft: Icon,
+    Cloud: Icon,
+    CloudOff: Icon,
+    CloudAlert: Icon,
+    Loader2: Icon,
+    LogIn: Icon,
+    LogOut: Icon,
+    User: Icon,
+    Github: Icon,
+    ChevronRight: Icon,
+    Check: Icon,
+    Circle: Icon,
   };
 });
+
+vi.mock("../features/auth/containers/AuthContainer", () => ({
+  AuthContainer: () => null,
+}));
+
+vi.mock("../features/auth/auth-store", () => {
+  const state = { user: null, isLoading: false, setUser: () => {}, setLoading: () => {}, clearUser: () => {} };
+  const hook = (selector: (s: typeof state) => unknown) => selector(state);
+  hook.getState = () => state;
+  hook.setState = () => {};
+  hook.subscribe = () => () => {};
+  return {
+    useAuthStore: hook,
+    selectIsAuthenticated: (s: { user: unknown }) => s.user !== null,
+  };
+});
+
+vi.mock("../features/auth/auth-service", () => ({
+  onAuthStateChange: vi.fn(() => () => {}),
+  getCurrentUser: vi.fn(() => Promise.resolve(null)),
+}));
+
+vi.mock("../features/sync/sync-service", () => ({
+  syncAll: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("../features/sync/sync-store", () => {
+  const syncState = { status: 'idle', lastSyncAt: null, isOnline: true, setStatus: () => {}, setOnline: () => {}, setLastSyncAt: () => {} };
+  const hook = (selector: (s: typeof syncState) => unknown) => selector(syncState);
+  hook.getState = () => syncState;
+  hook.setState = () => {};
+  hook.subscribe = () => () => {};
+  return { useSyncStore: hook };
+});
+
+vi.mock("../features/sync/migration-service", () => ({
+  migrateGuestData: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("../features/sync/realtime-service", () => ({
+  subscribe: vi.fn(),
+  unsubscribe: vi.fn(),
+}));
 
 const mockUIPreferencesState = {
   sidebarOpen: true,
