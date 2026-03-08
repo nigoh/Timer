@@ -43,7 +43,19 @@ const sanitizeHtml = (html: string): string =>
       "span",
       "div",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class", "style"],
+    // data-list は Quill がリスト種別（bullet / ordered / checked）を保持するために使用する属性。
+    // これを除去すると quill.root.innerHTML と保存済み HTML が常に差分を持ち、
+    // useEffect([value]) による setContents 呼び出しでカーソルがリセットされる。
+    ALLOWED_ATTR: [
+      "href",
+      "target",
+      "rel",
+      "src",
+      "alt",
+      "class",
+      "style",
+      "data-list",
+    ],
     ALLOW_DATA_ATTR: false,
   });
 
@@ -134,13 +146,18 @@ const QuillEditor = forwardRef<QuillEditorHandle, QuillEditorProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // intentionally empty – key prop handles re-mount
 
-    // Sync externally-driven value changes into the editor
+    // Sync externally-driven value changes into the editor.
+    // quill.root.innerHTML には Quill が内部的に挿入する属性（ql-ui span の
+    // contenteditable 等）が含まれるため、sanitizeHtml を通した値と直接比較すると
+    // 常に差分が生じて setContents → カーソルリセットが発生する。
+    // そのため live 側も sanitize して正規化した上で比較する。
     useEffect(() => {
       const quill = quillRef.current;
       if (!quill) return;
 
       const incoming = value ?? "";
-      if (incoming !== quill.root.innerHTML) {
+      const currentSanitized = sanitizeHtml(quill.root.innerHTML);
+      if (incoming !== currentSanitized) {
         const delta = quill.clipboard.convert({ html: incoming });
         quill.setContents(delta, "silent");
       }

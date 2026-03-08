@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { VoiceState, VoiceActions, VoiceTranscriptEntry } from '@/types/voice';
+import { logger } from '@/utils/logger';
 
 type VoiceStore = VoiceState & VoiceActions;
 
@@ -14,11 +15,15 @@ export const useVoiceStore = create<VoiceStore>((set) => ({
   currentAgendaId: null,
 
   // Actions
-  startListening: (agendaId) =>
-    set({ isListening: true, error: null, currentAgendaId: agendaId }),
+  startListening: (agendaId) => {
+    logger.featureUsage('voice', 'start-listening', { agendaId });
+    set({ isListening: true, error: null, currentAgendaId: agendaId });
+  },
 
-  stopListening: () =>
-    set({ isListening: false, interimTranscript: '' }),
+  stopListening: () => {
+    logger.featureUsage('voice', 'stop-listening');
+    set({ isListening: false, interimTranscript: '' });
+  },
 
   setLanguage: (lang) => set({ language: lang }),
 

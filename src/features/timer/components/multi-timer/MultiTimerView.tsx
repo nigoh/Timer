@@ -161,7 +161,7 @@ const AddTimerDialog: React.FC = () => {
             <Label htmlFor="timer-name">タイマー名</Label>
             <Input
               id="timer-name"
-              placeholder="例: 運動、勉強、料理"
+              placeholder="例: 企画書作成、メール返信"
               value={formData.name}
               onChange={(e) => {
                 setValidationError(null);
@@ -226,19 +226,30 @@ const AddTimerDialog: React.FC = () => {
 
           <div>
             <Label>色</Label>
-            <div className="flex gap-2 mt-2">
-              {TIMER_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`w-8 h-8 rounded-full ${color} ${
-                    formData.color === color
-                      ? "ring-2 ring-offset-2 ring-gray-400"
-                      : ""
-                  }`}
-                  onClick={() => setFormData({ ...formData, color })}
-                />
-              ))}
+            <div className="flex gap-2 mt-2" role="radiogroup" aria-label="タイマーの色">
+              {TIMER_COLORS.map((color) => {
+                const colorLabels: Record<string, string> = {
+                  'bg-info': '青',
+                  'bg-success': '緑',
+                  'bg-warning': '黄',
+                  'bg-destructive': '赤',
+                };
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    role="radio"
+                    aria-checked={formData.color === color}
+                    aria-label={colorLabels[color] ?? color}
+                    className={`w-8 h-8 rounded-full ${color} focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                      formData.color === color
+                        ? "ring-2 ring-offset-2 ring-gray-400"
+                        : ""
+                    }`}
+                    onClick={() => setFormData({ ...formData, color })}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -544,7 +555,7 @@ export const MultiTimerView: React.FC = () => {
       </Card>
 
       {/* 統計サマリー */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="text-center p-4">
           <div
             className={`text-2xl font-bold ${TIMER_STATUS_CONFIG.running.color}`}

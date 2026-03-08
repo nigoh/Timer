@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { BasicTimerHistory } from '@/types/timer';
 import { notificationManager } from '@/utils/notification-manager';
 import { getStorageProvider } from '@/utils/storage-adapter';
+import { logger } from '@/utils/logger';
 
 /** 1 タスクあたりの基本タイマーインスタンス状態 */
 export interface BasicTimerInstanceState {
@@ -104,6 +105,10 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
     const inst = instances[taskId];
     const now = new Date();
 
+    if (inst.isRunning) {
+      logger.warn('Basic timer start called while already running', { taskId }, 'timer');
+    }
+
     notificationManager.ensureInitialized().catch(console.warn);
 
     set({
@@ -119,9 +124,16 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
         },
       },
     });
+
+    logger.timerStart(taskId, 'basic', inst.duration);
   },
 
   pause: (taskId) => {
+    const inst = get().instances[taskId];
+    const elapsed = inst?.sessionStartTime
+      ? Math.floor((Date.now() - inst.sessionStartTime.getTime()) / 1000)
+      : undefined;
+
     set((state) => ({
       instances: updateInstance(state.instances, taskId, () => ({
         isRunning: false,
@@ -129,15 +141,18 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
         lastTickTime: null,
       })),
     }));
+
+    logger.timerStop(taskId, 'basic', elapsed);
   },
 
   stop: (taskId) => {
     const inst = get().instances[taskId];
     if (!inst) return;
 
+    let actualDuration: number | undefined;
     if (inst.sessionStartTime) {
       const now = new Date();
-      const actualDuration = Math.floor((now.getTime() - inst.sessionStartTime.getTime()) / 1000);
+      actualDuration = Math.floor((now.getTime() - inst.sessionStartTime.getTime()) / 1000);
       const label = inst.sessionLabel || `${Math.ceil(inst.duration / 60)}分タイマー`;
 
       get().addToHistory(taskId, {
@@ -149,6 +164,8 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
         label,
       });
     }
+
+    logger.timerStop(taskId, 'basic', actualDuration);
 
     set((state) => ({
       instances: updateInstance(state.instances, taskId, (i) => ({
@@ -164,6 +181,8 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
   },
 
   reset: (taskId) => {
+    logger.userAction('basic-timer-reset', { taskId });
+
     set((state) => ({
       instances: updateInstance(state.instances, taskId, (inst) => ({
         isRunning: false,
@@ -189,9 +208,10 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
     const inst = get().instances[taskId];
     if (!inst) return;
 
+    let actualDuration: number | undefined;
     if (inst.sessionStartTime) {
       const now = new Date();
-      const actualDuration = Math.floor((now.getTime() - inst.sessionStartTime.getTime()) / 1000);
+      actualDuration = Math.floor((now.getTime() - inst.sessionStartTime.getTime()) / 1000);
       const label = inst.sessionLabel || `${Math.ceil(inst.duration / 60)}分タイマー`;
 
       get().addToHistory(taskId, {
@@ -208,6 +228,8 @@ export const useBasicTimerStore = create<BasicTimerStore>()(
         sound: 'complete',
       });
     }
+
+    logger.timerComplete(taskId, 'basic', actualDuration ?? inst.duration);
 
     set((state) => ({
       instances: updateInstance(state.instances, taskId, (i) => ({

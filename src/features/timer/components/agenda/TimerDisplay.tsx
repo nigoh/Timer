@@ -126,6 +126,8 @@ export const TimerDisplay: React.FC = () => {
           <div className="space-y-2">
             <div
               className="timer-display-digit font-mono font-bold"
+              aria-live="polite"
+              aria-atomic="true"
               style={
                 digitFontSize !== undefined
                   ? { fontSize: `${digitFontSize}px` }

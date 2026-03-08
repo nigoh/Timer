@@ -100,12 +100,12 @@ describe("MeetingReportHistory", () => {
     vi.clearAllMocks();
   });
 
-  // TC-RH-01: reports が空のとき「レポートはまだありません」が表示される
+  // TC-RH-01: reports が空のとき空状態のガイドテキストが表示される
   it("reports が空のとき「レポートはまだありません」が表示される", async () => {
     await act(async () => {
       createRoot(container).render(<MeetingReportHistory />);
     });
-    expect(container.textContent).toContain("レポートはまだありません");
+    expect(container.textContent).toContain("会議終了後にレポートが自動生成されます");
   });
 
   // TC-RH-02: 各レポートに会議タイトルが表示される

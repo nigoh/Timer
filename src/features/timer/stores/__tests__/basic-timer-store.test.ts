@@ -153,5 +153,58 @@ describe('useBasicTimerStore', () => {
     expect(history).toHaveLength(1);
     expect(history[0].id).toBe('h2');
   });
+
+  // --- 追加テスト ---
+
+  it('removeInstance でインスタンスを削除できる', () => {
+    expect(inst()).toBeDefined();
+    useBasicTimerStore.getState().removeInstance(TASK_ID);
+    expect(useBasicTimerStore.getState().instances[TASK_ID]).toBeUndefined();
+  });
+
+  it('completeSession でセッションを完了として履歴に追加する', () => {
+    const startTime = new Date(Date.now() - 10000);
+    useBasicTimerStore.setState((s) => ({
+      instances: {
+        ...s.instances,
+        [TASK_ID]: {
+          ...s.instances[TASK_ID],
+          isRunning: true,
+          sessionStartTime: startTime,
+          sessionLabel: '完了テスト',
+          duration: 25 * 60,
+          remainingTime: 0,
+        },
+      },
+    }));
+    useBasicTimerStore.getState().completeSession(TASK_ID);
+    const { history } = inst();
+    expect(history).toHaveLength(1);
+    expect(history[0].completed).toBe(true);
+  });
+
+  it('start を2回呼んでも状態が壊れない', () => {
+    const store = useBasicTimerStore.getState();
+    store.start(TASK_ID);
+    store.start(TASK_ID);
+    expect(inst().isRunning).toBe(true);
+  });
+
+  it('pause を2回呼んでも状態が壊れない', () => {
+    const store = useBasicTimerStore.getState();
+    store.start(TASK_ID);
+    store.pause(TASK_ID);
+    store.pause(TASK_ID);
+    expect(inst().isPaused).toBe(true);
+    expect(inst().isRunning).toBe(false);
+  });
+
+  it('duration=0 でカウントダウン即完了する', () => {
+    const store = useBasicTimerStore.getState();
+    store.setDuration(TASK_ID, 0);
+    store.start(TASK_ID);
+    store.tick(TASK_ID);
+    expect(inst().isRunning).toBe(false);
+  });
 });
 

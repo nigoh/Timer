@@ -7,8 +7,7 @@ import {
   PostedIssueCommentHistory,
 } from "@/types/meetingReport";
 import { generateId } from "@/utils/id";
-import { formatDurationShort } from "@/lib/utils";
-
+import { formatDurationShort } from "@/lib/utils";import { logger } from '@/utils/logger';
 interface MeetingReportState {
   reports: MeetingReport[];
   postedCommentHistory: PostedIssueCommentHistory[];
@@ -140,6 +139,7 @@ export const useMeetingReportStore = create<
         draft.markdown = buildReportMarkdown(draft);
 
         set({ draft });
+        logger.featureUsage('meeting-report', 'create-draft', { meetingId: meeting.id });
       },
 
       updateDraftField: (field, value) => {
@@ -266,6 +266,7 @@ export const useMeetingReportStore = create<
         };
         reportToSave.markdown = buildReportMarkdown(reportToSave);
 
+        logger.featureUsage('meeting-report', 'save', { reportId: reportToSave.id });
         set((prev) => ({
           reports: [reportToSave, ...prev.reports],
           draft: null,
@@ -274,6 +275,7 @@ export const useMeetingReportStore = create<
       },
 
       deleteReport: (id) => {
+        logger.featureUsage('meeting-report', 'delete', { reportId: id });
         set((state) => ({
           reports: state.reports.filter((report) => report.id !== id),
         }));

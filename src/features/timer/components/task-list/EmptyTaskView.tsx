@@ -14,7 +14,10 @@ export const EmptyTaskView: React.FC<EmptyTaskViewProps> = ({
     <div className="text-center">
       <p className="text-lg font-medium text-foreground">タスクがありません</p>
       <p className="mt-1 text-sm">
-        タスクを作成して、タイマーやウィジェットを配置しましょう。
+        タスクを作成して、タイマーやウィジェットを自由に配置できます。
+      </p>
+      <p className="text-xs text-muted-foreground/60">
+        会議・集中作業・分析など、用途に合わせたテンプレートも選べます
       </p>
     </div>
     <Button type="button" onClick={onCreateTask} className="mt-2">

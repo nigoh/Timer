@@ -268,4 +268,87 @@ describe('usePomodoroStore', () => {
     usePomodoroStore.getState().skip(TASK_ID);
     expect(inst().currentPhase).toBe('work');
   });
+
+  // --- 追加テスト ---
+
+  it('skip() で long-break → work へスキップでき cycle が 1 に戻る', () => {
+    setInst({
+      currentPhase: 'long-break',
+      cycle: 4,
+      settings: inst().settings,
+    });
+    usePomodoroStore.getState().skip(TASK_ID);
+    const i = inst();
+    expect(i.currentPhase).toBe('work');
+    expect(i.cycle).toBe(1);
+  });
+
+  it('short-break 完了時に todayStats.totalBreakTime が累計される', () => {
+    setInst({
+      currentPhase: 'short-break',
+      cycle: 1,
+      timeRemaining: 1,
+      isRunning: true,
+      settings: {
+        workDuration: 25,
+        shortBreakDuration: 5,
+        longBreakDuration: 15,
+        longBreakInterval: 4,
+        autoStartBreaks: false,
+        autoStartWork: false,
+      },
+      sessions: [],
+      todayStats: { completedPomodoros: 1, totalFocusTime: 25, totalBreakTime: 0, efficiency: 0 },
+    });
+    usePomodoroStore.getState().tick(TASK_ID);
+    expect(inst().todayStats.totalBreakTime).toBe(5);
+  });
+
+  it('removeInstance でインスタンスを削除できる', () => {
+    expect(inst()).toBeDefined();
+    usePomodoroStore.getState().removeInstance(TASK_ID);
+    expect(usePomodoroStore.getState().instances[TASK_ID]).toBeUndefined();
+  });
+
+  it('updateSettings で設定を変更できる', () => {
+    usePomodoroStore.getState().updateSettings(TASK_ID, {
+      workDuration: 50,
+      shortBreakDuration: 10,
+      longBreakDuration: 30,
+      longBreakInterval: 2,
+      autoStartBreaks: true,
+      autoStartWork: true,
+    });
+    const { settings } = inst();
+    expect(settings.workDuration).toBe(50);
+    expect(settings.longBreakInterval).toBe(2);
+    expect(settings.autoStartBreaks).toBe(true);
+  });
+
+  it('4サイクル完走: work→break×3 → work→long-break', () => {
+    const store = usePomodoroStore.getState();
+    store.updateSettings(TASK_ID, {
+      workDuration: 1,
+      shortBreakDuration: 1,
+      longBreakDuration: 1,
+      longBreakInterval: 4,
+      autoStartBreaks: false,
+      autoStartWork: false,
+    });
+
+    for (let cycle = 1; cycle <= 3; cycle++) {
+      setInst({ timeRemaining: 1, isRunning: true, currentPhase: 'work' });
+      usePomodoroStore.getState().tick(TASK_ID);
+      expect(inst().currentPhase).toBe('short-break');
+
+      setInst({ timeRemaining: 1, isRunning: true, currentPhase: 'short-break' });
+      usePomodoroStore.getState().tick(TASK_ID);
+      expect(inst().currentPhase).toBe('work');
+    }
+
+    // 4th cycle → long-break
+    setInst({ timeRemaining: 1, isRunning: true, currentPhase: 'work', cycle: 4 });
+    usePomodoroStore.getState().tick(TASK_ID);
+    expect(inst().currentPhase).toBe('long-break');
+  });
 });

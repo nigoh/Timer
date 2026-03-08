@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import * as LucideIcons from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,9 +19,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { X } from "lucide-react";
+import { X, Users, Timer, BarChart3, LayoutGrid } from "lucide-react";
 import type { LucideIconName } from "@/types/task";
 import { useTaskStore } from "@/features/timer/stores/task-store";
+import {
+  WIDGET_TEMPLATES,
+  createWidgetLayoutItem,
+  type WidgetTemplateId,
+} from "@/features/timer/utils/widget-catalog";
+import { cn } from "@/lib/utils";
 
 // よく使うアイコン（全量だと重いため厳選）
 const ICON_LIST: LucideIconName[] = [
@@ -67,6 +73,13 @@ const ICON_LIST: LucideIconName[] = [
   "Trophy",
 ];
 
+const TEMPLATE_ICONS: Record<WidgetTemplateId, React.ElementType> = {
+  meeting: Users,
+  focus: Timer,
+  analytics: BarChart3,
+  custom: LayoutGrid,
+};
+
 const taskCreateSchema = z.object({
   name: z
     .string()
@@ -87,7 +100,9 @@ export const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const createTask = useTaskStore((s) => s.createTask);
+  const { createTask, addWidget } = useTaskStore();
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<WidgetTemplateId>("focus");
 
   const form = useForm<TaskCreateFormValues, unknown, TaskCreateFormValues>({
     resolver: zodResolver(taskCreateSchema),
@@ -95,8 +110,18 @@ export const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   });
 
   const onSubmit = (values: TaskCreateFormValues) => {
-    createTask(values.name.trim(), values.icon as LucideIconName);
+    const taskId = createTask(values.name.trim(), values.icon as LucideIconName);
+    const template = WIDGET_TEMPLATES.find((t) => t.id === selectedTemplate);
+    if (template) {
+      let existing: { type: string; y: number; h: number }[] = [];
+      for (const widgetType of template.widgetTypes) {
+        const item = createWidgetLayoutItem(widgetType, existing as never);
+        addWidget(taskId, item);
+        existing = [...existing, { ...item }];
+      }
+    }
     form.reset();
+    setSelectedTemplate("focus");
     onOpenChange(false);
   };
 
@@ -142,6 +167,43 @@ export const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="icon"
+              render={() => (
+                <FormItem>
+                  <FormLabel>テンプレート</FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    {WIDGET_TEMPLATES.map((tpl) => {
+                      const TplIcon = TEMPLATE_ICONS[tpl.id];
+                      const isSelected = selectedTemplate === tpl.id;
+                      return (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          onClick={() => setSelectedTemplate(tpl.id)}
+                          className={cn(
+                            "flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "hover:bg-accent/50",
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <TplIcon className="h-4 w-4" />
+                            <span className="text-sm font-medium">{tpl.label}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground line-clamp-2">
+                            {tpl.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </FormItem>
               )}
             />

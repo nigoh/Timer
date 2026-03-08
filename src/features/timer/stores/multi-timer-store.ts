@@ -4,6 +4,7 @@ import { MultiTimer, MultiTimerSession } from '@/types/multi-timer';
 import { notificationManager } from '@/utils/notification-manager';
 import { generateId } from '@/utils/id';
 import { getStorageProvider } from '@/utils/storage-adapter';
+import { logger } from '@/utils/logger';
 
 /** 1 タスクあたりのマルチタイマーインスタンス状態 */
 export interface MultiTimerInstanceState {
@@ -117,6 +118,8 @@ export const useMultiTimerStore = create<MultiTimerStore>()(
         (inst) => ({ timers: [...inst.timers, newTimer] }),
       ),
     }));
+
+    logger.featureUsage('multi-timer', 'add', { taskId, timerLabel: timerData.name, duration: timerData.duration });
   },
 
   updateTimer: (taskId, id, updates) => {
@@ -128,11 +131,14 @@ export const useMultiTimerStore = create<MultiTimerStore>()(
   },
 
   deleteTimer: (taskId, id) => {
+    const inst = get().instances[taskId];
+    const timer = inst?.timers.find((t) => t.id === id);
     set((state) => ({
       instances: updateInstance(state.instances, taskId, (inst) => ({
         timers: inst.timers.filter((t) => t.id !== id),
       })),
     }));
+    logger.featureUsage('multi-timer', 'delete', { taskId, timerId: id, timerLabel: timer?.name });
   },
 
   duplicateTimer: (taskId, id) => {
@@ -178,9 +184,17 @@ export const useMultiTimerStore = create<MultiTimerStore>()(
         isAnyRunning: true,
       })),
     }));
+
+    logger.timerStart(id, 'multi', timer.duration);
   },
 
   pauseTimer: (taskId, id) => {
+    const inst = get().instances[taskId];
+    const timer = inst?.timers.find((t) => t.id === id);
+    const elapsed = timer?.startedAt
+      ? Math.floor((Date.now() - timer.startedAt.getTime()) / 1000)
+      : undefined;
+
     set((state) => ({
       instances: updateInstance(state.instances, taskId, (inst) => ({
         timers: inst.timers.map((t) =>
@@ -189,6 +203,8 @@ export const useMultiTimerStore = create<MultiTimerStore>()(
         isAnyRunning: inst.timers.some((t) => t.id !== id && t.isRunning),
       })),
     }));
+
+    logger.timerStop(id, 'multi', elapsed);
   },
 
   stopTimer: (taskId, id) => {
@@ -233,10 +249,13 @@ export const useMultiTimerStore = create<MultiTimerStore>()(
         isAnyRunning: inst.timers.some((t) => t.id !== id && t.isRunning),
       })),
     }));
+    logger.userAction('multi-timer-reset', { taskId, timerId: id });
   },
 
   startAllTimers: (taskId) => {
     notificationManager.ensureInitialized().catch(console.warn);
+    const inst = get().instances[taskId];
+    const activeCount = inst?.timers.filter((t) => !t.isCompleted).length ?? 0;
     const now = new Date();
     set((state) => ({
       instances: updateInstance(
@@ -252,9 +271,12 @@ export const useMultiTimerStore = create<MultiTimerStore>()(
         }),
       ),
     }));
+    logger.featureUsage('multi-timer', 'start-all', { taskId, count: activeCount });
   },
 
   pauseAllTimers: (taskId) => {
+    const inst = get().instances[taskId];
+    const runningCount = inst?.timers.filter((t) => t.isRunning).length ?? 0;
     set((state) => ({
       instances: updateInstance(state.instances, taskId, (inst) => ({
         timers: inst.timers.map((t) =>
@@ -263,6 +285,7 @@ export const useMultiTimerStore = create<MultiTimerStore>()(
         isAnyRunning: false,
       })),
     }));
+    logger.featureUsage('multi-timer', 'pause-all', { taskId, count: runningCount });
   },
 
   stopAllTimers: (taskId) => {

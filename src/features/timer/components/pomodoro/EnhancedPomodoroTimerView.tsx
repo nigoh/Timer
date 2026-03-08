@@ -86,7 +86,7 @@ const PomodoroSettingsDialog = ({
             <Label className="text-sm font-medium mb-3 block">
               プリセット設定
             </Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {presetSettings.map((preset) => (
                 <Button
                   key={preset.name}
@@ -403,7 +403,7 @@ export const EnhancedPomodoroTimerView = ({
           )}
 
           <div className="text-center space-y-4">
-            <div className="timer-display-digit font-mono font-bold tracking-wider">
+            <div className="timer-display-digit font-mono font-bold tracking-wider" aria-live="polite" aria-atomic="true">
               {formatDuration(timeRemaining)}
             </div>
 
@@ -420,47 +420,44 @@ export const EnhancedPomodoroTimerView = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            <div className="flex gap-2">
-              {!isRunning ? (
-                <Button onClick={onStart} size="lg" className="px-6">
-                  <Play className="mr-2 h-5 w-5" />
-                  {isPaused ? "再開" : "開始"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={onPause}
-                  variant="outline"
-                  size="lg"
-                  className="px-6"
-                >
-                  <Pause className="mr-2 h-5 w-5" />
-                  一時停止
-                </Button>
-              )}
-
+          <div className="flex flex-wrap justify-center gap-3">
+            {!isRunning ? (
+              <Button onClick={onStart} size="lg" className="px-4 sm:px-8">
+                <Play className="mr-2 h-5 w-5" />
+                {isPaused ? "再開" : "開始"}
+              </Button>
+            ) : (
               <Button
-                onClick={onStop}
-                variant="destructive"
+                onClick={onPause}
+                variant="outline"
                 size="lg"
-                disabled={!isRunning && !isPaused}
+                className="px-4 sm:px-8"
               >
-                <Square className="mr-2 h-5 w-5" />
-                停止
+                <Pause className="mr-2 h-5 w-5" />
+                一時停止
               </Button>
-            </div>
+            )}
 
-            <div className="flex gap-2">
-              <Button onClick={onSkip} variant="outline" size="lg">
-                <SkipForward className="mr-2 h-5 w-5" />
-                スキップ
-              </Button>
+            <Button
+              onClick={onStop}
+              variant="destructive"
+              size="lg"
+              disabled={!isRunning && !isPaused}
+              className="px-4 sm:px-8"
+            >
+              <Square className="mr-2 h-5 w-5" />
+              停止
+            </Button>
 
-              <Button onClick={onReset} variant="outline" size="lg">
-                <RotateCcw className="mr-2 h-5 w-5" />
-                リセット
-              </Button>
-            </div>
+            <Button onClick={onSkip} variant="outline" size="lg" className="px-4 sm:px-8">
+              <SkipForward className="mr-2 h-5 w-5" />
+              スキップ
+            </Button>
+
+            <Button onClick={onReset} variant="outline" size="lg" className="px-4 sm:px-8">
+              <RotateCcw className="mr-2 h-5 w-5" />
+              リセット
+            </Button>
           </div>
 
           <div className="flex justify-center pt-2">
@@ -478,7 +475,7 @@ export const EnhancedPomodoroTimerView = ({
           <CardTitle className="text-lg">今日の統計</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted rounded-lg">
               <div
                 className={`stat-value ${TIMER_STATUS_CONFIG.running.color}`}

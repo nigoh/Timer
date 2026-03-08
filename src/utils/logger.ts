@@ -79,7 +79,7 @@ class Logger {
       enableConsole: true,
       enableStorage: true,
       maxStorageEntries: 1000,
-      categories: ['timer', 'ui', 'store', 'notification', 'error', 'performance'],
+      categories: ['timer', 'ui', 'store', 'notification', 'error', 'performance', 'analytics'],
       enableStackTrace: true,
       ...config
     };
@@ -301,6 +301,24 @@ class Logger {
       details,
       timestamp: new Date().toISOString()
     }, 'performance');
+  }
+
+  layoutWarning(component: string, issue: string, details?: unknown): void {
+    this.warn(`Layout issue in ${component}: ${issue}`, {
+      component,
+      issue,
+      details,
+      timestamp: new Date().toISOString()
+    }, 'ui');
+  }
+
+  featureUsage(feature: string, action: string, details?: unknown): void {
+    this.info('Feature usage', {
+      feature,
+      action,
+      details,
+      timestamp: new Date().toISOString()
+    }, 'analytics');
   }
 
   // ログ管理機能

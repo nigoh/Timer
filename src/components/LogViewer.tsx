@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import {
   Download,
   Trash2,
@@ -50,6 +51,9 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [timeRange, setTimeRange] = useState<"1h" | "24h" | "today" | "all">(
+    "all",
+  );
   const [isOpen, setIsOpen] = useState(false);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
@@ -62,6 +66,19 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
 
   useEffect(() => {
     let filtered = logs;
+
+    if (timeRange !== "all") {
+      const now = new Date();
+      let startDate: Date;
+      if (timeRange === "1h") {
+        startDate = new Date(now.getTime() - 60 * 60 * 1000);
+      } else if (timeRange === "24h") {
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      } else {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      }
+      filtered = filtered.filter((log) => new Date(log.timestamp) >= startDate);
+    }
 
     if (selectedLevel !== "all") {
       const levelValue = LogLevel[selectedLevel as keyof typeof LogLevel];
@@ -83,7 +100,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
     }
 
     setFilteredLogs(filtered);
-  }, [logs, selectedLevel, selectedCategory, searchQuery]);
+  }, [logs, selectedLevel, selectedCategory, searchQuery, timeRange]);
 
   const statistics = logger.getLogStatistics();
 
@@ -92,6 +109,28 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
       new Set(logs.map((log) => log.category)),
     );
     return uniqueCategories.sort();
+  }, [logs]);
+
+  const analyticsData = useMemo(() => {
+    const analyticsLogs = logs.filter((log) => log.category === "analytics");
+    const counts: Record<
+      string,
+      { count: number; feature: string; action: string }
+    > = {};
+    for (const log of analyticsLogs) {
+      const d = log.data as
+        | { feature?: string; action?: string }
+        | null
+        | undefined;
+      const feature = d?.feature ?? "不明";
+      const action = d?.action ?? "不明";
+      const key = `${feature}/${action}`;
+      if (!counts[key]) {
+        counts[key] = { count: 0, feature, action };
+      }
+      counts[key].count++;
+    }
+    return Object.values(counts).sort((a, b) => b.count - a.count);
   }, [logs]);
 
   const getLevelIcon = (level: LogLevel) => {
@@ -187,16 +226,18 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
           </span>
         </div>
         <p className="text-sm font-medium mb-2">{entry.message}</p>
-        <div className="mb-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleCopyForAi(entry)}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            このログをAI解析文としてコピー
-          </Button>
-        </div>
+        {(entry.level === LogLevel.ERROR || entry.level === LogLevel.WARN) && (
+          <div className="mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleCopyForAi(entry)}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              このログをAI解析文としてコピー
+            </Button>
+          </div>
+        )}
         {entry.data !== undefined && (
           <details className="text-xs">
             <summary className="cursor-pointer text-muted-foreground mb-1">
@@ -234,9 +275,10 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
           </DialogHeader>
 
           <Tabs defaultValue="logs" className="flex h-full min-h-0 flex-col">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="logs">ログ一覧</TabsTrigger>
               <TabsTrigger value="statistics">統計情報</TabsTrigger>
+              <TabsTrigger value="analytics">機能利用分析</TabsTrigger>
             </TabsList>
 
             <TabsContent value="logs" className="flex-1 min-h-0">
@@ -290,6 +332,25 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
                     <Trash2 className="h-4 w-4 mr-2" />
                     クリア
                   </Button>
+                </div>
+                <div className="flex gap-2 shrink-0 flex-wrap">
+                  {(["all", "1h", "24h", "today"] as const).map((range) => (
+                    <Button
+                      key={range}
+                      variant={timeRange === range ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTimeRange(range)}
+                    >
+                      {
+                        {
+                          all: "すべて",
+                          "1h": "1時間以内",
+                          "24h": "24時間以内",
+                          today: "今日",
+                        }[range]
+                      }
+                    </Button>
+                  ))}
                 </div>
 
                 <ScrollArea className="flex-1 min-h-0">
@@ -401,6 +462,63 @@ const LogViewer: React.FC<LogViewerProps> = ({ children }) => {
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="flex-1 min-h-0">
+              <ScrollArea className="h-full">
+                <div className="space-y-4">
+                  {analyticsData.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center">
+                        <p className="text-muted-foreground">
+                          機能利用ログがまだありません
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>機能利用ランキング</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {analyticsData.map(
+                            ({ feature, action, count }, index) => (
+                              <div
+                                key={`${feature}/${action}`}
+                                className="flex items-center gap-3"
+                              >
+                                <span className="text-muted-foreground text-sm w-6 text-right">
+                                  {index + 1}.
+                                </span>
+                                <div className="flex-1">
+                                  <div className="flex justify-between text-sm mb-1">
+                                    <span>
+                                      <Badge variant="outline" className="mr-2">
+                                        {feature}
+                                      </Badge>
+                                      {action}
+                                    </span>
+                                    <span className="font-medium">
+                                      {count}回
+                                    </span>
+                                  </div>
+                                  <Progress
+                                    value={
+                                      (count / analyticsData[0].count) * 100
+                                    }
+                                    className="h-2"
+                                  />
+                                </div>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>

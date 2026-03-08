@@ -14,6 +14,8 @@ import {
   getAgendaMinutesQuillModules,
 } from "@/features/timer/components/agenda/agenda-minutes-quill";
 import { OcrImportDialog } from "@/features/timer/components/agenda/OcrImportDialog";
+import { VoiceTranscriptPanel } from "@/features/timer/components/voice/VoiceTranscriptPanel";
+import { VoiceTranscriptSummaryDialog } from "@/features/timer/components/voice/VoiceTranscriptSummaryDialog";
 import { AgendaItem } from "@/types/agenda";
 
 export interface MinutesEditorProps {
@@ -36,6 +38,7 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
     return window.matchMedia(AGENDA_MINUTES_MOBILE_QUERY).matches;
   });
   const [isOcrDialogOpen, setIsOcrDialogOpen] = useState(false);
+  const [isVoiceSummaryOpen, setIsVoiceSummaryOpen] = useState(false);
   const quillModules = useMemo(
     () => getAgendaMinutesQuillModules(isMobile),
     [isMobile],
@@ -100,7 +103,8 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
           </SimpleTooltip>
         </div>
       </CardHeader>
-      <CardContent className="flex min-h-0 flex-col p-3 pt-0">
+      <CardContent className="flex min-h-0 flex-col p-3 pt-0 gap-2">
+        {/* リッチテキストエディタ */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md bg-background [&_.ql-toolbar]:shrink-0 [&_.ql-toolbar]:flex-wrap [&_.ql-container]:flex-1 [&_.ql-container]:min-h-0 [&_.ql-container]:overflow-hidden [&_.ql-editor]:h-full [&_.ql-editor]:overflow-y-auto [&_.ql-editor]:break-words max-lg:[&_.ql-editor]:text-sm">
           <QuillEditor
             ref={quillRef}
@@ -122,6 +126,15 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
             formats={AGENDA_MINUTES_QUILL_FORMATS}
           />
         </div>
+        {/* 音声文字起こしパネル */}
+        <div className="shrink-0 h-44">
+          <VoiceTranscriptPanel
+            meetingId={meetingId}
+            agendaId={agenda.id}
+            minutesFormat="richtext"
+            onRequestSummaryDialog={() => setIsVoiceSummaryOpen(true)}
+          />
+        </div>
       </CardContent>
     </Card>
     <OcrImportDialog
@@ -129,6 +142,12 @@ export const MinutesEditor: React.FC<MinutesEditorProps> = ({
       mode="minutes"
       onClose={() => setIsOcrDialogOpen(false)}
       onImport={handleOcrImport}
+    />
+    <VoiceTranscriptSummaryDialog
+      isOpen={isVoiceSummaryOpen}
+      onClose={() => setIsVoiceSummaryOpen(false)}
+      quillRef={quillRef}
+      onInserted={() => setIsVoiceSummaryOpen(false)}
     />
     </>
   );

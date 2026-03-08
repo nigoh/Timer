@@ -16,7 +16,8 @@ export type WidgetType =
   | "kpi-meeting-overtime"
   | "trend-chart"
   | "heatmap-chart"
-  | "donut-chart";
+  | "donut-chart"
+  | "ocr";
 
 /** react-grid-layout ベースの自由配置レイアウトアイテム */
 export interface WidgetLayoutItem {

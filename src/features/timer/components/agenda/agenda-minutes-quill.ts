@@ -13,6 +13,19 @@ export const AGENDA_MINUTES_QUILL_FORMATS = [
   "link",
 ];
 
+// 空の箇条書き行で Enter を押したときにリスト書式を解除してノーマル段落に戻るバインディング
+const listExitKeyboardBindings = {
+  listExit: {
+    key: "Enter",
+    collapsed: true,
+    format: ["list"],
+    empty: true,
+    handler(this: { quill: { format: (name: string, value: boolean, source: string) => void } }) {
+      this.quill.format("list", false, "user");
+    },
+  },
+};
+
 export const getAgendaMinutesQuillModules = (isMobile: boolean) => ({
   toolbar: isMobile
     ? [
@@ -31,4 +44,7 @@ export const getAgendaMinutesQuillModules = (isMobile: boolean) => ({
         ["link"],
         ["clean"],
       ],
+  keyboard: {
+    bindings: listExitKeyboardBindings,
+  },
 });

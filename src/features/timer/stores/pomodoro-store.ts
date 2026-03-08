@@ -8,6 +8,7 @@ import {
 } from '@/types/pomodoro';
 import { notificationManager } from '@/utils/notification-manager';
 import { getStorageProvider } from '@/utils/storage-adapter';
+import { logger } from '@/utils/logger';
 
 /** 1 タスクあたりのポモドーロインスタンス状態 */
 export interface PomodoroInstanceState {
@@ -120,6 +121,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
   },
 
   start: (taskId) => {
+    const inst = get().instances[taskId] ?? createDefaultInstance();
     set((state) => ({
       instances: updateInstance(
         ensureInstance(state.instances, taskId),
@@ -128,9 +130,11 @@ export const usePomodoroStore = create<PomodoroStore>()(
       ),
     }));
     notificationManager.ensureInitialized().catch(console.warn);
+    logger.timerStart(taskId, 'pomodoro', inst.timeRemaining);
   },
 
   pause: (taskId) => {
+    const inst = get().instances[taskId];
     set((state) => ({
       instances: updateInstance(state.instances, taskId, () => ({
         isRunning: false,
@@ -138,6 +142,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
         lastTickTime: null,
       })),
     }));
+    logger.userAction('pomodoro-pause', { taskId, phase: inst?.currentPhase });
   },
 
   stop: (taskId) => {
@@ -149,13 +154,17 @@ export const usePomodoroStore = create<PomodoroStore>()(
         lastTickTime: null,
       })),
     }));
+    logger.timerStop(taskId, 'pomodoro');
   },
 
   skip: (taskId) => {
+    const inst = get().instances[taskId];
+    logger.featureUsage('pomodoro', 'skip', { taskId, fromPhase: inst?.currentPhase });
     get().nextPhase(taskId);
   },
 
   reset: (taskId) => {
+    logger.userAction('pomodoro-reset', { taskId });
     set((state) => ({
       instances: updateInstance(state.instances, taskId, (inst) => ({
         isRunning: false,
@@ -289,6 +298,8 @@ export const usePomodoroStore = create<PomodoroStore>()(
         todayStats: newStats,
       })),
     }));
+
+    logger.timerComplete(taskId, 'pomodoro', sessionDuration);
   },
 
   nextPhase: (taskId) => {
@@ -311,6 +322,13 @@ export const usePomodoroStore = create<PomodoroStore>()(
         nextCycle = inst.cycle + 1;
       }
     }
+
+    logger.info('Pomodoro phase changed', {
+      taskId,
+      from: inst.currentPhase,
+      to: nextPhase,
+      completedPomodoros: inst.todayStats.completedPomodoros,
+    }, 'timer');
 
     set((state) => ({
       instances: updateInstance(state.instances, taskId, () => ({

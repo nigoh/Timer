@@ -7,13 +7,14 @@ interface KpiCardProps {
   value: string;
   sub?: string;
   className?: string;
+  primary?: boolean;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ label, value, sub, className }) => (
-  <Card className={cn("flex-1 min-w-0", className)}>
-    <CardContent className="p-4">
-      <p className="stat-label mb-1 truncate">{label}</p>
-      <p className="stat-value leading-none">{value}</p>
+const KpiCard: React.FC<KpiCardProps> = ({ label, value, sub, className, primary }) => (
+  <Card className={cn("flex-1 min-w-0", primary && "col-span-full sm:col-span-1", className)}>
+    <CardContent className={cn("p-4", primary && "p-5")}>
+      <p className={cn("stat-label mb-1 truncate", primary && "text-sm")}>{label}</p>
+      <p className={cn("stat-value leading-none", primary && "text-3xl")}>{value}</p>
       {sub && <p className="stat-label mt-1">{sub}</p>}
     </CardContent>
   </Card>

@@ -73,9 +73,12 @@ export const MeetingReportHistory: React.FC<MeetingReportHistoryProps> = ({
 
         <CardContent className="px-3 pb-3 pt-0 min-h-0">
           {reports.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              レポートはまだありません
-            </p>
+            <div className="flex flex-col items-center gap-2 py-4 text-center">
+              <FileText className="h-8 w-8 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">
+                会議終了後にレポートが自動生成されます
+              </p>
+            </div>
           ) : (
             <ul className="space-y-1 overflow-auto pr-1 h-full min-h-0">
               {reports.map((report) => (

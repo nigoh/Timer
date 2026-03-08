@@ -11,7 +11,12 @@ vi.mock("@/utils/notification-manager", () => ({
 vi.mock("@/utils/logger", () => ({
   logger: {
     info: vi.fn(),
+    warn: vi.fn(),
     timerStart: vi.fn(),
+    timerStop: vi.fn(),
+    timerComplete: vi.fn(),
+    userAction: vi.fn(),
+    featureUsage: vi.fn(),
   },
 }));
 

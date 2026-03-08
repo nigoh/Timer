@@ -3,7 +3,6 @@ import React, {
   useCallback,
   useState,
   useRef,
-  useEffect,
 } from "react";
 import {
   GridLayout,
@@ -69,6 +68,7 @@ import { BasicTimer } from "@/features/timer/containers/BasicTimer";
 import { TimerDisplay } from "@/features/timer/components/agenda/TimerDisplay";
 import { AgendaList } from "@/features/timer/components/agenda/AgendaList";
 import { MinutesEditor } from "@/features/timer/components/agenda/MinutesEditor";
+import { OcrWidget } from "@/features/timer/components/agenda/OcrWidget";
 import { MeetingOverviewChart } from "@/features/timer/components/agenda/MeetingOverviewChart";
 import { MeetingReportHistory } from "@/features/timer/components/agenda/MeetingReportHistory";
 import { MeetingList } from "@/features/timer/components/agenda/MeetingList";
@@ -82,6 +82,7 @@ import TrendChart from "@/features/timer/components/dashboard/TrendChart";
 import HeatmapChart from "@/features/timer/components/dashboard/HeatmapChart";
 import DonutChart from "@/features/timer/components/dashboard/DonutChart";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatMinutesValue } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
@@ -302,7 +303,10 @@ const WidgetAddDialog: React.FC<WidgetAddDialogProps> = ({
                         : "bg-card hover:bg-accent/50",
                     )}
                   >
-                    <p className="text-sm font-medium">{meta.label}</p>
+                    <div className="min-w-0 mr-3">
+                      <p className="text-sm font-medium">{meta.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{meta.description}</p>
+                    </div>
                     <Button
                       type="button"
                       size="sm"
@@ -349,7 +353,6 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
   const {
     currentMeeting,
     meetings,
-    createMeeting,
     deleteMeeting,
     setCurrentMeeting,
     getCurrentAgenda,
@@ -358,23 +361,8 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
   const { createDraftFromMeeting, setDialogOpen: setReportDialogOpen } =
     useMeetingReportStore();
 
-  // Ensure at least one meeting exists for meeting widgets
-  useEffect(() => {
-    const hasMeetingWidgets = widgets.some((w) =>
-      [
-        "meeting-shortcut",
-        "timer",
-        "agenda",
-        "minutes",
-        "transcript",
-        "time-allocation",
-        "report-history",
-      ].includes(w.type),
-    );
-    if (hasMeetingWidgets && meetings.length === 0) {
-      createMeeting("新しい会議");
-    }
-  }, [widgets, meetings.length, createMeeting]);
+  // Meeting creation is now handled by individual widget CTAs
+  // instead of auto-creating on widget presence
 
   const currentAgenda = getCurrentAgenda();
 
@@ -622,24 +610,43 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
         );
 
       case "timer":
+        if (!currentMeeting) {
+          return (
+            <EmptyState
+              icon={Clock}
+              title="会議タイマー"
+              description="会議を作成するとタイマーが利用できます"
+              action={{
+                label: "会議を作成",
+                icon: Plus,
+                onClick: () => {
+                  setEditingMeeting(null);
+                  setIsMeetingDialogOpen(true);
+                },
+              }}
+              className="h-full"
+            />
+          );
+        }
         return <TimerDisplay />;
 
       case "agenda":
         if (!currentMeeting) {
           return (
-            <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
-              <CardHeader className="px-3 py-2">
-                <CardTitle className="flex items-center gap-1.5 text-sm">
-                  <Clock className="h-3.5 w-3.5" />
-                  アジェンダ一覧
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center p-3 pt-0">
-                <p className="text-center text-sm text-muted-foreground">
-                  会議を作成するとアジェンダ一覧が表示されます
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Clock}
+              title="アジェンダ一覧"
+              description="会議を作成するとアジェンダを管理できます"
+              action={{
+                label: "会議を作成",
+                icon: Plus,
+                onClick: () => {
+                  setEditingMeeting(null);
+                  setIsMeetingDialogOpen(true);
+                },
+              }}
+              className="h-full"
+            />
           );
         }
         return (
@@ -657,21 +664,32 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
         );
 
       case "minutes":
-        if (!currentMeeting || !currentAgenda) {
+        if (!currentMeeting) {
           return (
-            <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
-              <CardHeader className="px-3 py-2">
-                <CardTitle className="flex items-center gap-1.5 text-sm">
-                  <FileText className="h-3.5 w-3.5" />
-                  議事録
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center p-3 pt-0">
-                <p className="text-center text-sm text-muted-foreground">
-                  アジェンダを選択すると議事録を表示できます
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={FileText}
+              title="議事録"
+              description="会議を作成すると議事録を記録できます"
+              action={{
+                label: "会議を作成",
+                icon: Plus,
+                onClick: () => {
+                  setEditingMeeting(null);
+                  setIsMeetingDialogOpen(true);
+                },
+              }}
+              className="h-full"
+            />
+          );
+        }
+        if (!currentAgenda) {
+          return (
+            <EmptyState
+              icon={FileText}
+              title="議事録"
+              description="アジェンダを選択すると議事録を記録できます"
+              className="h-full"
+            />
           );
         }
         return (
@@ -683,21 +701,32 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
         );
 
       case "transcript":
-        if (!currentMeeting || !currentAgenda) {
+        if (!currentMeeting) {
           return (
-            <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
-              <CardHeader className="px-3 py-2">
-                <CardTitle className="flex items-center gap-1.5 text-sm">
-                  <Volume2 className="h-3.5 w-3.5" />
-                  文字起こし
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center p-3 pt-0">
-                <p className="text-center text-sm text-muted-foreground">
-                  アジェンダを選択すると文字起こしを表示できます
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Volume2}
+              title="文字起こし"
+              description="会議を作成すると文字起こしを利用できます"
+              action={{
+                label: "会議を作成",
+                icon: Plus,
+                onClick: () => {
+                  setEditingMeeting(null);
+                  setIsMeetingDialogOpen(true);
+                },
+              }}
+              className="h-full"
+            />
+          );
+        }
+        if (!currentAgenda) {
+          return (
+            <EmptyState
+              icon={Volume2}
+              title="文字起こし"
+              description="アジェンダを選択すると文字起こしを表示できます"
+              className="h-full"
+            />
           );
         }
         return (
@@ -722,19 +751,20 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
       case "time-allocation":
         if (!currentMeeting) {
           return (
-            <Card className="grid h-full min-h-0 rounded-none shadow-none border-0 grid-rows-[auto_minmax(0,1fr)]">
-              <CardHeader className="px-3 py-2">
-                <CardTitle className="flex items-center gap-1.5 text-sm">
-                  <Clock className="h-3.5 w-3.5" />
-                  会議時間配分
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center p-3 pt-0">
-                <p className="text-center text-sm text-muted-foreground">
-                  会議を作成すると時間配分を表示できます
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Clock}
+              title="会議時間配分"
+              description="会議を作成すると時間配分を表示できます"
+              action={{
+                label: "会議を作成",
+                icon: Plus,
+                onClick: () => {
+                  setEditingMeeting(null);
+                  setIsMeetingDialogOpen(true);
+                },
+              }}
+              className="h-full"
+            />
           );
         }
         return (
@@ -753,6 +783,9 @@ export const TaskWidgetCanvas: React.FC<{ taskId: string }> = ({ taskId }) => {
 
       case "report-history":
         return <MeetingReportHistory className="h-full" />;
+
+      case "ocr":
+        return <OcrWidget />;
 
       // --- Analytics widgets ---
       case "analytics-filter":

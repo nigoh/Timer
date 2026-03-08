@@ -163,4 +163,101 @@ describe('useMultiTimerStore', () => {
     expect(timer.remainingTime).toBe(0);
     expect(inst().isAnyRunning).toBe(false);
   });
+
+  // --- 追加テスト ---
+
+  it('getRunningTimers で実行中タイマーを取得できる', () => {
+    const store = useMultiTimerStore.getState();
+    store.addTimer(TASK_ID, { name: 'A', duration: 10, category: 'x', color: '#111' });
+    store.addTimer(TASK_ID, { name: 'B', duration: 20, category: 'x', color: '#222' });
+
+    const idA = inst().timers[0].id;
+    store.startTimer(TASK_ID, idA);
+
+    const running = useMultiTimerStore.getState().getRunningTimers(TASK_ID);
+    expect(running).toHaveLength(1);
+    expect(running[0].name).toBe('A');
+  });
+
+  it('getCompletedTimers で完了タイマーを取得できる', () => {
+    const store = useMultiTimerStore.getState();
+    store.addTimer(TASK_ID, { name: '完A', duration: 1, category: 'x', color: '#111' });
+    const timerId = inst().timers[0].id;
+    store.startTimer(TASK_ID, timerId);
+    store.tick(TASK_ID);
+
+    const completed = useMultiTimerStore.getState().getCompletedTimers(TASK_ID);
+    expect(completed).toHaveLength(1);
+    expect(completed[0].isCompleted).toBe(true);
+  });
+
+  it('getTimerById で特定タイマーを取得できる', () => {
+    const store = useMultiTimerStore.getState();
+    store.addTimer(TASK_ID, { name: '検索A', duration: 10, category: 'x', color: '#111' });
+    const timerId = inst().timers[0].id;
+    const found = useMultiTimerStore.getState().getTimerById(TASK_ID, timerId);
+    expect(found?.name).toBe('検索A');
+  });
+
+  it('getTimerById で存在しない ID は undefined を返す', () => {
+    const found = useMultiTimerStore.getState().getTimerById(TASK_ID, 'nonexistent');
+    expect(found).toBeUndefined();
+  });
+
+  it('addCategory / removeCategory でカテゴリを管理できる', () => {
+    const store = useMultiTimerStore.getState();
+    store.addCategory(TASK_ID, '新カテゴリ');
+    expect(inst().categories).toContain('新カテゴリ');
+
+    useMultiTimerStore.getState().removeCategory(TASK_ID, '新カテゴリ');
+    expect(inst().categories).not.toContain('新カテゴリ');
+  });
+
+  it('updateGlobalSettings でグローバル設定を更新できる', () => {
+    const store = useMultiTimerStore.getState();
+    store.updateGlobalSettings(TASK_ID, { soundEnabled: false });
+    expect(inst().globalSettings.soundEnabled).toBe(false);
+  });
+
+  it('resetAllTimers で全タイマーをリセットできる', () => {
+    const store = useMultiTimerStore.getState();
+    store.addTimer(TASK_ID, { name: 'X', duration: 10, category: 'x', color: '#111' });
+    store.addTimer(TASK_ID, { name: 'Y', duration: 20, category: 'x', color: '#222' });
+
+    const idX = inst().timers[0].id;
+    store.startTimer(TASK_ID, idX);
+    store.tick(TASK_ID);
+
+    useMultiTimerStore.getState().resetAllTimers(TASK_ID);
+    const timers = inst().timers;
+    expect(timers.every((t) => t.remainingTime === t.duration)).toBe(true);
+    expect(timers.every((t) => !t.isRunning && !t.isPaused && !t.isCompleted)).toBe(true);
+  });
+
+  it('複数タイマー同時実行時の tick で全て正しくカウントダウンする', () => {
+    const store = useMultiTimerStore.getState();
+    store.addTimer(TASK_ID, { name: 'P', duration: 10, category: 'x', color: '#111' });
+    store.addTimer(TASK_ID, { name: 'Q', duration: 20, category: 'x', color: '#222' });
+
+    store.startAllTimers(TASK_ID);
+    useMultiTimerStore.getState().tick(TASK_ID);
+
+    const timers = inst().timers;
+    expect(timers[0].remainingTime).toBe(9);
+    expect(timers[1].remainingTime).toBe(19);
+  });
+
+  it('removeInstance でインスタンスを削除できる', () => {
+    expect(inst()).toBeDefined();
+    useMultiTimerStore.getState().removeInstance(TASK_ID);
+    expect(useMultiTimerStore.getState().instances[TASK_ID]).toBeUndefined();
+  });
+
+  it('updateTimer でタイマー名を更新できる', () => {
+    const store = useMultiTimerStore.getState();
+    store.addTimer(TASK_ID, { name: '旧名', duration: 10, category: 'x', color: '#111' });
+    const timerId = inst().timers[0].id;
+    useMultiTimerStore.getState().updateTimer(TASK_ID, timerId, { name: '新名' });
+    expect(inst().timers[0].name).toBe('新名');
+  });
 });

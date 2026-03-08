@@ -348,6 +348,9 @@ const SettingsAndLogsPage: React.FC = () => {
                       value={aiDraft.apiKey}
                       onChange={(e) => handleAiChange("apiKey", e.target.value)}
                     />
+                    <p className="text-[11px] text-muted-foreground">
+                      キーはブラウザメモリにのみ保持され、ページリロードでリセットされます。外部サーバーへの送信はありません。
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="settings-ai-temp">

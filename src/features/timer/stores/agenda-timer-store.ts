@@ -515,6 +515,8 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
           isRunning: false,
         })),
       }));
+
+      logger.timerStop(currentAgenda.id, 'agenda', elapsedTime);
     } else {
       set((state) => ({
         instances: updateInstance(state.instances, taskId, () => ({
@@ -557,6 +559,12 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
       status: "completed",
       endTime: new Date(),
     });
+
+    logger.info('Agenda advanced', {
+      meetingId: inst.currentMeeting.id,
+      completedAgendaId: currentAgenda.id,
+      completedAgendaTitle: currentAgenda.title,
+    }, 'agenda');
 
     const meetingId = inst.currentMeeting.id;
     const nextItem = inst.currentMeeting.agenda
@@ -644,7 +652,16 @@ export const useAgendaTimerStore = create<AgendaTimerStore>()(
 
     // Overtime check every minute
     if (newRemainingTime < 0 && Math.abs(newRemainingTime) % 60 === 0) {
-      notifyAgenda('overtime', inst.currentMeeting.settings, `アジェンダ「${currentAgenda.title}」が${Math.abs(Math.floor(newRemainingTime / 60))}分超過しています`);
+      const overtimeMinutes = Math.abs(Math.floor(newRemainingTime / 60));
+      notifyAgenda('overtime', inst.currentMeeting.settings, `アジェンダ「${currentAgenda.title}」が${overtimeMinutes}分超過しています`);
+      logger.warn('Agenda overtime', {
+        meetingId: inst.currentMeeting.id,
+        agendaId: currentAgenda.id,
+        agendaTitle: currentAgenda.title,
+        plannedDuration: currentAgenda.plannedDuration,
+        actualDuration: newActualDuration,
+        overtimeMinutes,
+      }, 'agenda');
     }
   },
 

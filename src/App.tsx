@@ -46,11 +46,15 @@ import { useTickManagerStore } from "./features/timer/stores/tick-manager-store"
 import { useIsMobile } from "./hooks/useIsMobile";
 import { AuthContainer } from "./features/auth/containers/AuthContainer";
 import { useAuthStore } from "./features/auth/auth-store";
-import { onAuthStateChange, getCurrentUser } from "./features/auth/auth-service";
+import {
+  onAuthStateChange,
+  getCurrentUser,
+} from "./features/auth/auth-service";
 import { syncAll } from "./features/sync/sync-service";
 import { useSyncStore } from "./features/sync/sync-store";
 import { migrateGuestData } from "./features/sync/migration-service";
 import { subscribe, unsubscribe } from "./features/sync/realtime-service";
+import { useLayoutOverlapDetection } from "./hooks/useLayoutOverlapDetection";
 import "./globals.css";
 
 function App() {
@@ -64,6 +68,8 @@ function App() {
   const activeTaskId = useTaskStore((s) => s.activeTaskId);
   const showSettings = useTaskStore((s) => s.showSettings);
   const setShowSettings = useTaskStore((s) => s.setShowSettings);
+
+  const sidebarHeaderRef = useLayoutOverlapDetection("SidebarHeader");
 
   // グローバルTickの開始（全タイマーインスタンスを1秒間隔で処理）
   React.useEffect(() => {
@@ -121,21 +127,21 @@ function App() {
     }
     function handleOffline() {
       setOnline(false);
-      useSyncStore.getState().setStatus('offline');
+      useSyncStore.getState().setStatus("offline");
     }
     function handleVisibilityChange() {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         syncAll().catch(() => {});
       }
     }
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -195,7 +201,7 @@ function App() {
       {/* ── 左サイドバー ── */}
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+          <div ref={sidebarHeaderRef} className="flex items-center gap-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md overflow-hidden">
               <img
                 src={
