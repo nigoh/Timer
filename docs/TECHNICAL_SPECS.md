@@ -5,7 +5,7 @@
 
 - React 18
 - TypeScript 5
-- Vite 5
+- Vite 6
 - Zustand 4
 - Tailwind CSS + shadcn/ui (new-york style) + Radix UI
 - react-hook-form + @hookform/resolvers + zod（フォームバリデーション）
@@ -13,12 +13,54 @@
 - cmdk（コマンドパレット）
 - @dnd-kit/sortable + core（ドラッグ並べ替え）
 - Tesseract.js 7（ブラウザ内 WASM OCR、Japanese/English 対応）
+- **@supabase/supabase-js**（クラウド DB・Auth・Realtime）
 - Vitest
 
+## 環境変数
+
+| 変数名 | 説明 | 必須 |
+|--------|------|------|
+| `VITE_SUPABASE_URL` | Supabase プロジェクト URL | クラウド同期を使用する場合 |
+| `VITE_SUPABASE_ANON_KEY` | Supabase 匿名キー（公開可） | クラウド同期を使用する場合 |
+
+未設定の場合は Supabase 関連機能（ログイン UI・クラウド同期）が無効化され、ゲストモードのみで動作する。
+`.env.example` にプレースホルダーを記載している。Vercel では `Settings → Environment Variables` から設定する。
+
+
+## デプロイ
+
+デプロイ先: **Vercel**
+
+### Vercel 設定
+
+`vercel.json` でSPA リライトとセキュリティヘッダー（CSP）を設定する。
+
+- **SPA リライト**: 全パスを `/index.html` に転送し、ページリロード時の 404 を防ぐ。
+- **CSP**: HTTP レスポンスヘッダーで適用（`<meta>` タグは使用しない）。Supabase REST（`https://*.supabase.co`）および Realtime WebSocket（`wss://*.supabase.co`）を許可。
+
+### デプロイ手順
+
+1. [Vercel](https://vercel.com) でリポジトリをインポートしてプロジェクトを作成する。
+2. **Framework Preset**: Vite を選択する（自動検出される）。
+3. **Build Command**: `npm run build`（デフォルト）。
+4. **Output Directory**: `dist`（デフォルト）。
+5. `Settings → Environment Variables` で以下を設定する：
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+6. `main` ブランチへ push すると自動デプロイされる。PR ごとにプレビュー URL が生成される。
+
+### ローカル開発
+
+```bash
+npm run dev   # port 3000、開発サーバー用 CSP は vite.config.ts で設定
+```
 
 ## 主要ディレクトリ
 
 - `src/components`: 共通 UI
+- `src/lib`: 外部サービスクライアント（`supabase.ts` など）
+- `src/features/auth/`: 認証機能（store / service / components / containers）
+- `src/features/sync/`: データ同期機能（sync-service / sync-store / realtime-service / migration-service）
 - `src/features/timer/components`: 機能別 View
 - `src/features/timer/containers`: コンテナ（配線）
 - `src/features/timer/stores`: ドメイン状態（Zustand）
@@ -167,18 +209,58 @@ src/
 - フォーム入力は `Label` と `id/htmlFor` を必ず関連付ける。
 - 視覚的に不要なラベルは `sr-only` を使って支援技術向けに保持する。
 
-## 永続化
+## 永続化・クラウド同期
 
-- 全タイマー系ストアは Zustand `persist` を利用し、LocalStorage に保存する。
+### ローカル永続化
+
+- 全タイマー系ストアは Zustand `persist` を利用し、localStorage に保存する。
 - 永続化対象はストアごとに `partialize` で制御し、ランタイム状態（`isRunning`, `lastTickTime` 等）は除外する。
-- ストレージバックエンドは `src/utils/storage-adapter.ts` の `IStorageProvider` で抽象化し、将来的な DB 移行に対応する。
-- `integration-link-store` は `linksByLogId` のみ永続化し、`githubPat` はメモリ保持（非永続）とする。
-- `meeting-knowledge-store` は `records`（最大 100 件）, `learnedPatterns`, `settings` を永続化する。
-- `basic-timer-store` は `duration`, `sessionLabel`, `history` を永続化する。
-- `pomodoro-store` は `settings`, `todayStats`, `sessions` を永続化する。
-- `multi-timer-store` は `timers`（実行状態リセット済み）, `categories`, `globalSettings`, `sessions` を永続化する。
-- `agenda-timer-store` は `meetings`, `currentMeeting` を永続化する。
+- ストレージバックエンドは `src/utils/storage-adapter.ts` の `IStorageProvider` で抽象化する。
+
+| ストア | 永続化キー | 主な永続化フィールド |
+|--------|-----------|---------------------|
+| `task-store` | `task-store` | `tasks`, `activeTaskId`, `presets` |
+| `basic-timer-store` | `basic-timer-store` | `duration`, `sessionLabel`, `history` |
+| `pomodoro-store` | `pomodoro-store` | `settings`, `todayStats`, `sessions` |
+| `agenda-timer-store` | `agenda-timer-store` | `meetings`, `currentMeeting` |
+| `multi-timer-store` | `multi-timer-store` | `timers`（実行状態リセット済み）, `categories`, `globalSettings` |
+| `meeting-report-store` | `meeting-report-store` | `reports`, `postedCommentHistory` |
+| `integration-link-store` | `integration-links` | `linksByLogId`（`githubPat` は除外） |
+| `ui-preferences-store` | `ui-preferences` | `sidebarOpen` |
+| `meeting-knowledge-store` | `meeting-knowledge-store` | `records`（最大 100 件）, `learnedPatterns`, `settings` |
+| `auth-store` | `auth-store` | `user`（表示情報のみ。トークンは除外） |
+
 - 詳細設計: `docs/DESIGN_DATA_PERSISTENCE.md`
+
+### クラウド同期アーキテクチャ（Supabase）
+
+オフラインファースト設計: localStorage を一次ストレージとし、Supabase を非同期二次ストレージとして使用する。
+既存 Zustand persist の動作は変更しない。
+
+```
+書き込みフロー:
+  ユーザー操作 → Zustand setState → Zustand persist → localStorage（即時）
+                                                      → syncService.push()（非同期・fire-and-forget）
+                                                          → Supabase UPSERT
+
+読み込みフロー（アプリ起動時）:
+  1. Zustand が localStorage からハイドレート（即時・既存動作）
+  2. 認証済みなら syncService.syncAll() を非同期実行
+     → 各ストア: Supabase の updated_at を確認 → クラウドが新しければ localStorage 上書き
+
+Realtime フロー（他タブ・他デバイスからの変更）:
+  Supabase DB 更新 → Realtime 通知 → このタブ受信
+  → localStorage 上書き（次回レンダリング/リロードで反映）
+```
+
+**競合解決**: Last-Write-Wins（`updated_at` タイムスタンプ比較）
+**セキュリティ**: Row Level Security（`auth.uid() = user_id`）、認証トークンはメモリのみ
+**同期対象**: 上記テーブルの全ストアキー（`auth-store` は除く）
+**同期サービス実装**:
+- `src/features/sync/sync-service.ts`: push / pull / syncAll
+- `src/features/sync/sync-store.ts`: SyncStatus, lastSyncAt, isOnline
+- `src/features/sync/realtime-service.ts`: Supabase Realtime 購読・解除
+- `src/features/sync/migration-service.ts`: ゲストデータ → クラウド移行
 
 ## MAPE-K 会議効率化 アーキテクチャ
 

@@ -22,7 +22,7 @@ export default defineConfig({
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
-        // Vite HMR WebSocket + GitHub API + AI API
+        // Vite HMR WebSocket + GitHub API + AI API + Supabase
         [
           "connect-src 'self'",
           'ws://localhost:*',
@@ -30,6 +30,8 @@ export default defineConfig({
           'https://api.github.com',
           'https://api.anthropic.com',
           'https://api.openai.com',
+          'https://*.supabase.co',
+          'wss://*.supabase.co',
         ].join(' '),
         "img-src 'self' data: blob:",
         "font-src 'self' data:",

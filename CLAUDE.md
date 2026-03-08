@@ -111,6 +111,15 @@ src/
 | UI プリミティブ | `src/components/ui/` |
 | ドメイン型 | `src/types/` |
 | タブルーティング | `src/App.tsx` |
+| Supabase クライアント | `src/lib/supabase.ts` |
+| 認証状態 | `src/features/auth/auth-store.ts` |
+| 認証サービス（OAuth） | `src/features/auth/auth-service.ts` |
+| 同期状態 | `src/features/sync/sync-store.ts` |
+| 同期サービス（push/pull/LWW） | `src/features/sync/sync-service.ts` |
+| リアルタイム同期 | `src/features/sync/realtime-service.ts` |
+| ゲストデータ移行 | `src/features/sync/migration-service.ts` |
+| ドメイン型（認証） | `src/types/auth.ts` |
+| ドメイン型（同期） | `src/types/sync.ts` |
 
 ## ドキュメント更新義務
 

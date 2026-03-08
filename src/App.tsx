@@ -44,6 +44,13 @@ import {
 } from "./features/timer/stores/task-store";
 import { useTickManagerStore } from "./features/timer/stores/tick-manager-store";
 import { useIsMobile } from "./hooks/useIsMobile";
+import { AuthContainer } from "./features/auth/containers/AuthContainer";
+import { useAuthStore } from "./features/auth/auth-store";
+import { onAuthStateChange, getCurrentUser } from "./features/auth/auth-service";
+import { syncAll } from "./features/sync/sync-service";
+import { useSyncStore } from "./features/sync/sync-store";
+import { migrateGuestData } from "./features/sync/migration-service";
+import { subscribe, unsubscribe } from "./features/sync/realtime-service";
 import "./globals.css";
 
 function App() {
@@ -63,6 +70,72 @@ function App() {
     useTickManagerStore.getState().startGlobalTick();
     return () => {
       useTickManagerStore.getState().stopGlobalTick();
+    };
+  }, []);
+
+  // 認証状態の初期化・購読
+  React.useEffect(() => {
+    const { setUser, setLoading } = useAuthStore.getState();
+    setLoading(true);
+
+    // 起動時に現在のセッションを確認
+    getCurrentUser().then((user) => {
+      setUser(user);
+      if (user) {
+        migrateGuestData()
+          .then(() => syncAll())
+          .then(() => subscribe(user.id))
+          .catch(() => {});
+      }
+    });
+
+    // 認証状態変化を購読（ログイン・ログアウト）
+    const unsubscribeAuth = onAuthStateChange((user) => {
+      const prevUser = useAuthStore.getState().user;
+      setUser(user);
+      if (user) {
+        // 新規ログイン時のみ移行を実行
+        const isNewLogin = !prevUser;
+        const action = isNewLogin
+          ? migrateGuestData().then(() => syncAll())
+          : syncAll();
+        action.then(() => subscribe(user.id)).catch(() => {});
+      } else {
+        unsubscribe();
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribe();
+    };
+  }, []);
+
+  // オンライン/オフライン・可視性変化で同期
+  React.useEffect(() => {
+    const { setOnline } = useSyncStore.getState();
+
+    function handleOnline() {
+      setOnline(true);
+      syncAll().catch(() => {});
+    }
+    function handleOffline() {
+      setOnline(false);
+      useSyncStore.getState().setStatus('offline');
+    }
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        syncAll().catch(() => {});
+      }
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -164,6 +237,9 @@ function App() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
+          <div className="px-2 pb-1">
+            <AuthContainer />
+          </div>
         </SidebarFooter>
       </Sidebar>
 
