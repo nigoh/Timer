@@ -48,6 +48,7 @@ import {
 import { useTickManagerStore } from "./features/timer/stores/tick-manager-store";
 import { AuthContainer } from "./features/auth/containers/AuthContainer";
 import { useAuthStore } from "./features/auth/auth-store";
+import { HeaderUserAvatar } from "./features/auth/components/HeaderUserAvatar";
 import {
   onAuthStateChange,
   getCurrentUser,
@@ -68,6 +69,7 @@ function App() {
   const activeTaskId = useTaskStore((s) => s.activeTaskId);
   const showSettings = useTaskStore((s) => s.showSettings);
   const setShowSettings = useTaskStore((s) => s.setShowSettings);
+  const authUser = useAuthStore((s) => s.user);
 
   // グローバルTickの開始（全タイマーインスタンスを1秒間隔で処理）
   React.useEffect(() => {
@@ -260,7 +262,7 @@ function App() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="ml-auto flex items-center gap-1 px-3">
+          <div className="ml-auto flex items-center gap-1.5 px-3">
             <Button
               variant="ghost"
               size="icon"
@@ -278,6 +280,7 @@ function App() {
                 <Moon className="h-4 w-4 shrink-0" />
               )}
             </Button>
+            {authUser && <HeaderUserAvatar user={authUser} />}
           </div>
         </header>
 
